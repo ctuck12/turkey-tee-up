@@ -195,6 +195,7 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, teams 
                   <div className="text-[#1a2744]/50 text-xs mt-0.5 truncate max-w-[200px]">
                     {[entry.team.player1, entry.team.player2, entry.team.player3, entry.team.player4]
                       .filter(Boolean)
+                      .map(name => (name ?? "").trim().split(/\s+/).pop() ?? name)
                       .join(" · ")}
                   </div>
                 </td>
