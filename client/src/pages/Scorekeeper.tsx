@@ -4,12 +4,11 @@ import { useParams } from "wouter";
 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ClipboardList, Target, Flag, ChevronLeft, ChevronRight, Check, Eye, EyeOff } from "lucide-react";
+import { Target, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Team, Hole, Score, ClosestToPin, Sponsor } from "@shared/schema";
 import atdLogo from "@/assets/atd-logo.png";
@@ -37,38 +36,38 @@ function CtpEntryModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[#1a2744] border-amber-500/25 text-[#1a2744] max-w-sm">
+      <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 text-[#1a2744] max-w-sm">
         <DialogHeader>
-          <DialogTitle className="text-[#b06b10] font-bold flex items-center gap-2">
-            <Target size={18} /> CTP – Hole {holeNumber}
+          <DialogTitle className="text-[#1a2744] font-bold flex items-center gap-2">
+            <Target size={18} className="text-[#b06b10]" /> CTP – Hole {holeNumber}
             {hole && <span className="text-[#1a2744]/55 text-sm">Par {hole.par}</span>}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 font-sans-app">
           <div>
-            <Label className="text-[#1a2744]/60 text-xs mb-1 block">Player Name</Label>
+            <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">Player Name</Label>
             <Input
               value={playerName}
               onChange={e => setPlayerName(e.target.value)}
               placeholder="Player's name"
-              className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]"
+              className="bg-white border-[#1a2744]/20 text-black placeholder:text-[#1a2744]/35"
               data-testid="input-ctp-player"
             />
           </div>
           <div>
-            <Label className="text-[#1a2744]/60 text-xs mb-1 block">Distance (e.g. 4'6" or 1.2m)</Label>
+            <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">Distance (e.g. 4'6" or 1.2m)</Label>
             <Input
               value={distance}
               onChange={e => setDistance(e.target.value)}
               placeholder="e.g. 4'6 or 1.2m"
-              className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]"
+              className="bg-white border-[#1a2744]/20 text-black placeholder:text-[#1a2744]/35"
               data-testid="input-ctp-distance"
             />
           </div>
           <div className="flex gap-2 pt-2">
             <Button
               onClick={() => onSave({ holeNumber, playerName, distance })}
-              className="flex-1 bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30"
+              className="flex-1 bg-[#b06b10] border border-[#b06b10] text-white hover:bg-[#8a5008]"
               data-testid="button-ctp-save"
             >
               <Check size={14} className="mr-1.5" /> Save CTP
@@ -94,7 +93,6 @@ export default function Scorekeeper() {
   const [authError, setAuthError] = useState("");
   const [currentHole, setCurrentHole] = useState(1);
   const [ctpModalHole, setCtpModalHole] = useState<number | null>(null);
-  const [showScorecard, setShowScorecard] = useState(false);
 
   const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
   const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
@@ -318,19 +316,8 @@ export default function Scorekeeper() {
         </div>
       )}
 
-      {/* Tabs: Score Entry / CTP */}
-      <Tabs defaultValue="entry">
-        <TabsList className="bg-[#1a2744]/5 border border-[#1a2744]/12 w-full">
-          <TabsTrigger value="entry" className="flex-1 font-sans-app data-[state=active]:bg-amber-500/25 data-[state=active]:text-[#b06b10]">
-            <ClipboardList size={14} className="mr-1.5" /> Score Entry
-          </TabsTrigger>
-          <TabsTrigger value="ctp" className="flex-1 font-sans-app data-[state=active]:bg-amber-500/25 data-[state=active]:text-[#b06b10]">
-            <Target size={14} className="mr-1.5" /> CTP
-          </TabsTrigger>
-        </TabsList>
-
-        {/* SCORE ENTRY TAB */}
-        <TabsContent value="entry" className="space-y-4 mt-4">
+      {/* Score Entry — no tabs */}
+      <div className="space-y-4">
           {/* Hole navigation */}
           <div className="atd-card rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
@@ -424,50 +411,7 @@ export default function Scorekeeper() {
             </div>
             <ScorecardLegend />
           </div>
-        </TabsContent>
-
-        {/* CTP TAB */}
-        <TabsContent value="ctp" className="mt-4">
-          <div className="atd-card rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Target size={16} className="text-[#b06b10]" />
-              <h3 className="font-bold text-[#b06b10] font-sans-app">Closest to the Pin Holes</h3>
-            </div>
-            {ctpHoles.length === 0 ? (
-              <p className="text-[#1a2744]/50 text-sm font-sans-app italic">No CTP holes configured yet.</p>
-            ) : (
-              ctpHoles.map(hole => {
-                const entry = ctpEntries.find(c => c.holeNumber === hole.holeNumber);
-                return (
-                  <div key={hole.id} className="flex items-center justify-between bg-[#1a2744]/5 rounded-lg p-3 border border-amber-500/10">
-                    <div>
-                      <div className="font-bold text-[#1a2744] font-sans-app">Hole {hole.holeNumber} · Par {hole.par}</div>
-                      {hole.ctpLabel && <div className="text-[#b06b10]/60 text-xs font-sans-app">{hole.ctpLabel}</div>}
-                      {entry?.playerName ? (
-                        <div className="mt-1">
-                          <span className="text-amber-300 text-sm font-bold">{entry.playerName}</span>
-                          {entry.distance && <span className="text-green-400 ml-2 font-bold">{entry.distance}</span>}
-                        </div>
-                      ) : (
-                        <span className="text-[#1a2744]/35 text-xs italic font-sans-app">No entry</span>
-                      )}
-                    </div>
-                    <Button
-                      onClick={() => setCtpModalHole(hole.holeNumber)}
-                      variant="outline"
-                      size="sm"
-                      className="border-amber-500/30 text-[#b06b10]/80 hover:text-[#b06b10] hover:border-amber-500/60 font-sans-app"
-                      data-testid={`button-edit-ctp-${hole.holeNumber}`}
-                    >
-                      {entry?.playerName ? "Update" : "Enter"}
-                    </Button>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+      </div>
 
       {/* CTP Modal */}
       {ctpModalHole !== null && (
