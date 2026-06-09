@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Trophy, Target, Wifi, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { Trophy, Target, Wifi, Users, ChevronDown, ChevronUp, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { LeaderboardEntry, Hole, ClosestToPin, Team, Sponsor } from "@shared/schema";
@@ -54,26 +54,51 @@ function formatCtpDistance(raw: string | null | undefined): string {
   return `${feet}' ${rem}"`;
 }
 
-function CtpGrid({ ctpEntries, ctpHoles, teams, flight }: { ctpEntries: ClosestToPin[]; ctpHoles: Hole[]; teams: Team[]; flight: "morning" | "afternoon" }) {
+function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: ClosestToPin[]; ctpHoles: Hole[]; ldHole?: Hole; teams: Team[]; flight: "morning" | "afternoon" }) {
   const flightTeamIds = new Set(teams.filter(t => t.flight === flight).map(t => t.id));
+
+  // Combine CTP holes + LD hole for rendering
+  const allHoles: Array<{ hole: Hole; isLd: boolean }> = [
+    ...ctpHoles.map(h => ({ hole: h, isLd: false })),
+    ...(ldHole ? [{ hole: ldHole, isLd: true }] : []),
+  ];
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {ctpHoles.map(hole => {
+      {allHoles.map(({ hole, isLd }) => {
         // Only show entry if it belongs to a team in this flight
         const entry = ctpEntries.find(c => c.holeNumber === hole.holeNumber && c.teamId != null && flightTeamIds.has(c.teamId!));
         const team = entry?.teamId ? teams.find(t => t.id === entry.teamId) : null;
         return (
-          <div key={hole.id} className="bg-white border border-[#1a2744]/20 rounded-lg p-3 shadow-sm">
-            <div className="text-xs font-sans-app mb-1">
-              <span className="font-bold text-[#b06b10]">Hole {hole.holeNumber}</span>
-              {hole.ctpLabel && <span className="ml-1 text-[#1a2744]/45">· {hole.ctpLabel}</span>}
+          <div
+            key={hole.id}
+            className={`bg-white rounded-lg p-3 shadow-sm ${
+              isLd ? "border border-emerald-600/25" : "border border-[#1a2744]/20"
+            }`}
+          >
+            <div className="text-xs font-sans-app mb-1 flex items-center gap-1">
+              {isLd ? (
+                <>
+                  <Zap size={11} className="text-emerald-600" />
+                  <span className="font-bold text-emerald-700">Hole {hole.holeNumber} — Long Drive</span>
+                </>
+              ) : (
+                <>
+                  <span className="font-bold text-[#b06b10]">Hole {hole.holeNumber}</span>
+                  {hole.ctpLabel && <span className="ml-1 text-[#1a2744]/45">· {hole.ctpLabel}</span>}
+                </>
+              )}
             </div>
             {entry && (entry.playerName || team) ? (
               <>
                 <div className="text-[#1a2744] font-bold text-sm">{entry.playerName || team?.teamName}</div>
                 {team && <div className="text-[#1a2744]/55 text-xs font-sans-app">{team.teamName}</div>}
                 {entry.distance && (
-                  <div className="text-green-700 font-bold text-base mt-1">{formatCtpDistance(entry.distance)}</div>
+                  <div className={`font-bold text-base mt-1 ${
+                    isLd ? "text-emerald-700" : "text-green-700"
+                  }`}>
+                    {isLd ? `${entry.distance} yds` : formatCtpDistance(entry.distance)}
+                  </div>
                 )}
               </>
             ) : (
@@ -88,7 +113,8 @@ function CtpGrid({ ctpEntries, ctpHoles, teams, flight }: { ctpEntries: ClosestT
 
 function CtpPanel({ ctpEntries, holes, teams }: { ctpEntries: ClosestToPin[]; holes: Hole[]; teams: Team[] }) {
   const ctpHoles = holes.filter(h => h.isCtpHole);
-  if (ctpHoles.length === 0) return null;
+  const ldHole = holes.find(h => h.holeNumber === 15);
+  if (ctpHoles.length === 0 && !ldHole) return null;
 
   return (
     <div className="atd-card rounded-xl p-4 mb-6">
@@ -110,22 +136,23 @@ function CtpPanel({ ctpEntries, holes, teams }: { ctpEntries: ClosestToPin[]; ho
           </TabsTrigger>
         </TabsList>
         <TabsContent value="morning">
-          <CtpGrid ctpEntries={ctpEntries} ctpHoles={ctpHoles} teams={teams} flight="morning" />
+          <CtpGrid ctpEntries={ctpEntries} ctpHoles={ctpHoles} ldHole={ldHole} teams={teams} flight="morning" />
         </TabsContent>
         <TabsContent value="afternoon">
-          <CtpGrid ctpEntries={ctpEntries} ctpHoles={ctpHoles} teams={teams} flight="afternoon" />
+          <CtpGrid ctpEntries={ctpEntries} ctpHoles={ctpHoles} ldHole={ldHole} teams={teams} flight="afternoon" />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, teams }: {
+function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole, teams }: {
   entries: LeaderboardEntry[];
   label: string;
   flight: "morning" | "afternoon";
   ctpEntries: ClosestToPin[];
   ctpHoles: Hole[];
+  ldHole?: Hole;
   teams: Team[];
 }) {
   const [, navigate] = useLocation();
@@ -162,10 +189,10 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, teams 
         </button>
       </div>
 
-      {/* CTP panel — shown inline when toggled */}
-      {showCtp && ctpHoles.length > 0 && (
+      {/* CTP / LD panel — shown inline when toggled */}
+      {showCtp && (ctpHoles.length > 0 || ldHole) && (
         <div className="px-4 py-3 border-b border-amber-500/15 bg-amber-500/5">
-          <CtpGrid ctpEntries={ctpEntries} ctpHoles={ctpHoles} teams={teams} flight={flight} />
+          <CtpGrid ctpEntries={ctpEntries} ctpHoles={ctpHoles} ldHole={ldHole} teams={teams} flight={flight} />
         </div>
       )}
 
@@ -282,7 +309,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={morningTeams} label="Morning" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole)} teams={teams} />
+              <LeaderboardTable entries={morningTeams} label="Morning" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole)} ldHole={holes.find(h => h.holeNumber === 15)} teams={teams} />
             )}
           </TabsContent>
           <TabsContent value="afternoon">
@@ -293,7 +320,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={afternoonTeams} label="Afternoon" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole)} teams={teams} />
+              <LeaderboardTable entries={afternoonTeams} label="Afternoon" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole)} ldHole={holes.find(h => h.holeNumber === 15)} teams={teams} />
             )}
           </TabsContent>
         </Tabs>

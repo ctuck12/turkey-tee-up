@@ -4,7 +4,7 @@ import { useParams } from "wouter";
 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Target, ChevronRight, Check } from "lucide-react"; // Check still used in CTP modal
+import { Target, ChevronRight, Check, Zap } from "lucide-react"; // Zap = Long Drive icon
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,9 +15,9 @@ import type { Team, Hole, Score, ClosestToPin, Sponsor } from "@shared/schema";
 import atdLogo from "@/assets/atd-logo.png";
 import { ScorecardTable } from "@/components/ScorecardTable";
 
-// CTP Entry Modal
+// CTP / Long Drive Entry Modal
 function CtpEntryModal({
-  open, onClose, holeNumber, hole, teamPlayers, currentEntry, onSave
+  open, onClose, holeNumber, hole, teamPlayers, currentEntry, onSave, mode
 }: {
   open: boolean;
   onClose: () => void;
@@ -26,7 +26,9 @@ function CtpEntryModal({
   teamPlayers: string[];
   currentEntry?: ClosestToPin;
   onSave: (data: { holeNumber: number; teamId?: number; playerName?: string; distance?: string }) => void;
+  mode?: "ctp" | "ld";
 }) {
+  const isLd = mode === "ld";
   const [playerName, setPlayerName] = useState(currentEntry?.playerName ?? "");
   const [distance, setDistance] = useState(currentEntry?.distance ?? "");
   const [showPlayerList, setShowPlayerList] = useState(false);
@@ -42,7 +44,11 @@ function CtpEntryModal({
       <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 text-[#1a2744] max-w-sm">
         <DialogHeader>
           <DialogTitle className="text-[#1a2744] font-bold flex items-center gap-2">
-            <Target size={18} className="text-[#b06b10]" /> CTP – Hole {holeNumber}
+            {isLd
+              ? <Zap size={18} className="text-emerald-600" />
+              : <Target size={18} className="text-[#b06b10]" />
+            }
+            {isLd ? `Long Drive – Hole ${holeNumber}` : `CTP – Hole ${holeNumber}`}
             {hole && <span className="text-[#1a2744]/55 text-sm">Par {hole.par}</span>}
           </DialogTitle>
         </DialogHeader>
@@ -80,28 +86,36 @@ function CtpEntryModal({
             )}
           </div>
           <div>
-            <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">Distance (inches)</Label>
+            <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">
+              {isLd ? "Distance (yards)" : "Distance (inches)"}
+            </Label>
             <Input
               value={distance}
               onChange={e => {
                 const val = e.target.value.replace(/[^0-9]/g, "");
                 setDistance(val);
               }}
-              placeholder="e.g. 27"
+              placeholder={isLd ? "e.g. 285" : "e.g. 27"}
               inputMode="numeric"
               pattern="[0-9]*"
               className="bg-white border-[#1a2744]/20 text-black placeholder:text-[#1a2744]/35"
               data-testid="input-ctp-distance"
             />
-            <p className="text-[#1a2744]/45 text-[11px] mt-1 font-sans-app">Enter total inches — will display as feet &amp; inches on leaderboard</p>
+            {!isLd && (
+              <p className="text-[#1a2744]/45 text-[11px] mt-1 font-sans-app">Enter total inches — will display as feet &amp; inches on leaderboard</p>
+            )}
           </div>
           <div className="flex gap-2 pt-2">
             <Button
               onClick={() => onSave({ holeNumber, playerName, distance })}
-              className="flex-1 bg-[#b06b10] border border-[#b06b10] text-white hover:bg-[#8a5008]"
+              className={`flex-1 text-white ${
+                isLd
+                  ? "bg-emerald-600 border border-emerald-600 hover:bg-emerald-700"
+                  : "bg-[#b06b10] border border-[#b06b10] hover:bg-[#8a5008]"
+              }`}
               data-testid="button-ctp-save"
             >
-              <Check size={14} className="mr-1.5" /> Save CTP
+              <Check size={14} className="mr-1.5" /> {isLd ? "Save Long Drive" : "Save CTP"}
             </Button>
             <Button variant="ghost" onClick={onClose} className="text-[#1a2744]/55 hover:text-[#1a2744]">
               Cancel
@@ -125,6 +139,8 @@ export default function Scorekeeper() {
   const [currentHole, setCurrentHole] = useState(1);
   const [ctpModalHole, setCtpModalHole] = useState<number | null>(null);
   const [ctpWarningHole, setCtpWarningHole] = useState<number | null>(null);
+  const [ldModalHole, setLdModalHole] = useState<number | null>(null);
+  const [ldWarningHole, setLdWarningHole] = useState<number | null>(null);
   const [showRoundComplete, setShowRoundComplete] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -199,6 +215,17 @@ export default function Scorekeeper() {
     },
   });
 
+  const ldMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/ctp", data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/ctp"] });
+      // Advance after saving LD (modal opened from warning)
+      if (ldModalHole !== null) advanceHole(ldModalHole);
+      setLdModalHole(null);
+      toast({ title: "Long Drive entry saved!" });
+    },
+  });
+
   async function handleLogin() {
     try {
       const res = await apiRequest("POST", "/api/auth/scorekeeper", { teamCode: teamCode.toUpperCase().trim() });
@@ -232,6 +259,13 @@ export default function Scorekeeper() {
     const ctpAlreadySaved = ctpEntries.some(c => c.holeNumber === currentHole);
     if (isCtp && !ctpAlreadySaved) {
       setCtpWarningHole(currentHole);
+      return;
+    }
+    // If this is hole 15 (Long Drive hole) and no LD entry yet, show LD warning
+    const isLdHole = currentHole === 15;
+    const ldAlreadySaved = ctpEntries.some(c => c.holeNumber === 15);
+    if (isLdHole && !ldAlreadySaved) {
+      setLdWarningHole(currentHole);
       return;
     }
     // Otherwise advance normally
@@ -407,6 +441,11 @@ export default function Scorekeeper() {
                       <Target size={10} className="mr-1" /> CTP
                     </Badge>
                   )}
+                  {currentHole === 15 && (
+                    <Badge className="bg-emerald-600/20 text-emerald-800 border-emerald-600/35 text-xs">
+                      <Zap size={10} className="mr-1" /> LD
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center justify-center gap-3 mt-1 font-sans-app text-xs text-[#1a2744]/55">
                   <span>Par {par}</span>
@@ -465,7 +504,16 @@ export default function Scorekeeper() {
                 data-testid="button-enter-ctp"
               >
                 <Target size={14} /> Enter Closest to Pin for Hole {currentHole}
-              
+              </button>
+            )}
+            {/* Long Drive quick-entry if this is hole 15 */}
+            {currentHole === 15 && (
+              <button
+                onClick={() => setLdModalHole(currentHole)}
+                className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-600/15 border border-emerald-600/30 text-emerald-800 hover:bg-emerald-600/22 transition-all font-sans-app text-sm font-bold"
+                data-testid="button-enter-ld"
+              >
+                <Zap size={14} /> Enter Long Drive for Hole 15
               </button>
             )}
           </div>
@@ -530,6 +578,60 @@ export default function Scorekeeper() {
           teamPlayers={[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean) as string[]}
           currentEntry={ctpEntries.find(c => c.holeNumber === ctpModalHole)}
           onSave={data => ctpMutation.mutate({ ...data, teamId: authedTeam.id })}
+          mode="ctp"
+        />
+      )}
+
+      {/* LD Warning Dialog */}
+      {ldWarningHole !== null && (
+        <Dialog open={true} onOpenChange={() => {
+          advanceHole(ldWarningHole);
+          setLdWarningHole(null);
+        }}>
+          <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-[#1a2744] font-bold flex items-center gap-2">
+                <Zap size={18} className="text-emerald-600" /> Long Drive
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-[#1a2744]/75 font-sans-app text-sm">
+              Did one of your players have the longest drive on Hole {ldWarningHole}?
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setLdModalHole(ldWarningHole);
+                  setLdWarningHole(null);
+                }}
+                className="flex-1 py-2.5 rounded-lg bg-emerald-600 text-white font-bold font-sans-app text-sm hover:bg-emerald-700 transition-colors"
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => {
+                  advanceHole(ldWarningHole);
+                  setLdWarningHole(null);
+                }}
+                className="flex-1 py-2.5 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
+              >
+                No
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* LD Modal */}
+      {ldModalHole !== null && (
+        <CtpEntryModal
+          open={ldModalHole !== null}
+          onClose={() => setLdModalHole(null)}
+          holeNumber={ldModalHole}
+          hole={holeMap.get(ldModalHole)}
+          teamPlayers={[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean) as string[]}
+          currentEntry={ctpEntries.find(c => c.holeNumber === ldModalHole)}
+          onSave={data => ldMutation.mutate({ ...data, teamId: authedTeam.id })}
+          mode="ld"
         />
       )}
 
@@ -587,19 +689,31 @@ export default function Scorekeeper() {
                 ))}
               </div>
 
-              {/* CTP entries */}
+              {/* CTP / LD entries */}
               {myCtp.length > 0 && (
                 <div className="bg-white rounded-xl border border-amber-500/20 p-3 space-y-1.5">
-                  <p className="text-[#b06b10] text-xs uppercase tracking-widest font-bold font-sans-app mb-2">Closest to the Pin</p>
+                  <p className="text-[#b06b10] text-xs uppercase tracking-widest font-bold font-sans-app mb-2">CTP &amp; Long Drive</p>
                   {myCtp.map(c => {
-                    const inches = parseInt(c.distance ?? "");
-                    const distFmt = !isNaN(inches)
-                      ? inches < 12 ? `${inches}"` : `${Math.floor(inches/12)}' ${inches%12}"`
-                      : c.distance ?? "";
+                    const isLdEntry = c.holeNumber === 15;
+                    const distFmt = isLdEntry
+                      ? (c.distance ? `${c.distance} yds` : "")
+                      : (() => {
+                          const inches = parseInt(c.distance ?? "");
+                          return !isNaN(inches)
+                            ? inches < 12 ? `${inches}"` : `${Math.floor(inches/12)}' ${inches%12}"`
+                            : c.distance ?? "";
+                        })();
                     return (
                       <div key={c.id} className="flex items-center justify-between text-sm font-sans-app">
-                        <span className="text-[#1a2744]/70">Hole {c.holeNumber} — <span className="font-bold text-[#1a2744]">{c.playerName}</span></span>
-                        <span className="text-green-700 font-bold">{distFmt}</span>
+                        <span className="text-[#1a2744]/70">
+                          {isLdEntry ? (
+                            <span className="text-emerald-700 font-bold">Long Drive</span>
+                          ) : (
+                            <>Hole {c.holeNumber} CTP</>  
+                          )}
+                          {" — "}<span className="font-bold text-[#1a2744]">{c.playerName}</span>
+                        </span>
+                        <span className={isLdEntry ? "text-emerald-700 font-bold" : "text-green-700 font-bold"}>{distFmt}</span>
                       </div>
                     );
                   })}
