@@ -39,8 +39,8 @@ function AppHeader() {
               <div className="text-[#b06b10] font-bold text-sm leading-tight tracking-wide">
                 ABILENE TURKEY DRIVE
               </div>
-              <div className="text-blue-200/80 text-[11px] tracking-normal font-medium leading-tight">
-                5th Annual Turkey Tee Up
+              <div className="text-blue-200/80 text-[13px] leading-tight" style={{ fontFamily: "'Barlow Condensed', 'DM Sans', sans-serif", letterSpacing: "0.08em", fontWeight: 600 }}>
+                5TH ANNUAL TURKEY TEE UP
               </div>
             </div>
           </Link>
