@@ -28,10 +28,12 @@ function CtpEntryModal({
 }) {
   const [playerName, setPlayerName] = useState(currentEntry?.playerName ?? "");
   const [distance, setDistance] = useState(currentEntry?.distance ?? "");
+  const [showPlayerList, setShowPlayerList] = useState(false);
 
   useEffect(() => {
     setPlayerName(currentEntry?.playerName ?? "");
     setDistance(currentEntry?.distance ?? "");
+    setShowPlayerList(false);
   }, [currentEntry, open]);
 
   return (
@@ -44,19 +46,37 @@ function CtpEntryModal({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 font-sans-app">
-          <div>
+          <div className="relative">
             <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">Player Name</Label>
-            <select
-              value={playerName}
-              onChange={e => setPlayerName(e.target.value)}
-              className="w-full rounded-md border border-[#1a2744]/20 bg-white text-black px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#b06b10]/40"
+            <button
+              type="button"
+              onClick={() => setShowPlayerList(v => !v)}
+              className="w-full flex items-center justify-between rounded-md border border-[#1a2744]/20 bg-white text-black px-3 py-2 text-sm text-left"
               data-testid="input-ctp-player"
             >
-              <option value="">Select a player...</option>
-              {teamPlayers.map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
+              <span className={playerName ? "text-black" : "text-[#1a2744]/40"}>
+                {playerName || "Select a player..."}
+              </span>
+              <svg className={`w-4 h-4 text-[#1a2744]/50 transition-transform ${showPlayerList ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+            </button>
+            {showPlayerList && (
+              <div className="absolute z-50 mt-1 w-full bg-white border border-[#1a2744]/20 rounded-md shadow-lg overflow-hidden">
+                {teamPlayers.map(p => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => { setPlayerName(p); setShowPlayerList(false); }}
+                    className={`w-full text-left px-3 py-2.5 text-sm font-sans-app transition-colors ${
+                      playerName === p
+                        ? "bg-[#1a2744] text-white font-bold"
+                        : "text-[#1a2744] hover:bg-[#1a2744]/8"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div>
             <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">Distance (inches)</Label>
