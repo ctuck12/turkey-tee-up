@@ -145,6 +145,16 @@
     font-weight: 600;
   }
 
+  .scorecard-table td.subtotal-col {
+    background: rgba(176, 107, 16, 0.18) !important;
+    color: #1a2744 !important;
+  }
+
+  .scorecard-table td.total-col {
+    background: rgba(26, 39, 68, 0.18) !important;
+    color: #1a2744 !important;
+  }
+
   .scorecard-table .total-row td {
     background: var(--atd-navy);
     color: var(--atd-gold-light);

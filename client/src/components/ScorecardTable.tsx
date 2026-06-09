@@ -113,10 +113,10 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
           <tr>
             <th style={{ width: "52px", textAlign: "left", paddingLeft: "8px" }}>Hole</th>
             {front9.map(n => <th key={n}>{n}</th>)}
-            <th className="bg-[#1a2744]/8">OUT</th>
+            <th className="bg-[#b06b10]/20">OUT</th>
             {back9.map(n => <th key={n}>{n}</th>)}
-            <th className="bg-[#1a2744]/8">IN</th>
-            <th className="bg-[#1a2744]/12 text-[#c8892a]">TOT</th>
+            <th className="bg-[#b06b10]/20">IN</th>
+            <th className="bg-[#1a2744]/20 text-[#c8892a]">TOT</th>
           </tr>
         </thead>
         <tbody>
@@ -124,14 +124,14 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
           <tr className="par-row">
             <td style={{ textAlign: "left", paddingLeft: "8px" }} className="text-[#1a2744]/55 text-xs">Yds</td>
             {front9.map(n => <td key={n} className="text-center text-[#1a2744]/55 text-xs">{holeMap.get(n)?.yardageBlue ?? "—"}</td>)}
-            <td className="text-center font-bold text-[#1a2744]/60 bg-[#1a2744]/5 text-xs">
+            <td className="subtotal-col font-bold text-xs">
               {front9.reduce((s, n) => s + (holeMap.get(n)?.yardageBlue ?? 0), 0)}
             </td>
             {back9.map(n => <td key={n} className="text-center text-[#1a2744]/55 text-xs">{holeMap.get(n)?.yardageBlue ?? "—"}</td>)}
-            <td className="text-center font-bold text-[#1a2744]/60 bg-[#1a2744]/5 text-xs">
+            <td className="subtotal-col font-bold text-xs">
               {back9.reduce((s, n) => s + (holeMap.get(n)?.yardageBlue ?? 0), 0)}
             </td>
-            <td className="text-center font-bold text-[#1a2744]/60 bg-[#1a2744]/8 text-xs">
+            <td className="total-col font-bold text-xs">
               {sortedHoles.reduce((s, h) => s + (h.yardageBlue ?? 0), 0)}
             </td>
           </tr>
@@ -140,20 +140,20 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
           <tr className="score-row">
             <td style={{ textAlign: "left", paddingLeft: "8px" }} className="text-[#1a2744]/50 text-xs">Hdcp</td>
             {front9.map(n => <td key={n} className="text-center text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
-            <td className="bg-[#1a2744]/5"></td>
+            <td className="subtotal-col"></td>
             {back9.map(n => <td key={n} className="text-center text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
-            <td className="bg-[#1a2744]/5"></td>
-            <td className="bg-[#1a2744]/8"></td>
+            <td className="subtotal-col"></td>
+            <td className="total-col"></td>
           </tr>
 
           {/* Par row — white */}
           <tr className="score-row">
             <td style={{ textAlign: "left", paddingLeft: "8px" }} className="font-bold">Par</td>
             {front9.map(n => <td key={n}>{holeMap.get(n)?.par ?? 4}</td>)}
-            <td className="font-bold bg-[#1a2744]/8">{parTotal(front9)}</td>
+            <td className="subtotal-col font-bold">{parTotal(front9)}</td>
             {back9.map(n => <td key={n}>{holeMap.get(n)?.par ?? 4}</td>)}
-            <td className="font-bold bg-[#1a2744]/8">{parTotal(back9)}</td>
-            <td className="font-bold bg-[#1a2744]/12">{totalPar}</td>
+            <td className="subtotal-col font-bold">{parTotal(back9)}</td>
+            <td className="total-col font-bold">{totalPar}</td>
           </tr>
 
           {/* Score row — white, gold top border */}
@@ -162,16 +162,16 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
             {front9.map(n => (
               <ScoreCell key={n} strokes={scoreMap.get(n)?.strokes} par={holeMap.get(n)?.par ?? 4} />
             ))}
-            <td className="font-bold bg-[#1a2744]/5">
+            <td className="subtotal-col font-bold">
               {front9.some(n => scoreMap.get(n)?.strokes) ? holeTotal(front9) : "—"}
             </td>
             {back9.map(n => (
               <ScoreCell key={n} strokes={scoreMap.get(n)?.strokes} par={holeMap.get(n)?.par ?? 4} />
             ))}
-            <td className="font-bold bg-[#1a2744]/5">
+            <td className="subtotal-col font-bold">
               {back9.some(n => scoreMap.get(n)?.strokes) ? holeTotal(back9) : "—"}
             </td>
-            <td className="font-bold text-base bg-[#1a2744]/8">
+            <td className="total-col font-bold text-base">
               {hasScores ? (
                 <div>
                   <div>{totalStrokes}</div>
