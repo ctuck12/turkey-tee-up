@@ -43,6 +43,17 @@ function SponsorBanner({ sponsors, placement }: { sponsors: Sponsor[]; placement
   );
 }
 
+function formatCtpDistance(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const inches = parseInt(raw, 10);
+  if (isNaN(inches) || inches < 0) return raw; // fallback: show as-is if not a plain number
+  const feet = Math.floor(inches / 12);
+  const rem  = inches % 12;
+  if (feet === 0) return `${rem}"`;
+  if (rem === 0)  return `${feet}'`;
+  return `${feet}' ${rem}"`;
+}
+
 function CtpGrid({ ctpEntries, ctpHoles, teams, flight }: { ctpEntries: ClosestToPin[]; ctpHoles: Hole[]; teams: Team[]; flight: "morning" | "afternoon" }) {
   const flightTeamIds = new Set(teams.filter(t => t.flight === flight).map(t => t.id));
   return (
@@ -62,7 +73,7 @@ function CtpGrid({ ctpEntries, ctpHoles, teams, flight }: { ctpEntries: ClosestT
                 <div className="text-[#1a2744] font-bold text-sm">{entry.playerName || team?.teamName}</div>
                 {team && <div className="text-[#1a2744]/55 text-xs font-sans-app">{team.teamName}</div>}
                 {entry.distance && (
-                  <div className="text-green-700 font-bold text-base mt-1">{entry.distance}</div>
+                  <div className="text-green-700 font-bold text-base mt-1">{formatCtpDistance(entry.distance)}</div>
                 )}
               </>
             ) : (

@@ -55,14 +55,20 @@ function CtpEntryModal({
             />
           </div>
           <div>
-            <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">Distance (e.g. 4'6" or 1.2m)</Label>
+            <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">Distance (inches)</Label>
             <Input
               value={distance}
-              onChange={e => setDistance(e.target.value)}
-              placeholder="e.g. 4'6 or 1.2m"
+              onChange={e => {
+                const val = e.target.value.replace(/[^0-9]/g, "");
+                setDistance(val);
+              }}
+              placeholder="e.g. 27"
+              inputMode="numeric"
+              pattern="[0-9]*"
               className="bg-white border-[#1a2744]/20 text-black placeholder:text-[#1a2744]/35"
               data-testid="input-ctp-distance"
             />
+            <p className="text-[#1a2744]/45 text-[11px] mt-1 font-sans-app">Enter total inches — will display as feet &amp; inches on leaderboard</p>
           </div>
           <div className="flex gap-2 pt-2">
             <Button
@@ -393,10 +399,11 @@ export default function Scorekeeper() {
             {currentHoleData?.isCtpHole && (
               <button
                 onClick={() => setCtpModalHole(currentHole)}
-                className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[#b06b10]/80 hover:bg-amber-500/25 hover:text-[#b06b10] transition-all font-sans-app text-sm"
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[#1a2744]/80 border border-[#1a2744] text-white hover:bg-[#1a2744] transition-all font-sans-app text-sm font-bold"
                 data-testid="button-enter-ctp"
               >
                 <Target size={14} /> Enter Closest to Pin for Hole {currentHole}
+              
               </button>
             )}
           </div>
