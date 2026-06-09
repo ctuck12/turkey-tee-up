@@ -27,32 +27,9 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // ─── DEBUG ─────────────────────────────────────────────────────────────────
-  app.get("/api/debug", async (_req, res) => {
-    try {
-      const { createClient } = await import("@supabase/supabase-js");
-      const url = process.env.SUPABASE_URL || "hardcoded";
-      const key = process.env.SUPABASE_SERVICE_ROLE_KEY ? "env-set" : "using-hardcoded";
-      const testClient = createClient(
-        process.env.SUPABASE_URL || "https://dqxpnqkfkzpxlivulqhe.supabase.co",
-        process.env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRxeHBucWtma3pweGxpdnVscWhlIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDk2MzE1NywiZXhwIjoyMDk2NTM5MTU3fQ.I4VAiM-4NUjlCsPj56xGiTl4xsdI-5XY0cmrCUteuxg",
-        { auth: { autoRefreshToken: false, persistSession: false } }
-      );
-      const { data, error } = await testClient.from("tournament_settings").select("id,admin_password").eq("id", 1).single();
-      res.json({ url, key, data, error: error?.message });
-    } catch(e: any) {
-      res.json({ error: e.message });
-    }
-  });
-
   // ─── SETTINGS ─────────────────────────────────────────────────────────────
   app.get("/api/settings", async (_req, res) => {
-    const settings = await storage.getSettings();
-    if (!settings) {
-      res.status(404).json({ error: "Settings not found" });
-    } else {
-      res.json(settings);
-    }
+    res.json(await storage.getSettings());
   });
 
   app.put("/api/settings", async (req: Request, res: Response) => {
