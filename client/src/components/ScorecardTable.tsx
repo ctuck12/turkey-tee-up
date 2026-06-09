@@ -123,15 +123,15 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
           {/* Yardage row — gray tint */}
           <tr className="par-row">
             <td className="text-left px-2 text-[#1a2744]/55 text-xs">Yds</td>
-            {front9.map(n => <td key={n} className="text-[#1a2744]/55 text-xs">{holeMap.get(n)?.yardageBlue ?? "—"}</td>)}
-            <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/5 text-xs">
+            {front9.map(n => <td key={n} className="text-center text-[#1a2744]/55 text-xs">{holeMap.get(n)?.yardageBlue ?? "—"}</td>)}
+            <td className="text-center font-bold text-[#1a2744]/60 bg-[#1a2744]/5 text-xs">
               {front9.reduce((s, n) => s + (holeMap.get(n)?.yardageBlue ?? 0), 0)}
             </td>
-            {back9.map(n => <td key={n} className="text-[#1a2744]/55 text-xs">{holeMap.get(n)?.yardageBlue ?? "—"}</td>)}
-            <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/5 text-xs">
+            {back9.map(n => <td key={n} className="text-center text-[#1a2744]/55 text-xs">{holeMap.get(n)?.yardageBlue ?? "—"}</td>)}
+            <td className="text-center font-bold text-[#1a2744]/60 bg-[#1a2744]/5 text-xs">
               {back9.reduce((s, n) => s + (holeMap.get(n)?.yardageBlue ?? 0), 0)}
             </td>
-            <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/8 text-xs">
+            <td className="text-center font-bold text-[#1a2744]/60 bg-[#1a2744]/8 text-xs">
               {sortedHoles.reduce((s, h) => s + (h.yardageBlue ?? 0), 0)}
             </td>
           </tr>
@@ -139,9 +139,9 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
           {/* Handicap row — white */}
           <tr className="score-row">
             <td className="text-left px-2 text-[#1a2744]/50 text-xs">Hdcp</td>
-            {front9.map(n => <td key={n} className="text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
+            {front9.map(n => <td key={n} className="text-center text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
             <td className="bg-[#1a2744]/5"></td>
-            {back9.map(n => <td key={n} className="text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
+            {back9.map(n => <td key={n} className="text-center text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
             <td className="bg-[#1a2744]/5"></td>
             <td className="bg-[#1a2744]/8"></td>
           </tr>
