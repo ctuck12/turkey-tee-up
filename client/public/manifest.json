@@ -1,0 +1,24 @@
+{
+  "name": "Abilene Turkey Drive Golf Tournament",
+  "short_name": "ATD Golf",
+  "description": "Live leaderboard and score entry for the Abilene Turkey Drive Golf Tournament",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111b33",
+  "theme_color": "#1a2744",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/atd-icon.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/atd-icon.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ],
+  "categories": ["sports", "utilities"],
+  "lang": "en-US"
+}

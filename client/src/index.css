@@ -1,0 +1,237 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ATD Navy + Gold + Cream color palette */
+    /* Cream background, navy cards/header, gold accent */
+
+    --background: 36 28% 92%;
+    --foreground: 220 50% 14%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 50% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 50% 14%;
+
+    --primary: 220 55% 25%;
+    --primary-foreground: 36 28% 94%;
+
+    --secondary: 36 20% 88%;
+    --secondary-foreground: 220 50% 18%;
+
+    --muted: 36 18% 86%;
+    --muted-foreground: 220 25% 40%;
+
+    --accent: 36 75% 48%;
+    --accent-foreground: 220 50% 8%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 36 28% 94%;
+
+    --border: 220 20% 80%;
+    --input: 220 20% 80%;
+    --ring: 36 75% 48%;
+
+    --radius: 0.5rem;
+
+    /* Chart colors */
+    --chart-1: 36 75% 48%;
+    --chart-2: 220 55% 35%;
+    --chart-3: 103 43% 42%;
+    --chart-4: 0 62% 45%;
+    --chart-5: 188 35% 40%;
+
+    /* ATD Brand colors */
+    --atd-navy: #1a2744;
+    --atd-navy-dark: #111b33;
+    --atd-navy-light: #243461;
+    --atd-gold: #c8892a;
+    --atd-gold-light: #e8a840;
+    --atd-gold-dark: #a0691a;
+    --atd-cream: #f0ebe1;
+    --atd-cream-dark: #e6dfd3;
+    --atd-text-light: #e8e4d8;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Playfair Display', 'Georgia', serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .font-sans-app {
+    font-family: 'DM Sans', 'Inter', sans-serif;
+  }
+}
+
+/* ATD Custom utility classes */
+@layer components {
+  .atd-header {
+    background: linear-gradient(135deg, #111b33 0%, #1a2744 60%, #243461 100%);
+    border-bottom: 3px solid var(--atd-gold);
+  }
+
+  .atd-card {
+    background: #ffffff;
+    border: 1px solid rgba(26, 39, 68, 0.22);
+    box-shadow: 0 3px 16px rgba(26, 39, 68, 0.13);
+  }
+
+  .atd-gold-text {
+    color: var(--atd-gold-light);
+  }
+
+  .atd-navy-bg {
+    background-color: var(--atd-navy);
+  }
+
+  .score-eagle { color: #a0691a; font-weight: 700; }
+  .score-birdie { color: #c8892a; }
+  .score-par { color: #1a2744; }
+  .score-bogey { color: #c0323e; }
+  .score-double { color: #a02030; font-weight: 600; }
+  .score-worse { color: #7a1525; font-weight: 700; }
+
+  .to-par-under { color: #3d8a2a; font-weight: 700; }
+  .to-par-even { color: #1a2744; }
+  .to-par-over { color: #c0323e; }
+
+  /* Realistic scorecard */
+  .scorecard-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+  }
+
+  .scorecard-table th {
+    background: var(--atd-navy-dark);
+    color: var(--atd-gold-light);
+    padding: 6px 8px;
+    text-align: center;
+    border: 1px solid rgba(26, 39, 68, 0.3);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+  }
+
+  .scorecard-table td {
+    padding: 5px 8px;
+    text-align: center;
+    border: 1px solid rgba(26, 39, 68, 0.12);
+    color: #1a2744;
+    background: #faf8f4;
+  }
+
+  .scorecard-table .score-cell {
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+
+  .scorecard-table .par-row td {
+    background: #f0ebe1;
+    color: var(--atd-navy);
+    font-weight: 600;
+  }
+
+  .scorecard-table .total-row td {
+    background: var(--atd-navy);
+    color: var(--atd-gold-light);
+    font-weight: 700;
+    border-top: 2px solid var(--atd-gold);
+  }
+
+  /* Live pulse animation */
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .live-indicator {
+    animation: livePulse 2s ease-in-out infinite;
+  }
+
+  /* Sponsor banner */
+  .sponsor-logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    border: 1px solid rgba(200, 137, 42, 0.2);
+  }
+
+  /* Hole score circle styles */
+  .hole-score-eagle {
+    background: var(--atd-gold);
+    border-radius: 50%;
+    border: 2px solid var(--atd-gold-dark);
+    color: #fff;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+  }
+
+  .hole-score-birdie {
+    background: transparent;
+    border-radius: 50%;
+    border: 2px solid var(--atd-gold);
+    color: var(--atd-gold-dark);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+  }
+
+  .hole-score-bogey {
+    background: transparent;
+    border-radius: 2px;
+    border: 2px solid #c0323e;
+    color: #c0323e;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+  }
+
+  .hole-score-double {
+    background: transparent;
+    border-radius: 2px;
+    border: 3px solid #a02030;
+    color: #a02030;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+  }
+
+  .hole-score-par {
+    color: #1a2744;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+  }
+}
