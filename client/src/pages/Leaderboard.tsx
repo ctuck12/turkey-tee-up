@@ -208,11 +208,11 @@ export default function Leaderboard() {
   const queryClient = useQueryClient();
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const { data: leaderboard = [], isLoading: loadingLb } = useQuery<LeaderboardEntry[]>({ queryKey: ["/api/leaderboard"] });
-  const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
-  const { data: ctpEntries = [] } = useQuery<ClosestToPin[]>({ queryKey: ["/api/ctp"] });
-  const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
-  const { data: sponsors = [] } = useQuery<Sponsor[]>({ queryKey: ["/api/sponsors"] });
+  const { data: leaderboard = [], isLoading: loadingLb } = useQuery<LeaderboardEntry[]>({ queryKey: ["/api/leaderboard"], staleTime: 2000, placeholderData: (prev) => prev });
+  const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"], staleTime: 30000 });
+  const { data: ctpEntries = [] } = useQuery<ClosestToPin[]>({ queryKey: ["/api/ctp"], staleTime: 2000, placeholderData: (prev) => prev });
+  const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"], staleTime: 2000, placeholderData: (prev) => prev });
+  const { data: sponsors = [] } = useQuery<Sponsor[]>({ queryKey: ["/api/sponsors"], staleTime: 30000 });
 
   const refresh = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
