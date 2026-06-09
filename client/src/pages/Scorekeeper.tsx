@@ -4,7 +4,7 @@ import { useParams } from "wouter";
 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Target, ChevronLeft, ChevronRight, Check } from "lucide-react"; // Check still used in CTP modal
+import { Target, ChevronRight, Check } from "lucide-react"; // Check still used in CTP modal
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -179,7 +179,7 @@ export default function Scorekeeper() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/ctp"] });
       // Advance to next hole after saving CTP (modal was opened from warning)
-      if (ctpModalHole !== null && ctpModalHole < 18) setCurrentHole(ctpModalHole + 1);
+      if (ctpModalHole !== null) advanceHole(ctpModalHole);
       setCtpModalHole(null);
       toast({ title: "CTP entry saved!" });
     },
@@ -221,7 +221,7 @@ export default function Scorekeeper() {
       return;
     }
     // Otherwise advance normally
-    if (currentHole < 18) setCurrentHole(currentHole + 1);
+    advanceHole(currentHole);
   }
 
   // Quick score just selects — does NOT save or advance
@@ -309,6 +309,17 @@ export default function Scorekeeper() {
   }
 
   // ─── SCOREKEEPER MAIN ────────────────────────────────────────────────────────
+  // Starting hole from admin setup; last hole wraps around (e.g. start=7 → last=6, start=1 → last=18)
+  const startingHole = authedTeam.startingHole ?? 1;
+  const lastHole = startingHole === 1 ? 18 : startingHole - 1;
+
+  // Advance to next hole respecting the round boundary
+  function advanceHole(from: number) {
+    if (from === lastHole) return; // already on last hole, don't advance
+    const next = from === 18 ? 1 : from + 1;
+    setCurrentHole(next);
+  }
+
   const completedHoles = (teamScores.data ?? []).filter(s => s.strokes != null).length;
   const totalStrokes = (teamScores.data ?? []).filter(s => s.strokes != null).reduce((s, sc) => s + (sc.strokes ?? 0), 0);
   const totalPar = (teamScores.data ?? []).filter(s => s.strokes != null).reduce((s, sc) => {
@@ -360,14 +371,8 @@ export default function Scorekeeper() {
           {/* Hole navigation */}
           <div className="atd-card rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <button
-                onClick={() => setCurrentHole(Math.max(1, currentHole - 1))}
-                disabled={currentHole === 1}
-                className="p-2 rounded-lg bg-[#1a2744]/5 hover:bg-[#1a2744]/8 disabled:opacity-30 text-[#1a2744]/70 transition-colors"
-                data-testid="button-prev-hole"
-              >
-                <ChevronLeft size={20} />
-              </button>
+              {/* Back arrow hidden — scorekeepers cannot go backwards */}
+              <div className="w-10" />
               <div className="text-center">
                 <div className="text-[#b06b10]/70 text-xs uppercase tracking-widest font-sans-app">Hole</div>
                 <div className="flex items-center justify-center gap-2">
@@ -385,8 +390,8 @@ export default function Scorekeeper() {
                 </div>
               </div>
               <button
-                onClick={() => setCurrentHole(Math.min(18, currentHole + 1))}
-                disabled={currentHole === 18}
+                onClick={() => advanceHole(currentHole)}
+                disabled={currentHole === lastHole}
                 className="p-2 rounded-lg bg-[#1a2744]/5 hover:bg-[#1a2744]/8 disabled:opacity-30 text-[#1a2744]/70 transition-colors"
                 data-testid="button-next-hole"
               >
@@ -452,7 +457,7 @@ export default function Scorekeeper() {
       {ctpWarningHole !== null && (
         <Dialog open={true} onOpenChange={() => {
           // Dismiss = treat as No
-          if (ctpWarningHole < 18) setCurrentHole(ctpWarningHole + 1);
+          advanceHole(ctpWarningHole);
           setCtpWarningHole(null);
         }}>
           <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 max-w-sm">
@@ -467,7 +472,7 @@ export default function Scorekeeper() {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => {
-                  // Yes — open CTP modal, keep ctpWarningHole so onSuccess can advance
+                  // Yes — open CTP modal; onSuccess will call advanceHole
                   setCtpModalHole(ctpWarningHole);
                   setCtpWarningHole(null);
                 }}
@@ -478,7 +483,7 @@ export default function Scorekeeper() {
               <button
                 onClick={() => {
                   // No — just advance
-                  if (ctpWarningHole < 18) setCurrentHole(ctpWarningHole + 1);
+                  advanceHole(ctpWarningHole);
                   setCtpWarningHole(null);
                 }}
                 className="flex-1 py-2.5 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
