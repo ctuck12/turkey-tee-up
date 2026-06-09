@@ -66,10 +66,15 @@ export function ScoreCell({ strokes, par }: { strokes: number | null | undefined
 // Full scorecard table used in both TeamScorecard and Scorekeeper > Scorecard tab.
 // Edit rows, colors, column widths here — it updates everywhere automatically.
 export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score[] }) {
-  const holeMap = new Map(holes.map(h => [h.holeNumber, h]));
+  // Sort holes by hole number so columns are always in order
+  const sortedHoles = [...holes].sort((a, b) => a.holeNumber - b.holeNumber);
+  const holeMap = new Map(sortedHoles.map(h => [h.holeNumber, h]));
   const scoreMap = new Map(scores.map(s => [s.holeNumber, s]));
-  const front9 = Array.from({ length: 9 }, (_, i) => i + 1);
-  const back9  = Array.from({ length: 9 }, (_, i) => i + 10);
+
+  // Use actual hole numbers from the DB rather than assuming 1–18
+  const allHoleNums = sortedHoles.map(h => h.holeNumber);
+  const front9 = allHoleNums.filter(n => n <= 9);
+  const back9  = allHoleNums.filter(n => n >= 10);
 
   function holeTotal(holeNums: number[]) {
     return holeNums.reduce((sum, n) => sum + (scoreMap.get(n)?.strokes ?? 0), 0);
@@ -119,7 +124,7 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
               {back9.reduce((s, n) => s + (holeMap.get(n)?.yardageBlue ?? 0), 0)}
             </td>
             <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/8">
-              {holes.reduce((s, h) => s + (h.yardageBlue ?? 0), 0)}
+              {sortedHoles.reduce((s, h) => s + (h.yardageBlue ?? 0), 0)}
             </td>
           </tr>
 
