@@ -203,7 +203,7 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, teams 
                   {toParDisplay(entry.totalToPar, entry.holesCompleted)}
                 </td>
                 <td className="px-3 py-3 text-center text-[#1a2744]/60 text-sm">
-                  {entry.thruHole ? (entry.thruHole === 18 ? "F" : `${entry.thruHole}`) : <span className="text-[#1a2744]/35">—</span>}
+                  {entry.holesCompleted > 0 ? (entry.holesCompleted === 18 ? "F" : `${entry.holesCompleted}`) : <span className="text-[#1a2744]/35">—</span>}
                 </td>
               </tr>
             ))}
