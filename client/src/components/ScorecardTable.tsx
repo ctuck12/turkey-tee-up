@@ -10,16 +10,16 @@ export function ScoreCell({ strokes, par }: { strokes: number | null | undefined
   }
   const diff = strokes - par;
 
-  // Eagle / Albatross: two distinct red circles with visible gap
+  // Eagle / Albatross: two distinct red circles — both contained within the cell
   if (diff <= -2) {
     return (
-      <td className="scorecard-table score-cell py-1.5 px-2 text-center border border-[#1a2744]/10">
+      <td className="scorecard-table score-cell text-center border border-[#1a2744]/10" style={{ padding: "3px 2px" }}>
         <span style={{
           display: "inline-flex", alignItems: "center", justifyContent: "center",
-          width: "28px", height: "28px", borderRadius: "50%",
-          border: "2px solid #c0323e",
-          outline: "2px solid #c0323e", outlineOffset: "3px",
-          color: "#c0323e", fontWeight: 700, fontSize: "0.75rem",
+          width: "22px", height: "22px", borderRadius: "50%",
+          border: "1.5px solid #c0323e",
+          boxShadow: "0 0 0 2.5px #faf8f4, 0 0 0 4.5px #c0323e",
+          color: "#c0323e", fontWeight: 700, fontSize: "0.7rem",
         }}>{strokes}</span>
       </td>
     );
@@ -196,7 +196,7 @@ export function ScorecardLegend() {
       <span className="font-bold text-[#b06b10]/60">Legend:</span>
       {/* Eagle/Albatross: double red circle */}
       <span className="flex items-center gap-1">
-        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "50%", border: "2px solid #c0323e", outline: "2px solid #c0323e", outlineOffset: "3px", color: "#c0323e", fontWeight: 700, fontSize: "0.65rem" }}>3</span>
+        <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "18px", height: "18px", borderRadius: "50%", border: "1.5px solid #c0323e", boxShadow: "0 0 0 2px #f0ebe1, 0 0 0 3.5px #c0323e", color: "#c0323e", fontWeight: 700, fontSize: "0.6rem" }}>3</span>
         <span className="text-[#1a2744]/50 ml-1">Eagle</span>
       </span>
       {/* Birdie: single red circle */}
