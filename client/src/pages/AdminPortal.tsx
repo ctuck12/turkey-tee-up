@@ -75,6 +75,128 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
   );
 }
 
+// ─── TEAMS HELPERS (defined outside TeamsTab to keep stable identity across renders) ──
+function genCode() {
+  return Math.random().toString(36).substring(2, 6).toUpperCase();
+}
+
+function TeamForm({ data, onChange, onSubmit, onCancel, submitLabel }: any) {
+  return (
+    <div className="space-y-3 font-sans-app">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="col-span-2">
+          <Label className="text-[#1a2744]/60 text-xs mb-1 block">Team Name *</Label>
+          <Input value={data.teamName} onChange={e => onChange({ ...data, teamName: e.target.value })}
+            placeholder="Team name" className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]" />
+        </div>
+        {[1,2,3,4].map(n => (
+          <div key={n}>
+            <Label className="text-[#1a2744]/60 text-xs mb-1 block">Player {n}</Label>
+            <Input value={data[`player${n}`] ?? ""} onChange={e => onChange({ ...data, [`player${n}`]: e.target.value })}
+              placeholder={`Player ${n}`} className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] text-sm" />
+          </div>
+        ))}
+        <div>
+          <Label className="text-[#1a2744]/60 text-xs mb-1 block">Flight</Label>
+          <Select value={data.flight} onValueChange={v => onChange({ ...data, flight: v })}>
+            <SelectTrigger className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#1a2744] border-amber-500/20 text-amber-100">
+              <SelectItem value="morning">Morning</SelectItem>
+              <SelectItem value="afternoon">Afternoon</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-[#1a2744]/60 text-xs mb-1 block">Starting Hole</Label>
+          <Input type="number" min={1} max={18} value={data.startingHole} onChange={e => onChange({ ...data, startingHole: parseInt(e.target.value) })}
+            className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]" />
+        </div>
+        <div className="col-span-2">
+          <Label className="text-[#1a2744]/60 text-xs mb-1 block">Team Code (for scorekeeper login)</Label>
+          <div className="flex gap-2">
+            <Input value={data.teamCode} onChange={e => onChange({ ...data, teamCode: e.target.value.toUpperCase() })}
+              placeholder="e.g. A1B2" maxLength={6} className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] font-mono tracking-widest" />
+            <Button type="button" variant="ghost" onClick={() => onChange({ ...data, teamCode: genCode() })} className="text-amber-400/70 hover:text-amber-400 border border-amber-500/20 px-3">
+              <RefreshCw size={14} />
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className="flex gap-2 pt-1">
+        <Button onClick={onSubmit} className="bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 font-bold">
+          <Check size={14} className="mr-1.5" /> {submitLabel}
+        </Button>
+        <Button variant="ghost" onClick={onCancel} className="text-[#1a2744]/55 hover:text-[#1a2744]/70">Cancel</Button>
+      </div>
+    </div>
+  );
+}
+
+function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutation, setConfirmDelete }: {
+  team: Team;
+  editTeam: Team | null;
+  setEditTeam: (t: Team | null) => void;
+  updateMutation: any;
+  clearScoresMutation: any;
+  setConfirmDelete: (id: number | null) => void;
+}) {
+  const { toast } = useToast();
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2.5">
+        <div className="flex items-center gap-3">
+          <Badge className={`text-xs ${team.flight === "morning" ? "bg-blue-500/15 text-blue-300 border-blue-500/20" : "bg-amber-500/15 text-amber-400 border-amber-500/20"}`}>
+            {team.flight === "morning" ? "AM" : "PM"}
+          </Badge>
+          <div>
+            <div className="font-bold text-[#1a2744] text-sm">{team.teamName}</div>
+            <div className="text-[#1a2744]/50 text-xs">{[team.player1, team.player2, team.player3, team.player4].filter(Boolean).join(" · ")}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 bg-[#1a2744]/5 rounded px-2 py-0.5 text-xs font-mono text-amber-400/70">
+            {team.teamCode}
+            <button onClick={() => { navigator.clipboard.writeText(team.teamCode); toast({ title: "Code copied!" }); }} className="ml-1 text-amber-400/50 hover:text-amber-400">
+              <Copy size={10} />
+            </button>
+          </div>
+          <button onClick={() => setExpanded(!expanded)} className="text-[#1a2744]/50 hover:text-[#1a2744]/70 p-1">
+            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
+      </div>
+      {expanded && (
+        <div className="border-t border-[#1a2744]/12 px-3 py-3">
+          {editTeam?.id === team.id ? (
+            <TeamForm
+              data={editTeam}
+              onChange={setEditTeam}
+              onSubmit={() => updateMutation.mutate({ id: team.id, data: editTeam })}
+              onCancel={() => setEditTeam(null)}
+              submitLabel="Save Changes"
+            />
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setEditTeam(team)} className="text-amber-400/70 hover:text-amber-400 border border-amber-500/20 font-sans-app">
+                <Edit2 size={13} className="mr-1" /> Edit
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => clearScoresMutation.mutate(team.id)} className="text-blue-400/60 hover:text-blue-400 border border-blue-500/20 font-sans-app">
+                <RefreshCw size={13} className="mr-1" /> Clear Scores
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(team.id)} className="text-red-400/60 hover:text-red-400 border border-red-500/20 font-sans-app">
+                <Trash2 size={13} className="mr-1" /> Remove
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── TEAMS TAB ────────────────────────────────────────────────────────────────
 function TeamsTab() {
   const { toast } = useToast();
@@ -121,121 +243,8 @@ function TeamsTab() {
     },
   });
 
-  function genCode() {
-    return Math.random().toString(36).substring(2, 6).toUpperCase();
-  }
-
   const morning = teams.filter(t => t.flight === "morning");
   const afternoon = teams.filter(t => t.flight === "afternoon");
-
-  function TeamForm({ data, onChange, onSubmit, onCancel, submitLabel }: any) {
-    return (
-      <div className="space-y-3 font-sans-app">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
-            <Label className="text-[#1a2744]/60 text-xs mb-1 block">Team Name *</Label>
-            <Input value={data.teamName} onChange={e => onChange({ ...data, teamName: e.target.value })}
-              placeholder="Team name" className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]" />
-          </div>
-          {[1,2,3,4].map(n => (
-            <div key={n}>
-              <Label className="text-[#1a2744]/60 text-xs mb-1 block">Player {n}</Label>
-              <Input value={data[`player${n}`] ?? ""} onChange={e => onChange({ ...data, [`player${n}`]: e.target.value })}
-                placeholder={`Player ${n}`} className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] text-sm" />
-            </div>
-          ))}
-          <div>
-            <Label className="text-[#1a2744]/60 text-xs mb-1 block">Flight</Label>
-            <Select value={data.flight} onValueChange={v => onChange({ ...data, flight: v })}>
-              <SelectTrigger className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-[#1a2744] border-amber-500/20 text-amber-100">
-                <SelectItem value="morning">Morning</SelectItem>
-                <SelectItem value="afternoon">Afternoon</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-[#1a2744]/60 text-xs mb-1 block">Starting Hole</Label>
-            <Input type="number" min={1} max={18} value={data.startingHole} onChange={e => onChange({ ...data, startingHole: parseInt(e.target.value) })}
-              className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]" />
-          </div>
-          <div className="col-span-2">
-            <Label className="text-[#1a2744]/60 text-xs mb-1 block">Team Code (for scorekeeper login)</Label>
-            <div className="flex gap-2">
-              <Input value={data.teamCode} onChange={e => onChange({ ...data, teamCode: e.target.value.toUpperCase() })}
-                placeholder="e.g. A1B2" maxLength={6} className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] font-mono tracking-widest" />
-              <Button type="button" variant="ghost" onClick={() => onChange({ ...data, teamCode: genCode() })} className="text-amber-400/70 hover:text-amber-400 border border-amber-500/20 px-3">
-                <RefreshCw size={14} />
-              </Button>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-2 pt-1">
-          <Button onClick={onSubmit} className="bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 font-bold">
-            <Check size={14} className="mr-1.5" /> {submitLabel}
-          </Button>
-          <Button variant="ghost" onClick={onCancel} className="text-[#1a2744]/55 hover:text-[#1a2744]/70">Cancel</Button>
-        </div>
-      </div>
-    );
-  }
-
-  function TeamRow({ team }: { team: Team }) {
-    const [expanded, setExpanded] = useState(false);
-    return (
-      <div className="bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg overflow-hidden">
-        <div className="flex items-center justify-between px-3 py-2.5">
-          <div className="flex items-center gap-3">
-            <Badge className={`text-xs ${team.flight === "morning" ? "bg-blue-500/15 text-blue-300 border-blue-500/20" : "bg-amber-500/15 text-amber-400 border-amber-500/20"}`}>
-              {team.flight === "morning" ? "AM" : "PM"}
-            </Badge>
-            <div>
-              <div className="font-bold text-[#1a2744] text-sm">{team.teamName}</div>
-              <div className="text-[#1a2744]/50 text-xs">{[team.player1, team.player2, team.player3, team.player4].filter(Boolean).join(" · ")}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="flex items-center gap-1 bg-[#1a2744]/5 rounded px-2 py-0.5 text-xs font-mono text-amber-400/70">
-              {team.teamCode}
-              <button onClick={() => { navigator.clipboard.writeText(team.teamCode); toast({ title: "Code copied!" }); }} className="ml-1 text-amber-400/50 hover:text-amber-400">
-                <Copy size={10} />
-              </button>
-            </div>
-            <button onClick={() => setExpanded(!expanded)} className="text-[#1a2744]/50 hover:text-[#1a2744]/70 p-1">
-              {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-          </div>
-        </div>
-        {expanded && (
-          <div className="border-t border-[#1a2744]/12 px-3 py-3">
-            {editTeam?.id === team.id ? (
-              <TeamForm
-                data={editTeam}
-                onChange={setEditTeam}
-                onSubmit={() => updateMutation.mutate({ id: team.id, data: editTeam })}
-                onCancel={() => setEditTeam(null)}
-                submitLabel="Save Changes"
-              />
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                <Button variant="ghost" size="sm" onClick={() => setEditTeam(team)} className="text-amber-400/70 hover:text-amber-400 border border-amber-500/20 font-sans-app">
-                  <Edit2 size={13} className="mr-1" /> Edit
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => clearScoresMutation.mutate(team.id)} className="text-blue-400/60 hover:text-blue-400 border border-blue-500/20 font-sans-app">
-                  <RefreshCw size={13} className="mr-1" /> Clear Scores
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(team.id)} className="text-red-400/60 hover:text-red-400 border border-red-500/20 font-sans-app">
-                  <Trash2 size={13} className="mr-1" /> Remove
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -267,13 +276,13 @@ function TeamsTab() {
         {morning.length > 0 && (
           <>
             <p className="text-blue-400/50 text-xs uppercase tracking-wider font-sans-app px-1">Morning Flight</p>
-            {morning.map(t => <TeamRow key={t.id} team={t} />)}
+            {morning.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
         )}
         {afternoon.length > 0 && (
           <>
             <p className="text-amber-500/50 text-xs uppercase tracking-wider font-sans-app px-1 mt-3">Afternoon Flight</p>
-            {afternoon.map(t => <TeamRow key={t.id} team={t} />)}
+            {afternoon.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
         )}
         {teams.length === 0 && (
