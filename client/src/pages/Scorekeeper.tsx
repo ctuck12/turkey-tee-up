@@ -316,7 +316,7 @@ export default function Scorekeeper() {
           return (
             <div className="flex items-center gap-2 mb-2">
               <h2 className="font-bold text-[#b06b10] text-lg leading-tight">{authedTeam.teamName}</h2>
-              <span className={`font-bold text-lg leading-tight ${isUnder ? "text-[#c0323e]" : "text-[#1a2744]"}`}>{totalDisp}</span>
+              <span className={`font-bold text-lg leading-tight ${isUnder ? "text-[#c0323e]" : "text-[#1a2744]"}`} style={{ fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.05em" }}>{totalDisp}</span>
               <div className="flex-1" />
               <Badge className="bg-amber-500/15 text-[#b06b10]/80 border-amber-500/20 capitalize font-sans-app shrink-0">
                 {authedTeam.flight}
