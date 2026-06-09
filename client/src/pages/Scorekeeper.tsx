@@ -4,7 +4,7 @@ import { useParams } from "wouter";
 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Target, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Target, ChevronLeft, ChevronRight, Check } from "lucide-react"; // Check still used in CTP modal
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -309,32 +309,24 @@ export default function Scorekeeper() {
     <div className="max-w-2xl mx-auto space-y-4">
       {/* Team header */}
       <div className="atd-card rounded-xl p-4">
-        {/* Row 1: team name + flight badge */}
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <h2 className="font-bold text-[#b06b10] text-lg leading-tight">{authedTeam.teamName}</h2>
-          <Badge className="bg-amber-500/15 text-[#b06b10]/80 border-amber-500/20 capitalize font-sans-app shrink-0">
-            {authedTeam.flight}
-          </Badge>
-        </div>
-        {/* Row 2: player names */}
-        <div className="text-[#1a2744]/55 text-xs font-sans-app mb-3">
-          {[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean).join(" · ")}
-        </div>
-        {/* Row 3: Front / Back / Total / Thru */}
-        <div className="flex items-center gap-4 font-sans-app text-xs">
-          {[
-            { label: "Front", value: (() => { const s = (teamScores.data ?? []).filter(sc => sc.strokes != null && sc.holeNumber <= 9); const str = s.reduce((a,sc)=>a+(sc.strokes??0),0); const par = s.reduce((a,sc)=>a+(holeMap.get(sc.holeNumber)?.par??4),0); if(!s.length) return "—"; const d=str-par; return d===0?"E":d>0?`+${d}`:`${d}`; })() },
-            { label: "Back",  value: (() => { const s = (teamScores.data ?? []).filter(sc => sc.strokes != null && sc.holeNumber >= 10); const str = s.reduce((a,sc)=>a+(sc.strokes??0),0); const par = s.reduce((a,sc)=>a+(holeMap.get(sc.holeNumber)?.par??4),0); if(!s.length) return "—"; const d=str-par; return d===0?"E":d>0?`+${d}`:`${d}`; })() },
-            { label: "Total", value: (() => { if(completedHoles===0) return "E"; return runningToPar===0?"E":runningToPar>0?`+${runningToPar}`:`${runningToPar}`; })() },
-            { label: "Thru",  value: completedHoles === 0 ? "—" : `${completedHoles}` },
-          ].map(({ label, value }) => (
-            <div key={label} className="flex items-center gap-1">
-              <span className="text-[#1a2744]/45 uppercase tracking-wide">{label}:</span>
-              <span className={`font-bold ${
-                label !== "Thru" && value.startsWith("-") ? "text-[#c0323e]" : "text-[#1a2744]"
-              }`}>{value}</span>
+        {/* Row 1: team name + total score + flight badge */}
+        {(() => {
+          const totalDisp = completedHoles === 0 ? "E" : runningToPar === 0 ? "E" : runningToPar > 0 ? `+${runningToPar}` : `${runningToPar}`;
+          const isUnder = runningToPar < 0 && completedHoles > 0;
+          return (
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="font-bold text-[#b06b10] text-lg leading-tight">{authedTeam.teamName}</h2>
+              <span className={`font-bold text-lg leading-tight ${isUnder ? "text-[#c0323e]" : "text-[#1a2744]"}`}>{totalDisp}</span>
+              <div className="flex-1" />
+              <Badge className="bg-amber-500/15 text-[#b06b10]/80 border-amber-500/20 capitalize font-sans-app shrink-0">
+                {authedTeam.flight}
+              </Badge>
             </div>
-          ))}
+          );
+        })()}
+        {/* Row 2: player names */}
+        <div className="text-[#1a2744]/55 text-xs font-sans-app">
+          {[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean).join(" · ")}
         </div>
       </div>
 
@@ -415,9 +407,9 @@ export default function Scorekeeper() {
                   onClick={handleSaveScore}
                   disabled={scoreMutation.isPending || !localScore}
                   data-testid="button-save-score"
-                  className="flex items-center justify-center rounded-lg py-3 px-1 border transition-all font-sans-app bg-amber-500/25 border-amber-400/60 text-[#1a2744] hover:bg-amber-500/35 disabled:opacity-40 disabled:cursor-not-allowed font-bold"
+                  className="flex items-center justify-center rounded-lg py-3 px-1 border transition-all font-sans-app bg-amber-500/25 border-amber-400/60 text-[#1a2744] hover:bg-amber-500/35 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-sm"
                 >
-                  <Check size={18} />
+                  Save
                 </button>
               </div>
             </div>
