@@ -124,7 +124,10 @@ export default function Scorekeeper() {
   const [authError, setAuthError] = useState("");
   const [currentHole, setCurrentHole] = useState(1);
   const [ctpModalHole, setCtpModalHole] = useState<number | null>(null);
-  const [ctpWarningHole, setCtpWarningHole] = useState<number | null>(null); // hole awaiting CTP warning
+  const [ctpWarningHole, setCtpWarningHole] = useState<number | null>(null);
+  const [showRoundComplete, setShowRoundComplete] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
   const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
@@ -172,6 +175,17 @@ export default function Scorekeeper() {
       qc.invalidateQueries({ queryKey: ["/api/leaderboard"] });
     },
     onError: () => toast({ title: "Error saving score", variant: "destructive" }),
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/teams/${authedTeam?.id}/submit`, {}),
+    onSuccess: () => {
+      setIsSubmitted(true);
+      setShowSubmitConfirm(false);
+      setShowRoundComplete(false);
+      toast({ title: "Scorecard officially submitted!" });
+    },
+    onError: () => toast({ title: "Error submitting scorecard", variant: "destructive" }),
   });
 
   const ctpMutation = useMutation({
@@ -313,9 +327,12 @@ export default function Scorekeeper() {
   const startingHole = authedTeam.startingHole ?? 1;
   const lastHole = startingHole === 1 ? 18 : startingHole - 1;
 
-  // Advance to next hole respecting the round boundary
+  // Advance to next hole respecting the round boundary; show round complete on last hole
   function advanceHole(from: number) {
-    if (from === lastHole) return; // already on last hole, don't advance
+    if (from === lastHole) {
+      setShowRoundComplete(true);
+      return;
+    }
     const next = from === 18 ? 1 : from + 1;
     setCurrentHole(next);
   }
@@ -368,6 +385,14 @@ export default function Scorekeeper() {
 
       {/* Score Entry + inline Scorecard */}
       <div className="space-y-4">
+          {/* Submitted banner */}
+          {isSubmitted && (
+            <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-2 font-sans-app text-sm">
+              <span className="text-green-700 font-bold">✅ Scorecard officially submitted — scores are locked.</span>
+              <button onClick={() => setShowRoundComplete(true)} className="ml-auto text-green-700 underline text-xs">View Summary</button>
+            </div>
+          )}
+
           {/* Hole navigation */}
           <div className="atd-card rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
@@ -423,7 +448,7 @@ export default function Scorekeeper() {
                 {/* Save button — same size as score buttons */}
                 <button
                   onClick={handleSaveScore}
-                  disabled={scoreMutation.isPending || !localScore}
+                  disabled={scoreMutation.isPending || !localScore || isSubmitted}
                   data-testid="button-save-score"
                   className="flex items-center justify-center rounded-lg py-3 px-1 border transition-all font-sans-app bg-amber-500/25 border-amber-400/60 text-[#1a2744] hover:bg-amber-500/35 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-sm"
                 >
@@ -506,6 +531,142 @@ export default function Scorekeeper() {
           currentEntry={ctpEntries.find(c => c.holeNumber === ctpModalHole)}
           onSave={data => ctpMutation.mutate({ ...data, teamId: authedTeam.id })}
         />
+      )}
+
+      {/* ── ROUND COMPLETE MODAL ── */}
+      {showRoundComplete && (() => {
+        // Compute front / back / total to-par for the summary
+        const scores = teamScores.data ?? [];
+        function groupToPar(holeNums: number[]) {
+          let str = 0, par = 0;
+          for (const n of holeNums) {
+            const s = scores.find(sc => sc.holeNumber === n);
+            if (!s?.strokes) continue;
+            str += s.strokes;
+            par += holeMap.get(n)?.par ?? 4;
+          }
+          if (str === 0) return null;
+          return str - par;
+        }
+        function fmt(v: number | null) {
+          if (v === null) return "—";
+          if (v === 0) return "E";
+          return v > 0 ? `+${v}` : `${v}`;
+        }
+        const allNums = [...holes].sort((a,b)=>a.holeNumber-b.holeNumber).map(h=>h.holeNumber);
+        const front = allNums.filter(n=>n<=9);
+        const back  = allNums.filter(n=>n>=10);
+        const frontVal = groupToPar(front);
+        const backVal  = groupToPar(back);
+        const totalVal = frontVal!==null||backVal!==null ? (frontVal??0)+(backVal??0) : null;
+        // My CTP entries this round
+        const myCtp = ctpEntries.filter(c => c.teamId === authedTeam.id);
+
+        return (
+          <Dialog open={true} onOpenChange={() => {}}>
+            <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="text-[#1a2744] font-bold text-lg">
+                  🏁 All Holes Submitted!
+                </DialogTitle>
+              </DialogHeader>
+
+              {/* Score summary */}
+              <div className="bg-white rounded-xl border border-[#1a2744]/12 p-4 space-y-2">
+                {[
+                  { label: "Front 9", val: frontVal },
+                  { label: "Back 9",  val: backVal  },
+                  { label: "Total",   val: totalVal },
+                ].map(({ label, val }) => (
+                  <div key={label} className="flex items-center justify-between font-sans-app">
+                    <span className="text-[#1a2744]/55 text-sm">{label}</span>
+                    <span className={`font-bold text-base ${
+                      val !== null && val < 0 ? "text-[#c0323e]" : "text-[#1a2744]"
+                    }`} style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "1.1rem" }}>{fmt(val)}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTP entries */}
+              {myCtp.length > 0 && (
+                <div className="bg-white rounded-xl border border-amber-500/20 p-3 space-y-1.5">
+                  <p className="text-[#b06b10] text-xs uppercase tracking-widest font-bold font-sans-app mb-2">Closest to the Pin</p>
+                  {myCtp.map(c => {
+                    const inches = parseInt(c.distance ?? "");
+                    const distFmt = !isNaN(inches)
+                      ? inches < 12 ? `${inches}"` : `${Math.floor(inches/12)}' ${inches%12}"`
+                      : c.distance ?? "";
+                    return (
+                      <div key={c.id} className="flex items-center justify-between text-sm font-sans-app">
+                        <span className="text-[#1a2744]/70">Hole {c.holeNumber} — <span className="font-bold text-[#1a2744]">{c.playerName}</span></span>
+                        <span className="text-green-700 font-bold">{distFmt}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Action buttons */}
+              {isSubmitted ? (
+                <div className="text-center py-2">
+                  <span className="text-green-700 font-bold font-sans-app text-sm">✅ Scorecard officially submitted</span>
+                </div>
+              ) : (
+                <div className="space-y-2 pt-1">
+                  <button
+                    onClick={() => setShowSubmitConfirm(true)}
+                    className="w-full py-2.5 rounded-lg bg-[#1a2744] text-white font-bold font-sans-app text-sm hover:bg-[#243461] transition-colors"
+                  >
+                    Submit Scorecard
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowRoundComplete(false)}
+                      className="flex-1 py-2 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
+                    >
+                      Edit Scores
+                    </button>
+                    <button
+                      onClick={() => setShowRoundComplete(false)}
+                      className="flex-1 py-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[#8a5008] font-bold font-sans-app text-sm hover:bg-amber-500/20 transition-colors"
+                    >
+                      View Scorecard
+                    </button>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+
+      {/* ── SUBMIT CONFIRMATION ── */}
+      {showSubmitConfirm && (
+        <Dialog open={true} onOpenChange={() => setShowSubmitConfirm(false)}>
+          <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-[#1a2744] font-bold">⚠️ Confirm Submission</DialogTitle>
+            </DialogHeader>
+            <p className="text-[#1a2744]/75 font-sans-app text-sm leading-relaxed">
+              You will <span className="font-bold text-[#1a2744]">not be able to edit</span> your scorecard after submitting. Are you sure you want to officially submit?
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => submitMutation.mutate()}
+                disabled={submitMutation.isPending}
+                className="flex-1 py-2.5 rounded-lg bg-[#1a2744] text-white font-bold font-sans-app text-sm hover:bg-[#243461] transition-colors disabled:opacity-50"
+              >
+                {submitMutation.isPending ? "Submitting..." : "Yes, Submit"}
+              </button>
+              <button
+                onClick={() => setShowSubmitConfirm(false)}
+                className="flex-1 py-2.5 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
+              >
+                Go Back
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

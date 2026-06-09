@@ -80,6 +80,20 @@ export function registerRoutes(app: Express) {
     res.json(team);
   });
 
+  // Track submitted teams in memory (persists for the life of the server instance)
+  const submittedTeams = new Set<number>();
+
+  app.post("/api/teams/:id/submit", (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    submittedTeams.add(id);
+    res.json({ success: true, submitted: true });
+  });
+
+  app.get("/api/teams/:id/submitted", (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    res.json({ submitted: submittedTeams.has(id) });
+  });
+
   app.delete("/api/teams/:id", async (req: Request, res: Response) => {
     await storage.deleteTeam(parseInt(req.params.id));
     res.json({ success: true });

@@ -50081,6 +50081,16 @@ function registerRoutes(app2) {
     if (!team) return res.status(404).json({ message: "Team not found" });
     res.json(team);
   });
+  const submittedTeams = /* @__PURE__ */ new Set();
+  app2.post("/api/teams/:id/submit", (req, res) => {
+    const id = parseInt(req.params.id);
+    submittedTeams.add(id);
+    res.json({ success: true, submitted: true });
+  });
+  app2.get("/api/teams/:id/submitted", (req, res) => {
+    const id = parseInt(req.params.id);
+    res.json({ submitted: submittedTeams.has(id) });
+  });
   app2.delete("/api/teams/:id", async (req, res) => {
     await storage.deleteTeam(parseInt(req.params.id));
     res.json({ success: true });
