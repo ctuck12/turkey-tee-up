@@ -121,7 +121,7 @@ export default function TeamScorecard() {
             </thead>
             <tbody>
               {/* Yardage row */}
-              <tr>
+              <tr className="par-row">
                 <td className="text-left px-3 text-[#1a2744]/55 text-xs">Yds</td>
                 {front9.map(n => <td key={n} className="text-[#1a2744]/55 text-xs">{holeMap.get(n)?.yardageBlue ?? "—"}</td>)}
                 <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/5">
@@ -136,7 +136,7 @@ export default function TeamScorecard() {
                 </td>
               </tr>
               {/* Handicap row */}
-              <tr>
+              <tr className="par-row">
                 <td className="text-left px-3 text-[#1a2744]/50 text-xs">Hdcp</td>
                 {front9.map(n => <td key={n} className="text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
                 <td className="bg-[#1a2744]/5"></td>
@@ -154,14 +154,14 @@ export default function TeamScorecard() {
                 <td className="font-bold bg-[#1a2744]/12">{totalPar}</td>
               </tr>
               {/* Score row */}
-              <tr className="total-row">
-                <td className="text-left px-3 font-bold text-[#c8892a]">Score</td>
+              <tr className="score-row">
+                <td className="text-left px-3 font-bold text-[#1a2744]">Score</td>
                 {front9.map(n => {
                   const s = scoreMap.get(n);
                   const h = holeMap.get(n);
                   return <ScoreCell key={n} strokes={s?.strokes} par={h?.par ?? 4} />;
                 })}
-                <td className="font-bold text-[#c8892a] bg-[#1a2744]/10">
+                <td className="font-bold bg-[#1a2744]/5">
                   {front9.some(n => scoreMap.get(n)?.strokes) ? holeTotal(front9) : "—"}
                 </td>
                 {back9.map(n => {
@@ -169,10 +169,10 @@ export default function TeamScorecard() {
                   const h = holeMap.get(n);
                   return <ScoreCell key={n} strokes={s?.strokes} par={h?.par ?? 4} />;
                 })}
-                <td className="font-bold text-[#c8892a] bg-[#1a2744]/10">
+                <td className="font-bold bg-[#1a2744]/5">
                   {back9.some(n => scoreMap.get(n)?.strokes) ? holeTotal(back9) : "—"}
                 </td>
-                <td className="font-bold text-amber-100 text-base bg-[#1a2744] ">
+                <td className="font-bold text-base bg-[#1a2744]/8">
                   {hasScores ? (
                     <div>
                       <div>{totalStrokes}</div>
