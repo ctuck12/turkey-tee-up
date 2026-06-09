@@ -54,7 +54,7 @@ function CtpGrid({ ctpEntries, ctpHoles, teams, flight }: { ctpEntries: ClosestT
         return (
           <div key={hole.id} className="bg-white border border-[#1a2744]/20 rounded-lg p-3 shadow-sm">
             <div className="text-xs font-sans-app mb-1">
-              <span className="text-[#1a2744]/50">Hole </span><span className="font-bold text-[#b06b10]">{hole.holeNumber}</span>
+              <span className="font-bold text-[#b06b10]">Hole {hole.holeNumber}</span>
               {hole.ctpLabel && <span className="ml-1 text-[#1a2744]/45">· {hole.ctpLabel}</span>}
             </div>
             {entry && (entry.playerName || team) ? (
