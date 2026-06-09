@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
 import type {
   Hole, Score, Team, Sponsor, ClosestToPin, TournamentSettings,
   InsertHole, InsertScore, InsertTeam, InsertSponsor, InsertCtp, InsertSettings,
@@ -9,6 +10,7 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.en
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
+  realtime: { transport: ws as any },
 });
 
 // ─── camelCase mappers ────────────────────────────────────────────────────────

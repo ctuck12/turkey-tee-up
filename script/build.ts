@@ -59,6 +59,8 @@ async function buildAll() {
   });
 
   console.log("building vercel api function...");
+  // Build as IIFE-style wrapper: the entry file exports are collected, then we
+  // re-export the default handler as a plain CJS function at the very end.
   await esbuild({
     entryPoints: ["server/vercel-handler.ts"],
     platform: "node",
@@ -67,6 +69,22 @@ async function buildAll() {
     outfile: "api/index.js",
     external: ["@vercel/node"],
     logLevel: "info",
+    // Force the CJS bundle to expose a callable handler.
+    // esbuild wraps ESM default exports as { __esModule: true, default: fn }.
+    // @vercel/node checks module.exports directly as a function, OR .default.
+    // This footer handles both cases by unwrapping if needed.
+    footer: {
+      js: [
+        "// Vercel handler unwrap",
+        "(function() {",
+        "  var _exp = module.exports;",
+        "  if (typeof _exp === 'function') return;",
+        "  // Try common export locations",
+        "  var fn = _exp && (_exp.default || _exp.handler);",
+        "  if (typeof fn === 'function') { module.exports = fn; }",
+        "})();",
+      ].join("\n"),
+    },
   });
 }
 
