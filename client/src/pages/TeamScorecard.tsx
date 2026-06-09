@@ -6,22 +6,49 @@ import type { Team, Hole, Score } from "@shared/schema";
 function ScoreCell({ strokes, par }: { strokes: number | null | undefined; par: number }) {
   if (strokes == null) return <td className="scorecard-table score-cell">-</td>;
   const diff = strokes - par;
-  let className = "scorecard-table score-cell ";
-  let style: React.CSSProperties = {};
 
+  // Albatross / Eagle: two red circles (box-shadow trick for double ring)
   if (diff <= -2) {
-    style = { background: "rgba(200,137,42,0.2)", color: "#a0691a", fontWeight: 700 };
-  } else if (diff === -1) {
-    style = { borderRadius: "50%", background: "transparent", color: "#a0691a", border: "2px solid #c8892a", fontWeight: 600 };
-  } else if (diff === 0) {
-    style = { color: "#1a2744" };
-  } else if (diff === 1) {
-    style = { border: "2px solid #c0323e", color: "#c0323e" };
-  } else {
-    style = { border: "3px solid #a02030", color: "#a02030", fontWeight: 700 };
+    return (
+      <td className="scorecard-table score-cell py-1.5 px-2 text-center border border-[#1a2744]/10">
+        <span style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          width: "24px", height: "24px", borderRadius: "50%",
+          border: "2px solid #c0323e",
+          boxShadow: "0 0 0 3px #c0323e",
+          color: "#c0323e", fontWeight: 700, fontSize: "0.75rem"
+        }}>{strokes}</span>
+      </td>
+    );
   }
-
-  return <td className="scorecard-table score-cell py-1.5 px-2 text-center border border-[#1a2744]/10" style={style}>{strokes}</td>;
+  // Birdie: single red circle
+  if (diff === -1) {
+    return (
+      <td className="scorecard-table score-cell py-1.5 px-2 text-center border border-[#1a2744]/10">
+        <span style={{
+          display: "inline-flex", alignItems: "center", justifyContent: "center",
+          width: "24px", height: "24px", borderRadius: "50%",
+          border: "2px solid #c0323e",
+          color: "#c0323e", fontWeight: 600, fontSize: "0.75rem"
+        }}>{strokes}</span>
+      </td>
+    );
+  }
+  // Par
+  if (diff === 0) {
+    return <td className="scorecard-table score-cell py-1.5 px-2 text-center border border-[#1a2744]/10" style={{ color: "#1a2744" }}>{strokes}</td>;
+  }
+  // Bogey (max): black square border
+  return (
+    <td className="scorecard-table score-cell py-1.5 px-2 text-center border border-[#1a2744]/10">
+      <span style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        width: "24px", height: "24px", borderRadius: "2px",
+        border: "2px solid #1a2744",
+        color: "#1a2744", fontWeight: 700, fontSize: "0.75rem"
+      }}>{strokes}</span>
+    </td>
+  );
 }
 
 export default function TeamScorecard() {
@@ -188,13 +215,28 @@ export default function TeamScorecard() {
         </div>
 
         {/* Score legend */}
-        <div className="px-4 pb-3 flex flex-wrap gap-3 text-xs font-sans-app text-[#1a2744]/50 border-t border-[#1a2744]/8 pt-3">
+        <div className="px-4 pb-3 flex flex-wrap gap-4 items-center text-xs font-sans-app text-[#1a2744]/50 border-t border-[#1a2744]/8 pt-3">
           <span className="font-bold text-[#b06b10]/60">Legend:</span>
-          <span style={{ background: "rgba(200,137,42,0.3)", color: "#e8a840", padding: "1px 4px", borderRadius: 2 }}>Eagle</span>
-          <span style={{ border: "2px solid #e8a840", color: "#e8a840", padding: "1px 4px", borderRadius: "50%" }}>Birdie</span>
-          <span style={{ color: "#e8e4d8" }}>Par</span>
-          <span style={{ border: "2px solid #dd6974", color: "#dd6974", padding: "1px 4px" }}>Bogey</span>
-          <span style={{ border: "3px solid #c24a59", color: "#c24a59", padding: "1px 4px" }}>Double+</span>
+          {/* Eagle/Albatross: double red circle */}
+          <span className="flex items-center gap-1">
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "50%", border: "2px solid #c0323e", boxShadow: "0 0 0 3px #c0323e", color: "#c0323e", fontWeight: 700, fontSize: "0.65rem" }}>3</span>
+            <span className="text-[#1a2744]/50 ml-1">Eagle</span>
+          </span>
+          {/* Birdie: single red circle */}
+          <span className="flex items-center gap-1">
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "50%", border: "2px solid #c0323e", color: "#c0323e", fontWeight: 600, fontSize: "0.65rem" }}>4</span>
+            <span className="text-[#1a2744]/50 ml-1">Birdie</span>
+          </span>
+          {/* Par: plain */}
+          <span className="flex items-center gap-1">
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", color: "#1a2744", fontWeight: 600, fontSize: "0.65rem" }}>5</span>
+            <span className="text-[#1a2744]/50 ml-1">Par</span>
+          </span>
+          {/* Bogey: black square */}
+          <span className="flex items-center gap-1">
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "2px", border: "2px solid #1a2744", color: "#1a2744", fontWeight: 700, fontSize: "0.65rem" }}>6</span>
+            <span className="text-[#1a2744]/50 ml-1">Bogey</span>
+          </span>
         </div>
       </div>
     </div>

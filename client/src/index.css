@@ -159,7 +159,7 @@
   }
 
   .scorecard-table tr.score-data-row td {
-    border-top: 2px solid rgba(26, 39, 68, 0.2);
+    border-top: 2px solid var(--atd-gold);
   }
 
   /* Live pulse animation */
