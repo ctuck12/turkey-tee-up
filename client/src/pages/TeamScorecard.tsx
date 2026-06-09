@@ -7,15 +7,16 @@ function ScoreCell({ strokes, par }: { strokes: number | null | undefined; par: 
   if (strokes == null) return <td className="scorecard-table score-cell">-</td>;
   const diff = strokes - par;
 
-  // Albatross / Eagle: two red circles (box-shadow trick for double ring)
+  // Albatross / Eagle: two distinct red circles with a visible gap
   if (diff <= -2) {
     return (
       <td className="scorecard-table score-cell py-1.5 px-2 text-center border border-[#1a2744]/10">
         <span style={{
           display: "inline-flex", alignItems: "center", justifyContent: "center",
-          width: "24px", height: "24px", borderRadius: "50%",
+          width: "28px", height: "28px", borderRadius: "50%",
           border: "2px solid #c0323e",
-          boxShadow: "0 0 0 3px #c0323e",
+          outline: "2px solid #c0323e",
+          outlineOffset: "3px",
           color: "#c0323e", fontWeight: 700, fontSize: "0.75rem"
         }}>{strokes}</span>
       </td>
@@ -219,7 +220,7 @@ export default function TeamScorecard() {
           <span className="font-bold text-[#b06b10]/60">Legend:</span>
           {/* Eagle/Albatross: double red circle */}
           <span className="flex items-center gap-1">
-            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "50%", border: "2px solid #c0323e", boxShadow: "0 0 0 3px #c0323e", color: "#c0323e", fontWeight: 700, fontSize: "0.65rem" }}>3</span>
+            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "50%", border: "2px solid #c0323e", outline: "2px solid #c0323e", outlineOffset: "3px", color: "#c0323e", fontWeight: 700, fontSize: "0.65rem" }}>3</span>
             <span className="text-[#1a2744]/50 ml-1">Eagle</span>
           </span>
           {/* Birdie: single red circle */}
