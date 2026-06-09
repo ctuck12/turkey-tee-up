@@ -127,8 +127,8 @@
   }
 
   .scorecard-table td {
-    padding: 5px 8px;
-    text-align: center;
+    padding: 5px 2px;
+    text-align: center !important;
     border: 1px solid rgba(26, 39, 68, 0.12);
     color: #1a2744;
     background: #faf8f4;
