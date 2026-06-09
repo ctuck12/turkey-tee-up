@@ -124,6 +124,7 @@ export default function Scorekeeper() {
   const [authError, setAuthError] = useState("");
   const [currentHole, setCurrentHole] = useState(1);
   const [ctpModalHole, setCtpModalHole] = useState<number | null>(null);
+  const [ctpWarningHole, setCtpWarningHole] = useState<number | null>(null); // hole awaiting CTP warning
 
   const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
   const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
@@ -177,6 +178,8 @@ export default function Scorekeeper() {
     mutationFn: (data: any) => apiRequest("POST", "/api/ctp", data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/ctp"] });
+      // Advance to next hole after saving CTP (modal was opened from warning)
+      if (ctpModalHole !== null && ctpModalHole < 18) setCurrentHole(ctpModalHole + 1);
       setCtpModalHole(null);
       toast({ title: "CTP entry saved!" });
     },
@@ -209,7 +212,15 @@ export default function Scorekeeper() {
     scoreMutation.mutate({ teamId: authedTeam.id, holeNumber: currentHole, strokes });
     toast({ title: `Hole ${currentHole}: Score saved (${strokes})` });
     setLocalScore("");
-    // Advance to next hole only after Save (cap at 18)
+
+    // If this is a CTP hole and no entry exists yet, show warning instead of advancing
+    const isCtp = currentHoleData?.isCtpHole;
+    const ctpAlreadySaved = ctpEntries.some(c => c.holeNumber === currentHole);
+    if (isCtp && !ctpAlreadySaved) {
+      setCtpWarningHole(currentHole);
+      return;
+    }
+    // Otherwise advance normally
     if (currentHole < 18) setCurrentHole(currentHole + 1);
   }
 
@@ -436,6 +447,48 @@ export default function Scorekeeper() {
             </div>
           </div>
       </div>
+
+      {/* CTP Warning Dialog */}
+      {ctpWarningHole !== null && (
+        <Dialog open={true} onOpenChange={() => {
+          // Dismiss = treat as No
+          if (ctpWarningHole < 18) setCurrentHole(ctpWarningHole + 1);
+          setCtpWarningHole(null);
+        }}>
+          <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-[#1a2744] font-bold flex items-center gap-2">
+                <Target size={18} className="text-[#b06b10]" /> Closest to the Pin
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-[#1a2744]/75 font-sans-app text-sm">
+              Was one of your players closest to the pin on Hole {ctpWarningHole}?
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => {
+                  // Yes — open CTP modal, keep ctpWarningHole so onSuccess can advance
+                  setCtpModalHole(ctpWarningHole);
+                  setCtpWarningHole(null);
+                }}
+                className="flex-1 py-2.5 rounded-lg bg-[#1a2744] text-white font-bold font-sans-app text-sm hover:bg-[#243461] transition-colors"
+              >
+                Yes
+              </button>
+              <button
+                onClick={() => {
+                  // No — just advance
+                  if (ctpWarningHole < 18) setCurrentHole(ctpWarningHole + 1);
+                  setCtpWarningHole(null);
+                }}
+                className="flex-1 py-2.5 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
+              >
+                No
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* CTP Modal */}
       {ctpModalHole !== null && (
