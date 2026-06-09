@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Team, Hole, Score, ClosestToPin, Sponsor } from "@shared/schema";
 import atdLogo from "@/assets/atd-logo.png";
@@ -308,27 +309,32 @@ export default function Scorekeeper() {
     <div className="max-w-2xl mx-auto space-y-4">
       {/* Team header */}
       <div className="atd-card rounded-xl p-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3">
-
-            <div>
-              <h2 className="font-bold text-[#b06b10] text-lg">{authedTeam.teamName}</h2>
-              <div className="text-[#1a2744]/55 text-xs font-sans-app">
-                {[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean).join(" · ")}
-              </div>
+        {/* Row 1: team name + flight badge */}
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h2 className="font-bold text-[#b06b10] text-lg leading-tight">{authedTeam.teamName}</h2>
+          <Badge className="bg-amber-500/15 text-[#b06b10]/80 border-amber-500/20 capitalize font-sans-app shrink-0">
+            {authedTeam.flight}
+          </Badge>
+        </div>
+        {/* Row 2: player names */}
+        <div className="text-[#1a2744]/55 text-xs font-sans-app mb-3">
+          {[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean).join(" · ")}
+        </div>
+        {/* Row 3: Front / Back / Total / Thru */}
+        <div className="flex items-center gap-4 font-sans-app text-xs">
+          {[
+            { label: "Front", value: (() => { const s = (teamScores.data ?? []).filter(sc => sc.strokes != null && sc.holeNumber <= 9); const str = s.reduce((a,sc)=>a+(sc.strokes??0),0); const par = s.reduce((a,sc)=>a+(holeMap.get(sc.holeNumber)?.par??4),0); if(!s.length) return "—"; const d=str-par; return d===0?"E":d>0?`+${d}`:`${d}`; })() },
+            { label: "Back",  value: (() => { const s = (teamScores.data ?? []).filter(sc => sc.strokes != null && sc.holeNumber >= 10); const str = s.reduce((a,sc)=>a+(sc.strokes??0),0); const par = s.reduce((a,sc)=>a+(holeMap.get(sc.holeNumber)?.par??4),0); if(!s.length) return "—"; const d=str-par; return d===0?"E":d>0?`+${d}`:`${d}`; })() },
+            { label: "Total", value: (() => { if(completedHoles===0) return "E"; return runningToPar===0?"E":runningToPar>0?`+${runningToPar}`:`${runningToPar}`; })() },
+            { label: "Thru",  value: completedHoles === 0 ? "—" : `${completedHoles}` },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex items-center gap-1">
+              <span className="text-[#1a2744]/45 uppercase tracking-wide">{label}:</span>
+              <span className={`font-bold ${
+                label !== "Thru" && value.startsWith("-") ? "text-[#c0323e]" : "text-[#1a2744]"
+              }`}>{value}</span>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="text-[#1a2744]/55 text-xs font-sans-app">Thru {completedHoles}</div>
-              <div className={`font-bold text-lg ${runningToPar < 0 ? "to-par-under" : runningToPar > 0 ? "to-par-over" : "to-par-even"}`}>
-                {completedHoles === 0 ? "E" : runningToPar === 0 ? "E" : runningToPar > 0 ? `+${runningToPar}` : runningToPar}
-              </div>
-            </div>
-            <Badge className="bg-amber-500/15 text-[#b06b10]/80 border-amber-500/20 capitalize font-sans-app">
-              {authedTeam.flight}
-            </Badge>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -346,8 +352,18 @@ export default function Scorekeeper() {
         </div>
       )}
 
-      {/* Score Entry — no tabs */}
-      <div className="space-y-4">
+      {/* Score Entry / Scorecard tabs */}
+      <Tabs defaultValue="entry">
+        <TabsList className="bg-white border border-[#1a2744]/20 w-full shadow-sm">
+          <TabsTrigger value="entry" className="flex-1 font-sans-app text-[#1a2744]/60 data-[state=active]:bg-amber-500/20 data-[state=active]:text-[#8a5008]">
+            Score Entry
+          </TabsTrigger>
+          <TabsTrigger value="scorecard" className="flex-1 font-sans-app text-[#1a2744]/60 data-[state=active]:bg-amber-500/20 data-[state=active]:text-[#8a5008]">
+            Scorecard
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="entry" className="space-y-4 mt-3">
           {/* Hole navigation */}
           <div className="atd-card rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
@@ -394,14 +410,13 @@ export default function Scorekeeper() {
                       key={score}
                       onClick={() => handleQuickScore(score)}
                       data-testid={`button-score-${score}`}
-                      className={`flex flex-col items-center rounded-lg py-2 px-1 border transition-all font-sans-app ${
+                      className={`flex items-center justify-center rounded-lg py-3 px-1 border transition-all font-sans-app ${
                         isActive
                           ? "bg-amber-500/30 border-amber-400/60 text-[#1a2744]"
                           : "bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]/70 hover:bg-[#1a2744]/8 hover:text-[#1a2744]"
                       }`}
                     >
                       <span className="text-xl font-bold">{score}</span>
-                      <span className="text-[10px] opacity-70 text-center leading-tight">{label}</span>
                     </button>
                   );
                 })}
@@ -432,7 +447,9 @@ export default function Scorekeeper() {
             )}
           </div>
 
-          {/* Inline Scorecard replacing All Holes strip */}
+        </TabsContent>
+
+        <TabsContent value="scorecard" className="mt-3">
           <div className="atd-card rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-[#1a2744]/12">
               <span className="text-[#b06b10]/60 text-xs uppercase tracking-widest font-sans-app">Scorecard</span>
@@ -442,7 +459,8 @@ export default function Scorekeeper() {
             </div>
             <ScorecardLegend />
           </div>
-      </div>
+        </TabsContent>
+      </Tabs>
 
       {/* CTP Modal */}
       {ctpModalHole !== null && (
