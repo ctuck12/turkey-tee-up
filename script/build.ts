@@ -63,8 +63,8 @@ async function buildAll() {
     entryPoints: ["api/index.ts"],
     platform: "node",
     bundle: true,
-    format: "cjs",
-    outfile: "api/index.js",
+    format: "esm",
+    outfile: "api/index.mjs",
     external: ["@vercel/node"],
     logLevel: "info",
   });
