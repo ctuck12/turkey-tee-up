@@ -39,7 +39,7 @@ function AppHeader() {
               <div className="text-[#b06b10] font-bold text-sm leading-tight tracking-wide">
                 ABILENE TURKEY DRIVE
               </div>
-              <div className="text-blue-200/70 text-xs tracking-widest">
+              <div className="text-blue-200/80 text-[11px] tracking-wide font-medium leading-tight">
                 5TH ANNUAL TURKEY TEE UP
               </div>
             </div>
