@@ -170,7 +170,7 @@ export default function Scorekeeper() {
     const strokes = parseInt(localScore);
     const bogey = par + 1;
     if (isNaN(strokes) || strokes < 1) {
-      toast({ title: "Score must be at least 1", variant: "destructive" });
+      toast({ title: "Select a score first", variant: "destructive" });
       return;
     }
     if (strokes > bogey) {
@@ -179,21 +179,39 @@ export default function Scorekeeper() {
     }
     scoreMutation.mutate({ teamId: authedTeam.id, holeNumber: currentHole, strokes });
     toast({ title: `Hole ${currentHole}: Score saved (${strokes})` });
-    // Advance to next hole automatically (cap at 18)
+    setLocalScore("");
+    // Advance to next hole only after Save (cap at 18)
     if (currentHole < 18) setCurrentHole(currentHole + 1);
   }
 
+  // Quick score just selects — does NOT save or advance
   function handleQuickScore(n: number) {
-    if (!authedTeam) return;
     setLocalScore(n.toString());
-    scoreMutation.mutate({ teamId: authedTeam.id, holeNumber: currentHole, strokes: n });
-    // Advance to next hole automatically (cap at 18)
-    if (currentHole < 18) setCurrentHole(currentHole + 1);
   }
 
   const par = currentHoleData?.par ?? 4;
-  // Albatross (par-3) through Bogey (par+1) only — Bogey is the max
-  const quickScores = [par - 3, par - 2, par - 1, par, par + 1].filter(n => n >= 1);
+
+  // Build score options: always start with 1 (Hole in One),
+  // then fill from 2 up to bogey, skipping 1 if it would duplicate
+  function getScoreOptions(par: number) {
+    const bogey = par + 1;
+    const options: { score: number; label: string }[] = [];
+    // Always show 1 as Hole in One
+    options.push({ score: 1, label: "Hole in One" });
+    for (let s = 2; s <= bogey; s++) {
+      const diff = s - par;
+      let label: string;
+      if (diff <= -3) label = "Albatross";       // catches par-5 hole-in-one edge
+      else if (diff === -3) label = "Albatross";
+      else if (diff === -2) label = "Eagle";
+      else if (diff === -1) label = "Birdie";
+      else if (diff === 0) label = "Par";
+      else label = "Bogey";
+      options.push({ score: s, label });
+    }
+    return options;
+  }
+  const scoreOptions = getScoreOptions(par);
 
   const scorecardSponsors = sponsors.filter(s => s.placement === "scorecard" || s.placement === "both");
 
@@ -348,63 +366,41 @@ export default function Scorekeeper() {
               </button>
             </div>
 
-            {/* Quick score buttons */}
+            {/* Score selection buttons */}
             <div className="mb-4">
-              <p className="text-[#1a2744]/50 text-xs uppercase tracking-wider font-sans-app mb-2">Quick Score</p>
-              <div className="grid grid-cols-5 gap-2">
-                {quickScores.map(n => {
-                  const diff = n - par;
-                  const labels: Record<number, string> = { [-3]: "Albatross", [-2]: "Eagle", [-1]: "Birdie", 0: "Par", 1: "Bogey" };
-                  const label = labels[diff] ?? `+${diff}`;
-                  const isActive = localScore === n.toString();
+              <p className="text-[#1a2744]/50 text-xs uppercase tracking-wider font-sans-app mb-2">Select Score</p>
+              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${scoreOptions.length}, 1fr)` }}>
+                {scoreOptions.map(({ score, label }) => {
+                  const isActive = localScore === score.toString();
                   return (
                     <button
-                      key={n}
-                      onClick={() => handleQuickScore(n)}
-                      data-testid={`button-score-${n}`}
+                      key={score}
+                      onClick={() => handleQuickScore(score)}
+                      data-testid={`button-score-${score}`}
                       className={`flex flex-col items-center rounded-lg py-2 px-1 border transition-all font-sans-app ${
                         isActive
                           ? "bg-amber-500/30 border-amber-400/60 text-[#1a2744]"
                           : "bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]/70 hover:bg-[#1a2744]/8 hover:text-[#1a2744]"
                       }`}
                     >
-                      <span className="text-xl font-bold">{n}</span>
-                      <span className="text-[10px] opacity-70">{label}</span>
+                      <span className="text-xl font-bold">{score}</span>
+                      <span className="text-[10px] opacity-70 text-center leading-tight">{label}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Manual input */}
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                min={1}
-                max={par + 1}
-                value={localScore}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === "") { setLocalScore(""); return; }
-                  const n = parseInt(val);
-                  if (isNaN(n) || n < 1) return;
-                  if (n > par + 1) return;
-                  setLocalScore(val);
-                }}
-                placeholder={`Score for hole ${currentHole}`}
-                className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] text-center text-xl font-bold font-sans-app"
-                data-testid="input-score"
-              />
-              <Button
-                onClick={handleSaveScore}
-                disabled={scoreMutation.isPending || !localScore}
-                className="bg-amber-500/25 border border-amber-500/60 text-[#1a2744] hover:bg-amber-500/30 font-bold px-6 font-sans-app"
-                data-testid="button-save-score"
-              >
-                <Check size={16} className="mr-1" />
-                Save
-              </Button>
-            </div>
+            {/* Full-width Save button */}
+            <Button
+              onClick={handleSaveScore}
+              disabled={scoreMutation.isPending || !localScore}
+              className="w-full bg-amber-500/25 border border-amber-500/60 text-[#1a2744] hover:bg-amber-500/30 font-bold py-3 text-base font-sans-app"
+              data-testid="button-save-score"
+            >
+              <Check size={18} className="mr-2" />
+              Save Score
+            </Button>
 
             {/* CTP quick-entry if this is a CTP hole */}
             {currentHoleData?.isCtpHole && (
