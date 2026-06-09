@@ -183,7 +183,8 @@ export default function Scorekeeper() {
   }
 
   const par = currentHoleData?.par ?? 4;
-  const quickScores = [par - 2, par - 1, par, par + 1, par + 2, par + 3].filter(n => n >= 1);
+  // Albatross (par-3) through Bogey (par+1) only — Bogey is the max
+  const quickScores = [par - 3, par - 2, par - 1, par, par + 1].filter(n => n >= 1);
 
   const scorecardSponsors = sponsors.filter(s => s.placement === "scorecard" || s.placement === "both");
 
@@ -344,10 +345,10 @@ export default function Scorekeeper() {
             {/* Quick score buttons */}
             <div className="mb-4">
               <p className="text-[#1a2744]/50 text-xs uppercase tracking-wider font-sans-app mb-2">Quick Score</p>
-              <div className="grid grid-cols-6 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 {quickScores.map(n => {
                   const diff = n - par;
-                  const labels: Record<number, string> = { [-2]: "Eagle", [-1]: "Birdie", 0: "Par", 1: "Bogey", 2: "Dbl", 3: "Triple" };
+                  const labels: Record<number, string> = { [-3]: "Albatross", [-2]: "Eagle", [-1]: "Birdie", 0: "Par", 1: "Bogey" };
                   const label = labels[diff] ?? `+${diff}`;
                   const isActive = localScore === n.toString();
                   return (
@@ -357,12 +358,12 @@ export default function Scorekeeper() {
                       data-testid={`button-score-${n}`}
                       className={`flex flex-col items-center rounded-lg py-2 px-1 border transition-all font-sans-app ${
                         isActive
-                          ? "bg-amber-500/30 border-amber-400/60 text-amber-300"
+                          ? "bg-amber-500/30 border-amber-400/60 text-[#1a2744]"
                           : "bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]/70 hover:bg-[#1a2744]/8 hover:text-[#1a2744]"
                       }`}
                     >
                       <span className="text-xl font-bold">{n}</span>
-                      <span className="text-[10px] opacity-60">{label}</span>
+                      <span className="text-[10px] opacity-70">{label}</span>
                     </button>
                   );
                 })}
@@ -422,7 +423,7 @@ export default function Scorekeeper() {
                     data-testid={`button-hole-${n}`}
                     className={`relative rounded text-xs py-1.5 transition-all font-sans-app ${
                       isCurrent
-                        ? "bg-amber-500/30 border border-amber-400/60 text-amber-300 font-bold"
+                        ? "bg-amber-500/30 border border-amber-400/60 text-[#1a2744] font-bold"
                         : hasScore
                           ? diff! < 0 ? "bg-amber-500/15 border border-amber-500/30 text-[#b06b10]"
                           : diff === 0 ? "bg-[#1a2744]/8 border border-[#1a2744]/20 text-[#1a2744]/70"
