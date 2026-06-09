@@ -243,7 +243,7 @@ export default function Leaderboard() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs font-sans-app px-3 py-1.5 rounded-full border border-green-500/30 text-green-400 bg-green-500/10">
+          <div className="flex items-center gap-1.5 text-xs font-sans-app px-3 py-1.5 rounded-full border border-green-600/40 text-green-700 bg-green-500/10">
             <Wifi size={12} className="live-indicator" />
             Live
           </div>
@@ -267,10 +267,10 @@ export default function Leaderboard() {
       ) : (
         <Tabs defaultValue="morning">
           <TabsList className="bg-white border border-[#1a2744]/20 mb-4 shadow-sm">
-            <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-[#b06b10]">
+            <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-amber-500/20 data-[state=active]:text-[#8a5008]">
               Morning ({morningTeams.length})
             </TabsTrigger>
-            <TabsTrigger value="afternoon" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-[#b06b10]">
+            <TabsTrigger value="afternoon" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-amber-500/20 data-[state=active]:text-[#8a5008]">
               Afternoon ({afternoonTeams.length})
             </TabsTrigger>
           </TabsList>
