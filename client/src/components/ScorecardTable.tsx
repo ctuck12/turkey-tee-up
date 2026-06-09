@@ -172,14 +172,7 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
               {back9.some(n => scoreMap.get(n)?.strokes) ? holeTotal(back9) : "—"}
             </td>
             <td className="total-col font-bold text-base">
-              {hasScores ? (
-                <div>
-                  <div>{totalStrokes}</div>
-                  <div className={`text-xs ${totalToPar < 0 ? "to-par-under" : totalToPar > 0 ? "to-par-over" : "to-par-even"}`}>
-                    {totalToPar === 0 ? "E" : totalToPar > 0 ? `+${totalToPar}` : totalToPar}
-                  </div>
-                </div>
-              ) : "—"}
+              {hasScores ? totalStrokes : "—"}
             </td>
           </tr>
         </tbody>

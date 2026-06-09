@@ -14,6 +14,37 @@ export default function TeamScorecard() {
 
   const hasScores = scores.some(s => s.strokes != null);
 
+  // Front / Back / Total score-to-par tracker
+  const sortedHoles = [...holes].sort((a, b) => a.holeNumber - b.holeNumber);
+  const holeMap = new Map(sortedHoles.map(h => [h.holeNumber, h]));
+  const scoreMap = new Map(scores.map(s => [s.holeNumber, s]));
+  const front9 = sortedHoles.filter(h => h.holeNumber <= 9).map(h => h.holeNumber);
+  const back9  = sortedHoles.filter(h => h.holeNumber >= 10).map(h => h.holeNumber);
+
+  function groupToPar(holeNums: number[]) {
+    let strokes = 0, par = 0;
+    for (const n of holeNums) {
+      const s = scoreMap.get(n);
+      if (!s?.strokes) continue;
+      strokes += s.strokes;
+      par     += holeMap.get(n)?.par ?? 4;
+    }
+    if (strokes === 0) return null;
+    return strokes - par;
+  }
+
+  function formatToPar(val: number | null) {
+    if (val === null) return "—";
+    if (val === 0) return "E";
+    return val > 0 ? `+${val}` : `${val}`;
+  }
+
+  const frontToPar = groupToPar(front9);
+  const backToPar  = groupToPar(back9);
+  const totalToPar = (frontToPar !== null || backToPar !== null)
+    ? (frontToPar ?? 0) + (backToPar ?? 0)
+    : null;
+
   if (!team) {
     return (
       <div className="p-8 text-center text-[#1a2744]/50 font-sans-app">
@@ -53,9 +84,29 @@ export default function TeamScorecard() {
 
       {/* Scorecard */}
       <div className="atd-card rounded-xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#1a2744]/12 flex items-center gap-2">
-          <span className="text-[#b06b10]/60 text-xs uppercase tracking-widest font-sans-app">Official Scorecard</span>
-          {!hasScores && <span className="text-[#1a2744]/35 text-xs font-sans-app italic">No scores entered yet</span>}
+        <div className="px-4 py-3 border-b border-[#1a2744]/12 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-[#1a2744] text-xs uppercase tracking-widest font-sans-app font-bold">Official Scorecard</span>
+            {!hasScores && <span className="text-[#1a2744]/35 text-xs font-sans-app italic">No scores entered yet</span>}
+          </div>
+          {hasScores && (
+            <div className="flex items-center gap-3 text-xs font-sans-app">
+              <span className="flex flex-col items-center">
+                <span className="text-[#1a2744]/45 text-[10px] uppercase tracking-wide leading-none mb-0.5">Front</span>
+                <span className="font-bold text-[#1a2744]">{formatToPar(frontToPar)}</span>
+              </span>
+              <span className="text-[#1a2744]/20 text-base leading-none">|</span>
+              <span className="flex flex-col items-center">
+                <span className="text-[#1a2744]/45 text-[10px] uppercase tracking-wide leading-none mb-0.5">Back</span>
+                <span className="font-bold text-[#1a2744]">{formatToPar(backToPar)}</span>
+              </span>
+              <span className="text-[#1a2744]/20 text-base leading-none">|</span>
+              <span className="flex flex-col items-center">
+                <span className="text-[#1a2744]/45 text-[10px] uppercase tracking-wide leading-none mb-0.5">Total</span>
+                <span className="font-bold text-[#1a2744]">{formatToPar(totalToPar)}</span>
+              </span>
+            </div>
+          )}
         </div>
         <div className="p-4">
           <ScorecardTable holes={holes} scores={scores} />
