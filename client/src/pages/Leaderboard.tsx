@@ -52,21 +52,21 @@ function CtpGrid({ ctpEntries, ctpHoles, teams, flight }: { ctpEntries: ClosestT
         const entry = ctpEntries.find(c => c.holeNumber === hole.holeNumber && c.teamId != null && flightTeamIds.has(c.teamId!));
         const team = entry?.teamId ? teams.find(t => t.id === entry.teamId) : null;
         return (
-          <div key={hole.id} className="bg-[#1a2744]/8 border border-[#1a2744]/20 rounded-lg p-3">
-            <div className="text-amber-500/60 text-xs font-sans-app mb-1">
+          <div key={hole.id} className="bg-white border border-[#1a2744]/20 rounded-lg p-3 shadow-sm">
+            <div className="text-[#1a2744]/50 text-xs font-sans-app mb-1">
               Hole {hole.holeNumber} · Par {hole.par}
-              {hole.ctpLabel && <span className="ml-1 text-[#b06b10]/80">({hole.ctpLabel})</span>}
+              {hole.ctpLabel && <span className="ml-1 font-semibold text-[#b06b10]">· {hole.ctpLabel}</span>}
             </div>
             {entry && (entry.playerName || team) ? (
               <>
-                <div className="text-amber-300 font-bold text-sm">{entry.playerName || team?.teamName}</div>
-                {team && <div className="text-[#1a2744]/60 text-xs font-sans-app">{team.teamName}</div>}
+                <div className="text-[#1a2744] font-bold text-sm">{entry.playerName || team?.teamName}</div>
+                {team && <div className="text-[#1a2744]/55 text-xs font-sans-app">{team.teamName}</div>}
                 {entry.distance && (
-                  <div className="text-green-400 font-bold text-base mt-1">{entry.distance}</div>
+                  <div className="text-green-700 font-bold text-base mt-1">{entry.distance}</div>
                 )}
               </>
             ) : (
-              <div className="text-[#1a2744]/35 text-sm italic font-sans-app">No entry yet</div>
+              <div className="text-[#1a2744]/40 text-sm italic font-sans-app">No entry yet</div>
             )}
           </div>
         );
@@ -82,8 +82,8 @@ function CtpPanel({ ctpEntries, holes, teams }: { ctpEntries: ClosestToPin[]; ho
   return (
     <div className="atd-card rounded-xl p-4 mb-6">
       <div className="flex items-center gap-2 mb-3">
-        <Target size={18} className="text-[#b06b10]" />
-        <h2 className="text-[#b06b10] font-bold text-sm uppercase tracking-widest font-sans-app">Closest to the Pin</h2>
+        <Target size={18} className="text-[#1a2744]" />
+        <h2 className="text-[#1a2744] font-bold text-sm uppercase tracking-widest font-sans-app">Closest to the Pin</h2>
         <div className="flex items-center gap-1 ml-2">
           <span className="live-indicator w-2 h-2 rounded-full bg-green-400 inline-block"></span>
           <span className="text-green-400/70 text-xs font-sans-app">Live</span>

@@ -396,8 +396,8 @@ function HolesTab() {
         <table className="w-full font-sans-app text-sm min-w-[600px]">
           <thead>
             <tr className="border-b border-amber-500/15">
-              {["Hole", "Par", "Hdcp", "Yards", "CTP Hole", "CTP Label", ""].map(h => (
-                <th key={h} className="text-amber-500/50 text-xs uppercase tracking-wide px-2 py-2 text-left">{h}</th>
+              {["Hole", "Par", "Hdcp", "Yards", "CTP Hole", "CTP Prize", ""].map(h => (
+                <th key={h} className="text-[#1a2744]/50 text-xs uppercase tracking-wide px-2 py-2 text-left">{h}</th>
               ))}
             </tr>
           </thead>
@@ -415,7 +415,7 @@ function HolesTab() {
                     <td className="px-2 py-1">
                       <Switch checked={!!(ed.isCtpHole ?? hole.isCtpHole)} onCheckedChange={v => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, isCtpHole: v } }))} />
                     </td>
-                    <td className="px-2 py-1"><Input value={ed.ctpLabel ?? ""} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, ctpLabel: e.target.value } }))} placeholder="CTP label" className="bg-white border-amber-500/60 text-[#1a2744] w-28 h-7 text-xs" /></td>
+                    <td className="px-2 py-1"><Input value={ed.ctpLabel ?? ""} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, ctpLabel: e.target.value } }))} placeholder="Prize description" className="bg-white border-amber-500/60 text-[#1a2744] w-28 h-7 text-xs" /></td>
                     <td className="px-2 py-1">
                       <div className="flex gap-1">
                         <button onClick={() => updateMutation.mutate({ holeNumber: hole.holeNumber, data: holeData[hole.holeNumber] ?? hole })} className="text-green-400 hover:text-green-300 p-1"><Check size={14} /></button>
@@ -432,7 +432,7 @@ function HolesTab() {
                   <td className="px-2 py-2.5 text-[#1a2744]/60">{hole.handicap}</td>
                   <td className="px-2 py-2.5 text-[#1a2744]/60">{hole.yardageBlue}</td>
                   <td className="px-2 py-2.5">{hole.isCtpHole ? <Badge className="bg-amber-500/25 text-[#b06b10] border-amber-500/30 text-xs">CTP</Badge> : <span className="text-[#1a2744]/35">—</span>}</td>
-                  <td className="px-2 py-2.5 text-[#1a2744]/55 text-xs">{hole.ctpLabel ?? "—"}</td>
+                  <td className="px-2 py-2.5 text-[#1a2744]/55 text-xs">{hole.ctpLabel || "—"}</td>
                   <td className="px-2 py-2.5">
                     <button onClick={() => startEdit(hole)} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#b06b10]/80 hover:text-[#b06b10]">
                       <Edit2 size={14} />
