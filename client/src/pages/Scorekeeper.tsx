@@ -13,95 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Team, Hole, Score, ClosestToPin, Sponsor } from "@shared/schema";
 import atdLogo from "@/assets/atd-logo.png";
-
-// Horizontal scorecard for scorekeeper view
-function ScorekeeperScorecard({ team, holes, scores }: { team: Team; holes: Hole[]; scores: Score[] }) {
-  const holeMap = new Map(holes.map(h => [h.holeNumber, h]));
-  const scoreMap = new Map(scores.map(s => [s.holeNumber, s]));
-  const front9 = Array.from({ length: 9 }, (_, i) => i + 1);
-  const back9 = Array.from({ length: 9 }, (_, i) => i + 10);
-
-  const getScoreStyle = (strokes: number | null | undefined, par: number) => {
-    if (!strokes) return {};
-    const diff = strokes - par;
-    if (diff <= -2) return { background: "rgba(200,137,42,0.25)", color: "#a0691a", fontWeight: 700 };
-    if (diff === -1) return { borderRadius: "50%", border: "2px solid #c8892a", color: "#a0691a" };
-    if (diff === 0) return { color: "#1a2744" };
-    if (diff === 1) return { border: "2px solid #c0323e", color: "#c0323e" };
-    return { border: "3px solid #c24a59", color: "#c24a59", fontWeight: 700 };
-  };
-
-  const totalScore = scores.filter(s => s.strokes != null).reduce((s, sc) => s + (sc.strokes ?? 0), 0);
-  const totalPar = holes.reduce((s, h) => s + h.par, 0);
-  const toPar = totalScore - totalPar;
-  const hasScores = scores.some(s => s.strokes != null);
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="scorecard-table min-w-[680px]">
-        <thead>
-          <tr>
-            <th className="text-left px-2 text-xs">Hole</th>
-            {front9.map(n => <th key={n} className="w-7 text-xs">{n}</th>)}
-            <th className="text-xs bg-amber-900/30">OUT</th>
-            {back9.map(n => <th key={n} className="w-7 text-xs">{n}</th>)}
-            <th className="text-xs bg-amber-900/30">IN</th>
-            <th className="text-xs bg-amber-800/40 text-amber-300">TOT</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr className="par-row">
-            <td className="text-left px-2 text-xs">Par</td>
-            {front9.map(n => <td key={n} className="text-xs">{holeMap.get(n)?.par ?? 4}</td>)}
-            <td className="font-bold text-xs bg-amber-900/30">{front9.reduce((s, n) => s + (holeMap.get(n)?.par ?? 4), 0)}</td>
-            {back9.map(n => <td key={n} className="text-xs">{holeMap.get(n)?.par ?? 4}</td>)}
-            <td className="font-bold text-xs bg-amber-900/30">{back9.reduce((s, n) => s + (holeMap.get(n)?.par ?? 4), 0)}</td>
-            <td className="font-bold text-xs bg-amber-800/40">{totalPar}</td>
-          </tr>
-          <tr className="total-row">
-            <td className="text-left px-2 text-xs font-bold text-amber-300">Score</td>
-            {front9.map(n => {
-              const s = scoreMap.get(n);
-              const h = holeMap.get(n);
-              const par = h?.par ?? 4;
-              return (
-                <td key={n} className="text-xs" style={getScoreStyle(s?.strokes, par)}>
-                  {s?.strokes ?? <span className="text-[#1a2744]/35">-</span>}
-                </td>
-              );
-            })}
-            <td className="font-bold text-xs bg-amber-900/40 text-amber-300">
-              {front9.reduce((s, n) => s + (scoreMap.get(n)?.strokes ?? 0), 0) || "—"}
-            </td>
-            {back9.map(n => {
-              const s = scoreMap.get(n);
-              const h = holeMap.get(n);
-              const par = h?.par ?? 4;
-              return (
-                <td key={n} className="text-xs" style={getScoreStyle(s?.strokes, par)}>
-                  {s?.strokes ?? <span className="text-[#1a2744]/35">-</span>}
-                </td>
-              );
-            })}
-            <td className="font-bold text-xs bg-amber-900/40 text-amber-300">
-              {back9.reduce((s, n) => s + (scoreMap.get(n)?.strokes ?? 0), 0) || "—"}
-            </td>
-            <td className="font-bold text-sm bg-amber-800/50 text-amber-200">
-              {hasScores ? (
-                <div>
-                  <div>{totalScore}</div>
-                  <div className={`text-xs ${toPar < 0 ? "to-par-under" : toPar > 0 ? "to-par-over" : "to-par-even"}`}>
-                    {toPar === 0 ? "E" : toPar > 0 ? `+${toPar}` : toPar}
-                  </div>
-                </div>
-              ) : "—"}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  );
-}
+import { ScorecardTable, ScorecardLegend } from "@/components/ScorecardTable";
 
 // CTP Entry Modal
 function CtpEntryModal({
@@ -530,12 +442,13 @@ export default function Scorekeeper() {
         {/* SCORECARD TAB */}
         <TabsContent value="scorecard" className="mt-4">
           <div className="atd-card rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-amber-500/15">
+            <div className="px-4 py-3 border-b border-[#1a2744]/12 flex items-center gap-2">
               <span className="text-[#b06b10]/60 text-xs uppercase tracking-widest font-sans-app">Live Scorecard — {authedTeam.teamName}</span>
             </div>
-            <div className="p-3">
-              <ScorekeeperScorecard team={authedTeam} holes={holes} scores={teamScores.data ?? []} />
+            <div className="p-4">
+              <ScorecardTable holes={holes} scores={teamScores.data ?? []} />
             </div>
+            <ScorecardLegend />
           </div>
         </TabsContent>
 
