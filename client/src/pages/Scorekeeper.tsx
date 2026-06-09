@@ -359,16 +359,18 @@ export default function Scorekeeper() {
               </button>
               <div className="text-center">
                 <div className="text-[#b06b10]/70 text-xs uppercase tracking-widest font-sans-app">Hole</div>
-                <div className="text-4xl font-bold text-[#b06b10]">{currentHole}</div>
-                <div className="flex items-center justify-center gap-3 mt-1 font-sans-app text-xs text-[#1a2744]/55">
-                  <span>Par {par}</span>
-                  {currentHoleData?.handicap && <span>Hdcp {currentHoleData.handicap}</span>}
-                  {currentHoleData?.yardageBlue && <span>{currentHoleData.yardageBlue} yds</span>}
+                <div className="flex items-center justify-center gap-2">
+                  <div className="text-4xl font-bold text-[#b06b10]">{currentHole}</div>
                   {currentHoleData?.isCtpHole && (
                     <Badge className="bg-amber-500/25 text-[#b06b10] border-amber-500/30 text-xs">
                       <Target size={10} className="mr-1" /> CTP
                     </Badge>
                   )}
+                </div>
+                <div className="flex items-center justify-center gap-3 mt-1 font-sans-app text-xs text-[#1a2744]/55">
+                  <span>Par {par}</span>
+                  {currentHoleData?.handicap && <span>Hdcp {currentHoleData.handicap}</span>}
+                  {currentHoleData?.yardageBlue && <span>{currentHoleData.yardageBlue} yds</span>}
                 </div>
               </div>
               <button
