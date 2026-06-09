@@ -111,7 +111,7 @@ export default function TeamScorecard() {
           <table className="scorecard-table w-full min-w-[700px]">
             <thead>
               <tr>
-                <th className="text-left px-3" style={{ minWidth: "80px" }}>Hole</th>
+                <th className="text-left px-3" style={{ width: "52px", minWidth: "52px" }}>Hole</th>
                 {front9.map(n => <th key={n} className="w-8">{n}</th>)}
                 <th className="bg-[#1a2744]/8">OUT</th>
                 {back9.map(n => <th key={n} className="w-8">{n}</th>)}
@@ -122,7 +122,7 @@ export default function TeamScorecard() {
             <tbody>
               {/* Yardage row */}
               <tr className="par-row">
-                <td className="text-left px-3 text-[#1a2744]/55 text-xs">Yds</td>
+                <td className="text-left px-3 text-[#1a2744]/55 text-xs" style={{ width: "52px", minWidth: "52px" }}>Yds</td>
                 {front9.map(n => <td key={n} className="text-[#1a2744]/55 text-xs">{holeMap.get(n)?.yardageBlue ?? "—"}</td>)}
                 <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/5">
                   {front9.reduce((s,n) => s + (holeMap.get(n)?.yardageBlue ?? 0), 0)}
@@ -136,8 +136,8 @@ export default function TeamScorecard() {
                 </td>
               </tr>
               {/* Handicap row */}
-              <tr className="par-row">
-                <td className="text-left px-3 text-[#1a2744]/50 text-xs">Hdcp</td>
+              <tr className="score-row">
+                <td className="text-left px-3 text-[#1a2744]/50 text-xs" style={{ width: "52px", minWidth: "52px" }}>Hdcp</td>
                 {front9.map(n => <td key={n} className="text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
                 <td className="bg-[#1a2744]/5"></td>
                 {back9.map(n => <td key={n} className="text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
@@ -145,8 +145,8 @@ export default function TeamScorecard() {
                 <td className="bg-[#1a2744]/8"></td>
               </tr>
               {/* Par row */}
-              <tr className="par-row">
-                <td className="text-left px-3 font-bold">Par</td>
+              <tr className="score-row">
+                <td className="text-left px-3 font-bold" style={{ width: "52px", minWidth: "52px" }}>Par</td>
                 {front9.map(n => <td key={n}>{holeMap.get(n)?.par ?? 4}</td>)}
                 <td className="font-bold bg-[#1a2744]/8">{parTotal(front9)}</td>
                 {back9.map(n => <td key={n}>{holeMap.get(n)?.par ?? 4}</td>)}
@@ -155,7 +155,7 @@ export default function TeamScorecard() {
               </tr>
               {/* Score row */}
               <tr className="score-row">
-                <td className="text-left px-3 font-bold text-[#1a2744]">Score</td>
+                <td className="text-left px-3 font-bold text-[#1a2744]" style={{ width: "52px", minWidth: "52px" }}>Score</td>
                 {front9.map(n => {
                   const s = scoreMap.get(n);
                   const h = holeMap.get(n);
