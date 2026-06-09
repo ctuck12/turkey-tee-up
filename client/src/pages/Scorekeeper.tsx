@@ -168,8 +168,13 @@ export default function Scorekeeper() {
   function handleSaveScore() {
     if (!authedTeam) return;
     const strokes = parseInt(localScore);
-    if (isNaN(strokes) || strokes < 1 || strokes > 20) {
-      toast({ title: "Please enter a valid score (1-20)", variant: "destructive" });
+    const bogey = par + 1;
+    if (isNaN(strokes) || strokes < 1) {
+      toast({ title: "Score must be at least 1", variant: "destructive" });
+      return;
+    }
+    if (strokes > bogey) {
+      toast({ title: `Max score for this hole is ${bogey} (Bogey)`, variant: "destructive" });
       return;
     }
     scoreMutation.mutate({ teamId: authedTeam.id, holeNumber: currentHole, strokes });
@@ -375,9 +380,16 @@ export default function Scorekeeper() {
               <Input
                 type="number"
                 min={1}
-                max={20}
+                max={par + 1}
                 value={localScore}
-                onChange={e => setLocalScore(e.target.value)}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === "") { setLocalScore(""); return; }
+                  const n = parseInt(val);
+                  if (isNaN(n) || n < 1) return;
+                  if (n > par + 1) return;
+                  setLocalScore(val);
+                }}
                 placeholder={`Score for hole ${currentHole}`}
                 className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] text-center text-xl font-bold font-sans-app"
                 data-testid="input-score"
