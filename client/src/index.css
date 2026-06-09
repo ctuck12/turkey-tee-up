@@ -156,6 +156,9 @@
     background: #faf8f4;
     color: #1a2744;
     font-weight: 700;
+  }
+
+  .scorecard-table tr.score-data-row td {
     border-top: 2px solid rgba(26, 39, 68, 0.2);
   }
 

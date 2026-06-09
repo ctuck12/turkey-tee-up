@@ -108,15 +108,15 @@ export default function TeamScorecard() {
           {!hasScores && <span className="text-[#1a2744]/35 text-xs font-sans-app italic">No scores entered yet</span>}
         </div>
         <div className="overflow-x-auto p-4">
-          <table className="scorecard-table w-full min-w-[700px]">
+          <table className="scorecard-table w-full min-w-[700px]" style={{ tableLayout: "fixed" }}>
             <thead>
               <tr>
-                <th className="text-left px-3" style={{ width: "52px", minWidth: "52px" }}>Hole</th>
-                {front9.map(n => <th key={n} className="w-8">{n}</th>)}
-                <th className="bg-[#1a2744]/8">OUT</th>
-                {back9.map(n => <th key={n} className="w-8">{n}</th>)}
-                <th className="bg-[#1a2744]/8">IN</th>
-                <th className="bg-[#1a2744]/12 text-[#c8892a]">TOT</th>
+                <th className="text-left px-3" style={{ width: "52px" }}>Hole</th>
+                {front9.map(n => <th key={n} style={{ width: "32px" }}>{n}</th>)}
+                <th className="bg-[#1a2744]/8" style={{ width: "38px" }}>OUT</th>
+                {back9.map(n => <th key={n} style={{ width: "32px" }}>{n}</th>)}
+                <th className="bg-[#1a2744]/8" style={{ width: "38px" }}>IN</th>
+                <th className="bg-[#1a2744]/12 text-[#c8892a]" style={{ width: "38px" }}>TOT</th>
               </tr>
             </thead>
             <tbody>
@@ -154,7 +154,7 @@ export default function TeamScorecard() {
                 <td className="font-bold bg-[#1a2744]/12">{totalPar}</td>
               </tr>
               {/* Score row */}
-              <tr className="score-row">
+              <tr className="score-row score-data-row">
                 <td className="text-left px-3 font-bold text-[#1a2744]" style={{ width: "52px", minWidth: "52px" }}>Score</td>
                 {front9.map(n => {
                   const s = scoreMap.get(n);
