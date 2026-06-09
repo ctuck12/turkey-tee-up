@@ -16,13 +16,13 @@ import { ScorecardTable, ScorecardLegend } from "@/components/ScorecardTable";
 
 // CTP Entry Modal
 function CtpEntryModal({
-  open, onClose, holeNumber, hole, teams, currentEntry, onSave
+  open, onClose, holeNumber, hole, teamPlayers, currentEntry, onSave
 }: {
   open: boolean;
   onClose: () => void;
   holeNumber: number;
   hole?: Hole;
-  teams: Team[];
+  teamPlayers: string[];
   currentEntry?: ClosestToPin;
   onSave: (data: { holeNumber: number; teamId?: number; playerName?: string; distance?: string }) => void;
 }) {
@@ -46,13 +46,17 @@ function CtpEntryModal({
         <div className="space-y-4 font-sans-app">
           <div>
             <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">Player Name</Label>
-            <Input
+            <select
               value={playerName}
               onChange={e => setPlayerName(e.target.value)}
-              placeholder="Player's name"
-              className="bg-white border-[#1a2744]/20 text-black placeholder:text-[#1a2744]/35"
+              className="w-full rounded-md border border-[#1a2744]/20 bg-white text-black px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#b06b10]/40"
               data-testid="input-ctp-player"
-            />
+            >
+              <option value="">Select a player...</option>
+              {teamPlayers.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
           </div>
           <div>
             <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">Distance (inches)</Label>
@@ -427,7 +431,7 @@ export default function Scorekeeper() {
           onClose={() => setCtpModalHole(null)}
           holeNumber={ctpModalHole}
           hole={holeMap.get(ctpModalHole)}
-          teams={teams}
+          teamPlayers={[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean) as string[]}
           currentEntry={ctpEntries.find(c => c.holeNumber === ctpModalHole)}
           onSave={data => ctpMutation.mutate({ ...data, teamId: authedTeam.id })}
         />
