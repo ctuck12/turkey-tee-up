@@ -9,11 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Team, Hole, Score, ClosestToPin, Sponsor } from "@shared/schema";
 import atdLogo from "@/assets/atd-logo.png";
-import { ScorecardTable, ScorecardLegend } from "@/components/ScorecardTable";
+import { ScorecardTable } from "@/components/ScorecardTable";
 
 // CTP Entry Modal
 function CtpEntryModal({
@@ -352,18 +352,8 @@ export default function Scorekeeper() {
         </div>
       )}
 
-      {/* Score Entry / Scorecard tabs */}
-      <Tabs defaultValue="entry">
-        <TabsList className="bg-white border border-[#1a2744]/20 w-full shadow-sm">
-          <TabsTrigger value="entry" className="flex-1 font-sans-app text-[#1a2744]/60 data-[state=active]:bg-amber-500/20 data-[state=active]:text-[#8a5008]">
-            Score Entry
-          </TabsTrigger>
-          <TabsTrigger value="scorecard" className="flex-1 font-sans-app text-[#1a2744]/60 data-[state=active]:bg-amber-500/20 data-[state=active]:text-[#8a5008]">
-            Scorecard
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="entry" className="space-y-4 mt-3">
+      {/* Score Entry + inline Scorecard */}
+      <div className="space-y-4">
           {/* Hole navigation */}
           <div className="atd-card rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
@@ -399,10 +389,10 @@ export default function Scorekeeper() {
               </button>
             </div>
 
-            {/* Score selection buttons */}
+            {/* Score selection buttons + Save in same row */}
             <div className="mb-4">
               <p className="text-[#1a2744]/50 text-xs uppercase tracking-wider font-sans-app mb-2">Select Score</p>
-              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${scoreOptions.length}, 1fr)` }}>
+              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${scoreOptions.length + 1}, 1fr)` }}>
                 {scoreOptions.map(({ score, label }) => {
                   const isActive = localScore === score.toString();
                   return (
@@ -420,19 +410,17 @@ export default function Scorekeeper() {
                     </button>
                   );
                 })}
+                {/* Save button — same size as score buttons */}
+                <button
+                  onClick={handleSaveScore}
+                  disabled={scoreMutation.isPending || !localScore}
+                  data-testid="button-save-score"
+                  className="flex items-center justify-center rounded-lg py-3 px-1 border transition-all font-sans-app bg-amber-500/25 border-amber-400/60 text-[#1a2744] hover:bg-amber-500/35 disabled:opacity-40 disabled:cursor-not-allowed font-bold"
+                >
+                  <Check size={18} />
+                </button>
               </div>
             </div>
-
-            {/* Full-width Save button */}
-            <Button
-              onClick={handleSaveScore}
-              disabled={scoreMutation.isPending || !localScore}
-              className="w-full bg-amber-500/25 border border-amber-500/60 text-[#1a2744] hover:bg-amber-500/30 font-bold py-3 text-base font-sans-app"
-              data-testid="button-save-score"
-            >
-              <Check size={18} className="mr-2" />
-              Save Score
-            </Button>
 
             {/* CTP quick-entry if this is a CTP hole */}
             {currentHoleData?.isCtpHole && (
@@ -447,20 +435,13 @@ export default function Scorekeeper() {
             )}
           </div>
 
-        </TabsContent>
-
-        <TabsContent value="scorecard" className="mt-3">
+          {/* Inline scorecard — no header, no legend */}
           <div className="atd-card rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#1a2744]/12">
-              <span className="text-[#b06b10]/60 text-xs uppercase tracking-widest font-sans-app">Scorecard</span>
-            </div>
             <div className="p-3">
               <ScorecardTable holes={holes} scores={teamScores.data ?? []} />
             </div>
-            <ScorecardLegend />
           </div>
-        </TabsContent>
-      </Tabs>
+      </div>
 
       {/* CTP Modal */}
       {ctpModalHole !== null && (
