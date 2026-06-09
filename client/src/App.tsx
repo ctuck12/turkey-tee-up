@@ -39,7 +39,7 @@ function AppHeader() {
               <div className="text-[#b06b10] font-bold text-sm leading-tight tracking-wide">
                 ABILENE TURKEY DRIVE
               </div>
-              <div className="text-blue-200/85 text-[13px] leading-tight" style={{ fontFamily: "'Rajdhani', 'DM Sans', sans-serif", letterSpacing: "0.12em", fontWeight: 600 }}>
+              <div className="text-blue-200/85 text-[15px] leading-tight" style={{ fontFamily: "'Rajdhani', 'DM Sans', sans-serif", letterSpacing: "0.12em", fontWeight: 600 }}>
                 5TH ANNUAL TURKEY TEE UP
               </div>
             </div>
