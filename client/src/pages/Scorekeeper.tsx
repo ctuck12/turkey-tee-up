@@ -4,7 +4,7 @@ import { useParams } from "wouter";
 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ClipboardList, Target, Flag, ChevronLeft, ChevronRight, Check, Trophy, Eye, EyeOff } from "lucide-react";
+import { ClipboardList, Target, Flag, ChevronLeft, ChevronRight, Check, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -300,14 +300,11 @@ export default function Scorekeeper() {
         </div>
       )}
 
-      {/* Tabs: Score Entry / Scorecard / CTP */}
+      {/* Tabs: Score Entry / CTP */}
       <Tabs defaultValue="entry">
         <TabsList className="bg-[#1a2744]/5 border border-[#1a2744]/12 w-full">
           <TabsTrigger value="entry" className="flex-1 font-sans-app data-[state=active]:bg-amber-500/25 data-[state=active]:text-[#b06b10]">
             <ClipboardList size={14} className="mr-1.5" /> Score Entry
-          </TabsTrigger>
-          <TabsTrigger value="scorecard" className="flex-1 font-sans-app data-[state=active]:bg-amber-500/25 data-[state=active]:text-[#b06b10]">
-            <Trophy size={14} className="mr-1.5" /> Scorecard
           </TabsTrigger>
           <TabsTrigger value="ctp" className="flex-1 font-sans-app data-[state=active]:bg-amber-500/25 data-[state=active]:text-[#b06b10]">
             <Target size={14} className="mr-1.5" /> CTP
@@ -421,48 +418,12 @@ export default function Scorekeeper() {
             )}
           </div>
 
-          {/* Hole progress strip */}
-          <div className="atd-card rounded-xl p-3">
-            <p className="text-[#1a2744]/50 text-xs uppercase tracking-wider font-sans-app mb-2">All Holes</p>
-            <div className="grid grid-cols-9 gap-1">
-              {Array.from({ length: 18 }, (_, i) => i + 1).map(n => {
-                const s = scoreMap.get(n);
-                const h = holeMap.get(n);
-                const par = h?.par ?? 4;
-                const isCurrent = n === currentHole;
-                const hasScore = s?.strokes != null;
-                const diff = hasScore ? (s.strokes! - par) : null;
-                return (
-                  <button
-                    key={n}
-                    onClick={() => setCurrentHole(n)}
-                    data-testid={`button-hole-${n}`}
-                    className={`relative rounded text-xs py-1.5 transition-all font-sans-app ${
-                      isCurrent
-                        ? "bg-amber-500/30 border border-amber-400/60 text-[#1a2744] font-bold"
-                        : hasScore
-                          ? diff! < 0 ? "bg-amber-500/15 border border-amber-500/30 text-[#b06b10]"
-                          : diff === 0 ? "bg-[#1a2744]/8 border border-[#1a2744]/20 text-[#1a2744]/70"
-                          : "bg-red-500/10 border border-red-500/20 text-red-400"
-                        : "bg-[#1a2744]/5 border border-[#1a2744]/12 text-[#1a2744]/55 hover:bg-[#1a2744]/8"
-                    }`}
-                  >
-                    <div>{n}</div>
-                    {hasScore && <div className="font-bold">{s.strokes}</div>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* SCORECARD TAB */}
-        <TabsContent value="scorecard" className="mt-4">
+          {/* Inline Scorecard replacing All Holes strip */}
           <div className="atd-card rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-[#1a2744]/12 flex items-center gap-2">
-              <span className="text-[#b06b10]/60 text-xs uppercase tracking-widest font-sans-app">Live Scorecard — {authedTeam.teamName}</span>
+            <div className="px-4 py-3 border-b border-[#1a2744]/12">
+              <span className="text-[#b06b10]/60 text-xs uppercase tracking-widest font-sans-app">Scorecard</span>
             </div>
-            <div className="p-4">
+            <div className="p-3">
               <ScorecardTable holes={holes} scores={teamScores.data ?? []} />
             </div>
             <ScorecardLegend />
