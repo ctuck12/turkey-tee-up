@@ -36956,12 +36956,12 @@ var require_main3 = __commonJS({
   }
 });
 
-// api/index.ts
-var index_exports = {};
-__export(index_exports, {
+// server/vercel-handler.ts
+var vercel_handler_exports = {};
+__export(vercel_handler_exports, {
   default: () => handler
 });
-module.exports = __toCommonJS(index_exports);
+module.exports = __toCommonJS(vercel_handler_exports);
 var import_express = __toESM(require_express2(), 1);
 
 // server/routes.ts
@@ -46252,7 +46252,7 @@ function registerRoutes(app2) {
   return httpServer;
 }
 
-// api/index.ts
+// server/vercel-handler.ts
 var app = (0, import_express.default)();
 app.use(import_express.default.json());
 app.use(import_express.default.urlencoded({ extended: false }));
