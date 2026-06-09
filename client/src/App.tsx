@@ -53,8 +53,8 @@ function AppHeader() {
                 href={href}
                 className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 font-sans-app ${
                   loc === href
-                    ? "bg-amber-500/25 text-[#b06b10] border border-amber-500/30"
-                    : "text-blue-100/80 hover:text-[#b06b10] hover:bg-white/5"
+                    ? "bg-amber-500/25 text-white border border-amber-500/30"
+                    : "text-blue-100/80 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <Icon size={15} />
@@ -83,8 +83,8 @@ function AppHeader() {
                 onClick={() => setMenuOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium mb-1 font-sans-app ${
                   loc === href
-                    ? "bg-amber-500/25 text-[#b06b10]"
-                    : "text-blue-100/80 hover:text-[#b06b10] hover:bg-white/5"
+                    ? "bg-amber-500/25 text-white"
+                    : "text-blue-100/80 hover:text-white hover:bg-white/5"
                 }`}
               >
                 <Icon size={16} />
