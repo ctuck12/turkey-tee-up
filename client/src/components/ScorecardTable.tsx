@@ -100,37 +100,45 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
 
   return (
     <div className="overflow-x-auto">
-      <table className="scorecard-table w-full min-w-[700px]" style={{ tableLayout: "fixed" }}>
+      <table className="scorecard-table w-full" style={{ tableLayout: "fixed", minWidth: "680px" }}>
+        <colgroup>
+          <col style={{ width: "52px" }} />
+          {front9.map(n => <col key={n} style={{ width: "32px" }} />)}
+          <col style={{ width: "40px" }} />
+          {back9.map(n => <col key={n} style={{ width: "32px" }} />)}
+          <col style={{ width: "40px" }} />
+          <col style={{ width: "44px" }} />
+        </colgroup>
         <thead>
           <tr>
-            <th style={{ width: "52px" }}>Hole</th>
-            {front9.map(n => <th key={n} style={{ width: "32px" }}>{n}</th>)}
-            <th className="bg-[#1a2744]/8" style={{ width: "38px" }}>OUT</th>
-            {back9.map(n => <th key={n} style={{ width: "32px" }}>{n}</th>)}
-            <th className="bg-[#1a2744]/8" style={{ width: "38px" }}>IN</th>
-            <th className="bg-[#1a2744]/12 text-[#c8892a]" style={{ width: "38px" }}>TOT</th>
+            <th className="text-left px-2" style={{ width: "52px" }}>Hole</th>
+            {front9.map(n => <th key={n}>{n}</th>)}
+            <th className="bg-[#1a2744]/8">OUT</th>
+            {back9.map(n => <th key={n}>{n}</th>)}
+            <th className="bg-[#1a2744]/8">IN</th>
+            <th className="bg-[#1a2744]/12 text-[#c8892a]">TOT</th>
           </tr>
         </thead>
         <tbody>
           {/* Yardage row — gray tint */}
           <tr className="par-row">
-            <td className="text-[#1a2744]/55 text-xs">Yds</td>
+            <td className="text-left px-2 text-[#1a2744]/55 text-xs">Yds</td>
             {front9.map(n => <td key={n} className="text-[#1a2744]/55 text-xs">{holeMap.get(n)?.yardageBlue ?? "—"}</td>)}
-            <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/5">
+            <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/5 text-xs">
               {front9.reduce((s, n) => s + (holeMap.get(n)?.yardageBlue ?? 0), 0)}
             </td>
             {back9.map(n => <td key={n} className="text-[#1a2744]/55 text-xs">{holeMap.get(n)?.yardageBlue ?? "—"}</td>)}
-            <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/5">
+            <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/5 text-xs">
               {back9.reduce((s, n) => s + (holeMap.get(n)?.yardageBlue ?? 0), 0)}
             </td>
-            <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/8">
+            <td className="font-bold text-[#1a2744]/60 bg-[#1a2744]/8 text-xs">
               {sortedHoles.reduce((s, h) => s + (h.yardageBlue ?? 0), 0)}
             </td>
           </tr>
 
           {/* Handicap row — white */}
           <tr className="score-row">
-            <td className="text-[#1a2744]/50 text-xs">Hdcp</td>
+            <td className="text-left px-2 text-[#1a2744]/50 text-xs">Hdcp</td>
             {front9.map(n => <td key={n} className="text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
             <td className="bg-[#1a2744]/5"></td>
             {back9.map(n => <td key={n} className="text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
@@ -140,7 +148,7 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
 
           {/* Par row — white */}
           <tr className="score-row">
-            <td className="font-bold">Par</td>
+            <td className="text-left px-2 font-bold">Par</td>
             {front9.map(n => <td key={n}>{holeMap.get(n)?.par ?? 4}</td>)}
             <td className="font-bold bg-[#1a2744]/8">{parTotal(front9)}</td>
             {back9.map(n => <td key={n}>{holeMap.get(n)?.par ?? 4}</td>)}
@@ -150,7 +158,7 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
 
           {/* Score row — white, gold top border */}
           <tr className="score-row score-data-row">
-            <td className="font-bold text-[#1a2744]">Score</td>
+            <td className="text-left px-2 font-bold text-[#1a2744]">Score</td>
             {front9.map(n => (
               <ScoreCell key={n} strokes={scoreMap.get(n)?.strokes} par={holeMap.get(n)?.par ?? 4} />
             ))}
