@@ -399,7 +399,7 @@ export default function Scorekeeper() {
             {currentHoleData?.isCtpHole && (
               <button
                 onClick={() => setCtpModalHole(currentHole)}
-                className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[#1a2744]/80 border border-[#1a2744] text-white hover:bg-[#1a2744] transition-all font-sans-app text-sm font-bold"
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[#1a2744]/15 border border-[#1a2744]/25 text-[#1a2744] hover:bg-[#1a2744]/22 transition-all font-sans-app text-sm font-bold"
                 data-testid="button-enter-ctp"
               >
                 <Target size={14} /> Enter Closest to Pin for Hole {currentHole}

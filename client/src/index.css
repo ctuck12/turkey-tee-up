@@ -102,9 +102,9 @@
   .score-double { color: #a02030; font-weight: 600; }
   .score-worse { color: #7a1525; font-weight: 700; }
 
-  .to-par-under { color: #3d8a2a; font-weight: 700; }
-  .to-par-even { color: #1a2744; }
-  .to-par-over { color: #c0323e; }
+  .to-par-under { color: #c0323e; font-weight: 700; }
+  .to-par-even { color: #1a2744; font-weight: 700; }
+  .to-par-over { color: #1a2744; font-weight: 700; }
 
   /* Realistic scorecard */
   .scorecard-table {
