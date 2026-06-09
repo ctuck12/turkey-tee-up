@@ -179,12 +179,16 @@ export default function Scorekeeper() {
     }
     scoreMutation.mutate({ teamId: authedTeam.id, holeNumber: currentHole, strokes });
     toast({ title: `Hole ${currentHole}: Score saved (${strokes})` });
+    // Advance to next hole automatically (cap at 18)
+    if (currentHole < 18) setCurrentHole(currentHole + 1);
   }
 
   function handleQuickScore(n: number) {
     if (!authedTeam) return;
     setLocalScore(n.toString());
     scoreMutation.mutate({ teamId: authedTeam.id, holeNumber: currentHole, strokes: n });
+    // Advance to next hole automatically (cap at 18)
+    if (currentHole < 18) setCurrentHole(currentHole + 1);
   }
 
   const par = currentHoleData?.par ?? 4;
@@ -397,7 +401,7 @@ export default function Scorekeeper() {
               <Button
                 onClick={handleSaveScore}
                 disabled={scoreMutation.isPending || !localScore}
-                className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold px-6 font-sans-app"
+                className="bg-amber-500/25 border border-amber-500/60 text-[#1a2744] hover:bg-amber-500/30 font-bold px-6 font-sans-app"
                 data-testid="button-save-score"
               >
                 <Check size={16} className="mr-1" />
