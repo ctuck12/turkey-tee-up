@@ -40,7 +40,7 @@ function AppHeader() {
                 ABILENE TURKEY DRIVE
               </div>
               <div className="text-blue-200/70 text-xs tracking-widest">
-                GOLF TOURNAMENT
+                5TH ANNUAL TURKEY TEE UP
               </div>
             </div>
           </Link>

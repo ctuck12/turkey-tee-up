@@ -53,9 +53,9 @@ function CtpGrid({ ctpEntries, ctpHoles, teams, flight }: { ctpEntries: ClosestT
         const team = entry?.teamId ? teams.find(t => t.id === entry.teamId) : null;
         return (
           <div key={hole.id} className="bg-white border border-[#1a2744]/20 rounded-lg p-3 shadow-sm">
-            <div className="text-[#1a2744]/50 text-xs font-sans-app mb-1">
-              Hole {hole.holeNumber} · Par {hole.par}
-              {hole.ctpLabel && <span className="ml-1 font-semibold text-[#b06b10]">· {hole.ctpLabel}</span>}
+            <div className="text-xs font-sans-app mb-1">
+              <span className="text-[#1a2744]/50">Hole </span><span className="font-bold text-[#b06b10]">{hole.holeNumber}</span>
+              {hole.ctpLabel && <span className="ml-1 text-[#1a2744]/45">· {hole.ctpLabel}</span>}
             </div>
             {entry && (entry.playerName || team) ? (
               <>
@@ -141,8 +141,8 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, teams 
           onClick={() => setShowCtp(v => !v)}
           className={`ml-auto flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors font-sans-app ${
             showCtp
-              ? "bg-amber-500/15 border-amber-500/60 text-amber-500"
-              : "border-[#1a2744]/20 text-[#1a2744]/50 hover:border-amber-500/30 hover:text-amber-500/70"
+              ? "bg-[#b06b10]/15 border-[#b06b10]/60 text-[#b06b10]"
+              : "border-[#1a2744]/20 text-[#1a2744]/50 hover:border-[#b06b10]/40 hover:text-[#b06b10]/80"
           }`}
         >
           <Target size={11} />
@@ -163,10 +163,10 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, teams 
         <table className="w-full font-sans-app text-sm">
           <thead>
             <tr className="border-b border-amber-500/10">
-              <th className="px-3 py-2.5 text-left text-amber-500/60 text-xs uppercase tracking-wider w-10">#</th>
-              <th className="px-3 py-2.5 text-left text-amber-500/60 text-xs uppercase tracking-wider">Team</th>
-              <th className="px-3 py-2.5 text-center text-amber-500/60 text-xs uppercase tracking-wider w-24">+/- Par</th>
-              <th className="px-3 py-2.5 text-center text-amber-500/60 text-xs uppercase tracking-wider w-16">Thru</th>
+              <th className="px-3 py-2.5 text-left text-[#b06b10] text-xs uppercase tracking-wider w-10">#</th>
+              <th className="px-3 py-2.5 text-left text-[#b06b10] text-xs uppercase tracking-wider">Team</th>
+              <th className="px-3 py-2.5 text-center text-[#b06b10] text-xs uppercase tracking-wider w-24">+/- Par</th>
+              <th className="px-3 py-2.5 text-center text-[#b06b10] text-xs uppercase tracking-wider w-16">Thru</th>
             </tr>
           </thead>
           <tbody>
