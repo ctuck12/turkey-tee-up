@@ -28,11 +28,13 @@ function AppHeader() {
         <div className="flex items-center justify-between" style={{ height: '92px' }}>
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
-            <img
-              src={atdLogo}
-              alt="Abilene Turkey Drive Golf"
-              style={{ width: '88px', height: '88px', objectFit: 'contain', display: 'block', borderRadius: '18px' }}
-            />
+            <div className="flex-shrink-0 rounded-full" style={{ background: 'rgba(255,255,255,0.97)', border: '2.5px solid #c8892a', boxShadow: '0 0 0 1px rgba(200,137,42,0.3)', width: '88px', height: '88px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img
+                src={atdLogo}
+                alt="Abilene Turkey Drive Golf"
+                style={{ width: '72px', height: '72px', objectFit: 'contain', display: 'block' }}
+              />
+            </div>
             <div>
               <div className="text-amber-400 font-bold text-sm leading-tight tracking-wide">
                 ABILENE TURKEY DRIVE
