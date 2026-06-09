@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Team, Hole, Score, ClosestToPin, Sponsor } from "@shared/schema";
 import atdLogo from "@/assets/atd-logo.png";
+import bigCountryLogo from "@/assets/big-country-title.jpeg";
 import { ScorecardTable } from "@/components/ScorecardTable";
 
 // CTP / Long Drive Entry Modal
@@ -523,6 +524,15 @@ export default function Scorekeeper() {
             <div className="p-3">
               <ScorecardTable holes={holes} scores={teamScores.data ?? []} />
             </div>
+          </div>
+
+          {/* Big Country Title sponsor logo */}
+          <div className="flex justify-center py-2">
+            <img
+              src={bigCountryLogo}
+              alt="Big Country Title Company"
+              className="w-full max-w-xs object-contain"
+            />
           </div>
       </div>
 
