@@ -48,9 +48,9 @@
     --atd-navy: #1a2744;
     --atd-navy-dark: #111b33;
     --atd-navy-light: #243461;
-    --atd-gold: #c8892a;
-    --atd-gold-light: #e8a840;
-    --atd-gold-dark: #a0691a;
+    --atd-gold: #b06b10;
+    --atd-gold-light: #c8820e;
+    --atd-gold-dark: #8a5008;
     --atd-cream: #f0ebe1;
     --atd-cream-dark: #e6dfd3;
     --atd-text-light: #e8e4d8;
@@ -88,7 +88,7 @@
   }
 
   .atd-gold-text {
-    color: var(--atd-gold-light);
+    color: var(--atd-gold);
   }
 
   .atd-navy-bg {

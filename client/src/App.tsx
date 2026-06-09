@@ -36,7 +36,7 @@ function AppHeader() {
               />
             </div>
             <div>
-              <div className="text-amber-400 font-bold text-sm leading-tight tracking-wide">
+              <div className="text-[#b06b10] font-bold text-sm leading-tight tracking-wide">
                 ABILENE TURKEY DRIVE
               </div>
               <div className="text-blue-200/70 text-xs tracking-widest">
@@ -53,8 +53,8 @@ function AppHeader() {
                 href={href}
                 className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-150 font-sans-app ${
                   loc === href
-                    ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                    : "text-blue-100/80 hover:text-amber-400 hover:bg-white/5"
+                    ? "bg-amber-500/25 text-[#b06b10] border border-amber-500/30"
+                    : "text-blue-100/80 hover:text-[#b06b10] hover:bg-white/5"
                 }`}
               >
                 <Icon size={15} />
@@ -66,7 +66,7 @@ function AppHeader() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden text-blue-100/80 hover:text-amber-400 p-2"
+            className="md:hidden text-blue-100/80 hover:text-[#b06b10] p-2"
             data-testid="button-mobile-menu"
           >
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -83,8 +83,8 @@ function AppHeader() {
                 onClick={() => setMenuOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium mb-1 font-sans-app ${
                   loc === href
-                    ? "bg-amber-500/20 text-amber-400"
-                    : "text-blue-100/80 hover:text-amber-400 hover:bg-white/5"
+                    ? "bg-amber-500/25 text-[#b06b10]"
+                    : "text-blue-100/80 hover:text-[#b06b10] hover:bg-white/5"
                 }`}
               >
                 <Icon size={16} />

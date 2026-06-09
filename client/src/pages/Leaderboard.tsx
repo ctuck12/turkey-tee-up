@@ -35,7 +35,7 @@ function SponsorBanner({ sponsors, placement }: { sponsors: Sponsor[]; placement
           {s.logoUrl ? (
             <img src={s.logoUrl} alt={s.name} className="h-8 max-w-[120px] object-contain opacity-80 hover:opacity-100 transition-opacity" />
           ) : (
-            <span className="text-amber-400/70 text-sm font-bold font-sans-app">{s.name}</span>
+            <span className="text-[#b06b10]/80 text-sm font-bold font-sans-app">{s.name}</span>
           )}
         </div>
       ))}
@@ -55,7 +55,7 @@ function CtpGrid({ ctpEntries, ctpHoles, teams, flight }: { ctpEntries: ClosestT
           <div key={hole.id} className="bg-[#1a2744]/8 border border-[#1a2744]/20 rounded-lg p-3">
             <div className="text-amber-500/60 text-xs font-sans-app mb-1">
               Hole {hole.holeNumber} · Par {hole.par}
-              {hole.ctpLabel && <span className="ml-1 text-amber-400/80">({hole.ctpLabel})</span>}
+              {hole.ctpLabel && <span className="ml-1 text-[#b06b10]/80">({hole.ctpLabel})</span>}
             </div>
             {entry && (entry.playerName || team) ? (
               <>
@@ -82,8 +82,8 @@ function CtpPanel({ ctpEntries, holes, teams }: { ctpEntries: ClosestToPin[]; ho
   return (
     <div className="atd-card rounded-xl p-4 mb-6">
       <div className="flex items-center gap-2 mb-3">
-        <Target size={18} className="text-amber-400" />
-        <h2 className="text-amber-400 font-bold text-sm uppercase tracking-widest font-sans-app">Closest to the Pin</h2>
+        <Target size={18} className="text-[#b06b10]" />
+        <h2 className="text-[#b06b10] font-bold text-sm uppercase tracking-widest font-sans-app">Closest to the Pin</h2>
         <div className="flex items-center gap-1 ml-2">
           <span className="live-indicator w-2 h-2 rounded-full bg-green-400 inline-block"></span>
           <span className="text-green-400/70 text-xs font-sans-app">Live</span>
@@ -91,10 +91,10 @@ function CtpPanel({ ctpEntries, holes, teams }: { ctpEntries: ClosestToPin[]; ho
       </div>
       <Tabs defaultValue="morning">
         <TabsList className="bg-white border border-[#1a2744]/20 mb-3 shadow-sm">
-          <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-amber-400 text-xs">
+          <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-[#b06b10] text-xs">
             Morning
           </TabsTrigger>
-          <TabsTrigger value="afternoon" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-amber-400 text-xs">
+          <TabsTrigger value="afternoon" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-[#b06b10] text-xs">
             Afternoon
           </TabsTrigger>
         </TabsList>
@@ -141,7 +141,7 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, teams 
           onClick={() => setShowCtp(v => !v)}
           className={`ml-auto flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors font-sans-app ${
             showCtp
-              ? "bg-amber-500/15 border-amber-500/40 text-amber-500"
+              ? "bg-amber-500/15 border-amber-500/60 text-amber-500"
               : "border-[#1a2744]/20 text-[#1a2744]/50 hover:border-amber-500/30 hover:text-amber-500/70"
           }`}
         >
@@ -227,7 +227,7 @@ export default function Leaderboard() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-xl font-bold text-amber-400 leading-tight">Live Leaderboard</h1>
+            <h1 className="text-xl font-bold text-[#b06b10] leading-tight">Live Leaderboard</h1>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -249,23 +249,23 @@ export default function Leaderboard() {
       {/* Leaderboard tabs */}
       {loadingLb ? (
         <div className="atd-card rounded-xl p-12 text-center">
-          <Trophy size={40} className="text-amber-400/30 mx-auto mb-3 animate-pulse" />
+          <Trophy size={40} className="text-[#b06b10]/30 mx-auto mb-3 animate-pulse" />
           <p className="text-[#1a2744]/50 font-sans-app">Loading leaderboard...</p>
         </div>
       ) : (
         <Tabs defaultValue="morning">
           <TabsList className="bg-white border border-[#1a2744]/20 mb-4 shadow-sm">
-            <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-amber-400">
+            <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-[#b06b10]">
               Morning ({morningTeams.length})
             </TabsTrigger>
-            <TabsTrigger value="afternoon" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-amber-400">
+            <TabsTrigger value="afternoon" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-[#b06b10]">
               Afternoon ({afternoonTeams.length})
             </TabsTrigger>
           </TabsList>
           <TabsContent value="morning">
             {morningTeams.length === 0 ? (
               <div className="atd-card rounded-xl p-12 text-center">
-                <Trophy size={48} className="text-amber-400/20 mx-auto mb-4" />
+                <Trophy size={48} className="text-[#b06b10]/20 mx-auto mb-4" />
                 <p className="text-[#1a2744]/50 font-sans-app text-lg mb-2">No teams yet</p>
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
@@ -276,7 +276,7 @@ export default function Leaderboard() {
           <TabsContent value="afternoon">
             {afternoonTeams.length === 0 ? (
               <div className="atd-card rounded-xl p-12 text-center">
-                <Trophy size={48} className="text-amber-400/20 mx-auto mb-4" />
+                <Trophy size={48} className="text-[#b06b10]/20 mx-auto mb-4" />
                 <p className="text-[#1a2744]/50 font-sans-app text-lg mb-2">No teams yet</p>
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>

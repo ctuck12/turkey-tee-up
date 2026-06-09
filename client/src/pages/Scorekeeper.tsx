@@ -127,7 +127,7 @@ function CtpEntryModal({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-[#1a2744] border-amber-500/25 text-[#1a2744] max-w-sm">
         <DialogHeader>
-          <DialogTitle className="text-amber-400 font-bold flex items-center gap-2">
+          <DialogTitle className="text-[#b06b10] font-bold flex items-center gap-2">
             <Target size={18} /> CTP – Hole {holeNumber}
             {hole && <span className="text-[#1a2744]/55 text-sm">Par {hole.par}</span>}
           </DialogTitle>
@@ -156,7 +156,7 @@ function CtpEntryModal({
           <div className="flex gap-2 pt-2">
             <Button
               onClick={() => onSave({ holeNumber, playerName, distance })}
-              className="flex-1 bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30"
+              className="flex-1 bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30"
               data-testid="button-ctp-save"
             >
               <Check size={14} className="mr-1.5" /> Save CTP
@@ -281,7 +281,7 @@ export default function Scorekeeper() {
       <div className="max-w-sm mx-auto space-y-6 pt-8">
         <div className="text-center">
           <img src={atdLogo} alt="ATD" className="w-56 mx-auto mb-6 object-contain" />
-          <h1 className="text-xl font-bold text-amber-400 mb-1">Scorekeeper Entry</h1>
+          <h1 className="text-xl font-bold text-[#b06b10] mb-1">Scorekeeper Entry</h1>
           <p className="text-[#1a2744]/55 text-sm font-sans-app">Enter your team code to begin</p>
         </div>
         <div className="atd-card rounded-xl p-6 space-y-4 font-sans-app">
@@ -300,7 +300,7 @@ export default function Scorekeeper() {
           {authError && <p className="text-red-400 text-sm">{authError}</p>}
           <Button
             onClick={handleLogin}
-            className="w-full bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 font-bold"
+            className="w-full bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold"
             data-testid="button-login"
           >
             Enter Scorecard
@@ -317,7 +317,7 @@ export default function Scorekeeper() {
                   {s.logoUrl ? (
                     <img src={s.logoUrl} alt={s.name} className="h-8 max-w-[100px] object-contain opacity-70" />
                   ) : (
-                    <span className="text-amber-400/60 text-sm font-bold">{s.name}</span>
+                    <span className="text-[#b06b10]/60 text-sm font-bold">{s.name}</span>
                   )}
                 </div>
               ))}
@@ -344,7 +344,7 @@ export default function Scorekeeper() {
           <div className="flex items-center gap-3">
 
             <div>
-              <h2 className="font-bold text-amber-400 text-lg">{authedTeam.teamName}</h2>
+              <h2 className="font-bold text-[#b06b10] text-lg">{authedTeam.teamName}</h2>
               <div className="text-[#1a2744]/55 text-xs font-sans-app">
                 {[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean).join(" · ")}
               </div>
@@ -357,7 +357,7 @@ export default function Scorekeeper() {
                 {completedHoles === 0 ? "E" : runningToPar === 0 ? "E" : runningToPar > 0 ? `+${runningToPar}` : runningToPar}
               </div>
             </div>
-            <Badge className="bg-amber-500/15 text-amber-400/80 border-amber-500/20 capitalize font-sans-app">
+            <Badge className="bg-amber-500/15 text-[#b06b10]/80 border-amber-500/20 capitalize font-sans-app">
               {authedTeam.flight}
             </Badge>
           </div>
@@ -371,7 +371,7 @@ export default function Scorekeeper() {
             <div key={s.id} className="sponsor-logo-container">
               {s.logoUrl
                 ? <img src={s.logoUrl} alt={s.name} className="h-6 max-w-[80px] object-contain opacity-70" />
-                : <span className="text-amber-400/50 text-xs font-bold font-sans-app">{s.name}</span>
+                : <span className="text-[#b06b10]/70 text-xs font-bold font-sans-app">{s.name}</span>
               }
             </div>
           ))}
@@ -381,13 +381,13 @@ export default function Scorekeeper() {
       {/* Tabs: Score Entry / Scorecard / CTP */}
       <Tabs defaultValue="entry">
         <TabsList className="bg-[#1a2744]/5 border border-[#1a2744]/12 w-full">
-          <TabsTrigger value="entry" className="flex-1 font-sans-app data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
+          <TabsTrigger value="entry" className="flex-1 font-sans-app data-[state=active]:bg-amber-500/25 data-[state=active]:text-[#b06b10]">
             <ClipboardList size={14} className="mr-1.5" /> Score Entry
           </TabsTrigger>
-          <TabsTrigger value="scorecard" className="flex-1 font-sans-app data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
+          <TabsTrigger value="scorecard" className="flex-1 font-sans-app data-[state=active]:bg-amber-500/25 data-[state=active]:text-[#b06b10]">
             <Trophy size={14} className="mr-1.5" /> Scorecard
           </TabsTrigger>
-          <TabsTrigger value="ctp" className="flex-1 font-sans-app data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400">
+          <TabsTrigger value="ctp" className="flex-1 font-sans-app data-[state=active]:bg-amber-500/25 data-[state=active]:text-[#b06b10]">
             <Target size={14} className="mr-1.5" /> CTP
           </TabsTrigger>
         </TabsList>
@@ -406,14 +406,14 @@ export default function Scorekeeper() {
                 <ChevronLeft size={20} />
               </button>
               <div className="text-center">
-                <div className="text-amber-400/50 text-xs uppercase tracking-widest font-sans-app">Hole</div>
-                <div className="text-4xl font-bold text-amber-400">{currentHole}</div>
+                <div className="text-[#b06b10]/70 text-xs uppercase tracking-widest font-sans-app">Hole</div>
+                <div className="text-4xl font-bold text-[#b06b10]">{currentHole}</div>
                 <div className="flex items-center justify-center gap-3 mt-1 font-sans-app text-xs text-[#1a2744]/55">
                   <span>Par {par}</span>
                   {currentHoleData?.handicap && <span>Hdcp {currentHoleData.handicap}</span>}
                   {currentHoleData?.yardageBlue && <span>{currentHoleData.yardageBlue} yds</span>}
                   {currentHoleData?.isCtpHole && (
-                    <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">
+                    <Badge className="bg-amber-500/25 text-[#b06b10] border-amber-500/30 text-xs">
                       <Target size={10} className="mr-1" /> CTP
                     </Badge>
                   )}
@@ -472,7 +472,7 @@ export default function Scorekeeper() {
               <Button
                 onClick={handleSaveScore}
                 disabled={scoreMutation.isPending || !localScore}
-                className="bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 font-bold px-6 font-sans-app"
+                className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold px-6 font-sans-app"
                 data-testid="button-save-score"
               >
                 <Check size={16} className="mr-1" />
@@ -484,7 +484,7 @@ export default function Scorekeeper() {
             {currentHoleData?.isCtpHole && (
               <button
                 onClick={() => setCtpModalHole(currentHole)}
-                className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400/80 hover:bg-amber-500/20 hover:text-amber-400 transition-all font-sans-app text-sm"
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[#b06b10]/80 hover:bg-amber-500/25 hover:text-[#b06b10] transition-all font-sans-app text-sm"
                 data-testid="button-enter-ctp"
               >
                 <Target size={14} /> Enter Closest to Pin for Hole {currentHole}
@@ -512,7 +512,7 @@ export default function Scorekeeper() {
                       isCurrent
                         ? "bg-amber-500/30 border border-amber-400/60 text-amber-300 font-bold"
                         : hasScore
-                          ? diff! < 0 ? "bg-amber-500/15 border border-amber-500/30 text-amber-400"
+                          ? diff! < 0 ? "bg-amber-500/15 border border-amber-500/30 text-[#b06b10]"
                           : diff === 0 ? "bg-[#1a2744]/8 border border-[#1a2744]/20 text-[#1a2744]/70"
                           : "bg-red-500/10 border border-red-500/20 text-red-400"
                         : "bg-[#1a2744]/5 border border-[#1a2744]/12 text-[#1a2744]/55 hover:bg-[#1a2744]/8"
@@ -531,7 +531,7 @@ export default function Scorekeeper() {
         <TabsContent value="scorecard" className="mt-4">
           <div className="atd-card rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-amber-500/15">
-              <span className="text-amber-400/60 text-xs uppercase tracking-widest font-sans-app">Live Scorecard — {authedTeam.teamName}</span>
+              <span className="text-[#b06b10]/60 text-xs uppercase tracking-widest font-sans-app">Live Scorecard — {authedTeam.teamName}</span>
             </div>
             <div className="p-3">
               <ScorekeeperScorecard team={authedTeam} holes={holes} scores={teamScores.data ?? []} />
@@ -543,8 +543,8 @@ export default function Scorekeeper() {
         <TabsContent value="ctp" className="mt-4">
           <div className="atd-card rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-2 mb-2">
-              <Target size={16} className="text-amber-400" />
-              <h3 className="font-bold text-amber-400 font-sans-app">Closest to the Pin Holes</h3>
+              <Target size={16} className="text-[#b06b10]" />
+              <h3 className="font-bold text-[#b06b10] font-sans-app">Closest to the Pin Holes</h3>
             </div>
             {ctpHoles.length === 0 ? (
               <p className="text-[#1a2744]/50 text-sm font-sans-app italic">No CTP holes configured yet.</p>
@@ -555,7 +555,7 @@ export default function Scorekeeper() {
                   <div key={hole.id} className="flex items-center justify-between bg-[#1a2744]/5 rounded-lg p-3 border border-amber-500/10">
                     <div>
                       <div className="font-bold text-[#1a2744] font-sans-app">Hole {hole.holeNumber} · Par {hole.par}</div>
-                      {hole.ctpLabel && <div className="text-amber-400/60 text-xs font-sans-app">{hole.ctpLabel}</div>}
+                      {hole.ctpLabel && <div className="text-[#b06b10]/60 text-xs font-sans-app">{hole.ctpLabel}</div>}
                       {entry?.playerName ? (
                         <div className="mt-1">
                           <span className="text-amber-300 text-sm font-bold">{entry.playerName}</span>
@@ -569,7 +569,7 @@ export default function Scorekeeper() {
                       onClick={() => setCtpModalHole(hole.holeNumber)}
                       variant="outline"
                       size="sm"
-                      className="border-amber-500/30 text-amber-400/70 hover:text-amber-400 hover:border-amber-500/60 font-sans-app"
+                      className="border-amber-500/30 text-[#b06b10]/80 hover:text-[#b06b10] hover:border-amber-500/60 font-sans-app"
                       data-testid={`button-edit-ctp-${hole.holeNumber}`}
                     >
                       {entry?.playerName ? "Update" : "Enter"}

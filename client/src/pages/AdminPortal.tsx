@@ -40,8 +40,8 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
   return (
     <div className="max-w-sm mx-auto pt-12 space-y-6">
       <div className="text-center">
-        <Shield size={40} className="text-amber-400 mx-auto mb-3" />
-        <h1 className="text-xl font-bold text-amber-400">Admin Portal</h1>
+        <Shield size={40} className="text-[#b06b10] mx-auto mb-3" />
+        <h1 className="text-xl font-bold text-[#b06b10]">Admin Portal</h1>
         <p className="text-[#1a2744]/55 text-sm font-sans-app">Tournament administration</p>
       </div>
       <div className="atd-card rounded-xl p-6 space-y-4 font-sans-app">
@@ -65,7 +65,7 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
         {err && <p className="text-red-400 text-sm">{err}</p>}
         <Button
           onClick={handleLogin}
-          className="w-full bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 font-bold"
+          className="w-full bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold"
           data-testid="button-admin-login"
         >
           <Shield size={15} className="mr-2" /> Enter Admin
@@ -118,14 +118,14 @@ function TeamForm({ data, onChange, onSubmit, onCancel, submitLabel }: any) {
           <div className="flex gap-2">
             <Input value={data.teamCode} onChange={e => onChange({ ...data, teamCode: e.target.value.toUpperCase() })}
               placeholder="e.g. A1B2" maxLength={6} className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] font-mono tracking-widest" />
-            <Button type="button" variant="ghost" onClick={() => onChange({ ...data, teamCode: genCode() })} className="text-amber-400/70 hover:text-amber-400 border border-amber-500/20 px-3">
+            <Button type="button" variant="ghost" onClick={() => onChange({ ...data, teamCode: genCode() })} className="text-[#b06b10]/80 hover:text-[#b06b10] border border-amber-500/20 px-3">
               <RefreshCw size={14} />
             </Button>
           </div>
         </div>
       </div>
       <div className="flex gap-2 pt-1">
-        <Button onClick={onSubmit} className="bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 font-bold">
+        <Button onClick={onSubmit} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold">
           <Check size={14} className="mr-1.5" /> {submitLabel}
         </Button>
         <Button variant="ghost" onClick={onCancel} className="text-[#1a2744]/55 hover:text-[#1a2744]/70">Cancel</Button>
@@ -148,7 +148,7 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
     <div className="bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg overflow-hidden">
       <div className="flex items-center justify-between px-3 py-2.5">
         <div className="flex items-center gap-3">
-          <Badge className={`text-xs ${team.flight === "morning" ? "bg-blue-500/15 text-blue-300 border-blue-500/20" : "bg-amber-500/15 text-amber-400 border-amber-500/20"}`}>
+          <Badge className={`text-xs ${team.flight === "morning" ? "bg-blue-500/15 text-blue-300 border-blue-500/20" : "bg-amber-500/15 text-[#b06b10] border-amber-500/20"}`}>
             {team.flight === "morning" ? "AM" : "PM"}
           </Badge>
           <div>
@@ -157,9 +157,9 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1 bg-[#1a2744]/5 rounded px-2 py-0.5 text-xs font-mono text-amber-400/70">
+          <div className="flex items-center gap-1 bg-[#1a2744]/5 rounded px-2 py-0.5 text-xs font-mono text-[#b06b10]/80">
             {team.teamCode}
-            <button onClick={() => { navigator.clipboard.writeText(team.teamCode); toast({ title: "Code copied!" }); }} className="ml-1 text-amber-400/50 hover:text-amber-400">
+            <button onClick={() => { navigator.clipboard.writeText(team.teamCode); toast({ title: "Code copied!" }); }} className="ml-1 text-[#b06b10]/70 hover:text-[#b06b10]">
               <Copy size={10} />
             </button>
           </div>
@@ -180,7 +180,7 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
             />
           ) : (
             <div className="flex flex-wrap gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setEditTeam(team)} className="text-amber-400/70 hover:text-amber-400 border border-amber-500/20 font-sans-app">
+              <Button variant="ghost" size="sm" onClick={() => setEditTeam(team)} className="text-[#b06b10]/80 hover:text-[#b06b10] border border-amber-500/20 font-sans-app">
                 <Edit2 size={13} className="mr-1" /> Edit
               </Button>
               <Button variant="ghost" size="sm" onClick={() => clearScoresMutation.mutate(team.id)} className="text-blue-400/60 hover:text-blue-400 border border-blue-500/20 font-sans-app">
@@ -250,18 +250,18 @@ function TeamsTab() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-bold text-amber-400 font-sans-app">Teams</h2>
+          <h2 className="font-bold text-[#b06b10] font-sans-app">Teams</h2>
           <p className="text-[#1a2744]/50 text-xs font-sans-app">{teams.length} teams · {morning.length} morning · {afternoon.length} afternoon</p>
         </div>
         <Button onClick={() => { setShowAdd(!showAdd); setNewTeam({ ...newTeam, teamCode: genCode() }); }}
-          className="bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 font-sans-app" size="sm">
+          className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-sans-app" size="sm">
           <Plus size={14} className="mr-1.5" /> Add Team
         </Button>
       </div>
 
       {showAdd && (
         <div className="atd-card rounded-xl p-4">
-          <h3 className="text-amber-400/80 font-bold mb-3 font-sans-app text-sm">New Team</h3>
+          <h3 className="text-[#b06b10]/80 font-bold mb-3 font-sans-app text-sm">New Team</h3>
           <TeamForm
             data={newTeam}
             onChange={setNewTeam}
@@ -357,7 +357,7 @@ function HolesTab() {
     <div className="space-y-4">
       {/* Course info card */}
       <div className="atd-card rounded-xl p-4 space-y-3 font-sans-app">
-        <h2 className="font-bold text-amber-400">Course Info</h2>
+        <h2 className="font-bold text-[#b06b10]">Course Info</h2>
         <div className="flex items-center gap-2">
           <div className="flex-1">
             <Label className="text-[#1a2744]/60 text-xs mb-1 block">Course Name</Label>
@@ -371,22 +371,22 @@ function HolesTab() {
           <Button
             onClick={() => saveSettingsMutation.mutate({ ...settings, courseName: courseName })}
             disabled={!editingCourseName}
-            className="mt-5 bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 font-bold"
+            className="mt-5 bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold"
           >
             <Check size={14} className="mr-1" /> Save
           </Button>
         </div>
         <div className="grid grid-cols-3 gap-3 pt-1">
           <div className="bg-[#1a2744]/5 rounded-lg p-3 text-center">
-            <div className="text-amber-400 font-bold text-xl">{holes.length}</div>
+            <div className="text-[#b06b10] font-bold text-xl">{holes.length}</div>
             <div className="text-[#1a2744]/50 text-xs">Holes</div>
           </div>
           <div className="bg-[#1a2744]/5 rounded-lg p-3 text-center">
-            <div className="text-amber-400 font-bold text-xl">{totalPar}</div>
+            <div className="text-[#b06b10] font-bold text-xl">{totalPar}</div>
             <div className="text-[#1a2744]/50 text-xs">Total Par</div>
           </div>
           <div className="bg-[#1a2744]/5 rounded-lg p-3 text-center">
-            <div className="text-amber-400 font-bold text-xl">{ctpCount}</div>
+            <div className="text-[#b06b10] font-bold text-xl">{ctpCount}</div>
             <div className="text-[#1a2744]/50 text-xs">CTP Holes</div>
           </div>
         </div>
@@ -408,14 +408,14 @@ function HolesTab() {
               if (isEditing) {
                 return (
                   <tr key={hole.id} className="border-b border-[#1a2744]/8 bg-amber-500/5">
-                    <td className="px-2 py-2 text-amber-400 font-bold">{hole.holeNumber}</td>
-                    <td className="px-2 py-1"><Input type="number" min={3} max={5} value={ed.par ?? hole.par} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, par: parseInt(e.target.value) } }))} className="bg-white border-amber-500/40 text-[#1a2744] w-16 h-7 text-xs" /></td>
-                    <td className="px-2 py-1"><Input type="number" min={1} max={18} value={ed.handicap ?? hole.handicap} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, handicap: parseInt(e.target.value) } }))} className="bg-white border-amber-500/40 text-[#1a2744] w-16 h-7 text-xs" /></td>
-                    <td className="px-2 py-1"><Input type="number" value={ed.yardageBlue ?? hole.yardageBlue} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, yardageBlue: parseInt(e.target.value) } }))} className="bg-white border-amber-500/40 text-[#1a2744] w-20 h-7 text-xs" /></td>
+                    <td className="px-2 py-2 text-[#b06b10] font-bold">{hole.holeNumber}</td>
+                    <td className="px-2 py-1"><Input type="number" min={3} max={5} value={ed.par ?? hole.par} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, par: parseInt(e.target.value) } }))} className="bg-white border-amber-500/60 text-[#1a2744] w-16 h-7 text-xs" /></td>
+                    <td className="px-2 py-1"><Input type="number" min={1} max={18} value={ed.handicap ?? hole.handicap} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, handicap: parseInt(e.target.value) } }))} className="bg-white border-amber-500/60 text-[#1a2744] w-16 h-7 text-xs" /></td>
+                    <td className="px-2 py-1"><Input type="number" value={ed.yardageBlue ?? hole.yardageBlue} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, yardageBlue: parseInt(e.target.value) } }))} className="bg-white border-amber-500/60 text-[#1a2744] w-20 h-7 text-xs" /></td>
                     <td className="px-2 py-1">
                       <Switch checked={!!(ed.isCtpHole ?? hole.isCtpHole)} onCheckedChange={v => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, isCtpHole: v } }))} />
                     </td>
-                    <td className="px-2 py-1"><Input value={ed.ctpLabel ?? ""} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, ctpLabel: e.target.value } }))} placeholder="CTP label" className="bg-white border-amber-500/40 text-[#1a2744] w-28 h-7 text-xs" /></td>
+                    <td className="px-2 py-1"><Input value={ed.ctpLabel ?? ""} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, ctpLabel: e.target.value } }))} placeholder="CTP label" className="bg-white border-amber-500/60 text-[#1a2744] w-28 h-7 text-xs" /></td>
                     <td className="px-2 py-1">
                       <div className="flex gap-1">
                         <button onClick={() => updateMutation.mutate({ holeNumber: hole.holeNumber, data: holeData[hole.holeNumber] ?? hole })} className="text-green-400 hover:text-green-300 p-1"><Check size={14} /></button>
@@ -427,14 +427,14 @@ function HolesTab() {
               }
               return (
                 <tr key={hole.id} className="border-b border-[#1a2744]/8 hover:bg-[#1a2744]/5 group">
-                  <td className="px-2 py-2.5 font-bold text-amber-400">{hole.holeNumber}</td>
+                  <td className="px-2 py-2.5 font-bold text-[#b06b10]">{hole.holeNumber}</td>
                   <td className="px-2 py-2.5 text-[#1a2744]">{hole.par}</td>
                   <td className="px-2 py-2.5 text-[#1a2744]/60">{hole.handicap}</td>
                   <td className="px-2 py-2.5 text-[#1a2744]/60">{hole.yardageBlue}</td>
-                  <td className="px-2 py-2.5">{hole.isCtpHole ? <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">CTP</Badge> : <span className="text-[#1a2744]/35">—</span>}</td>
+                  <td className="px-2 py-2.5">{hole.isCtpHole ? <Badge className="bg-amber-500/25 text-[#b06b10] border-amber-500/30 text-xs">CTP</Badge> : <span className="text-[#1a2744]/35">—</span>}</td>
                   <td className="px-2 py-2.5 text-[#1a2744]/55 text-xs">{hole.ctpLabel ?? "—"}</td>
                   <td className="px-2 py-2.5">
-                    <button onClick={() => startEdit(hole)} className="opacity-0 group-hover:opacity-100 transition-opacity text-amber-400/70 hover:text-amber-400">
+                    <button onClick={() => startEdit(hole)} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#b06b10]/80 hover:text-[#b06b10]">
                       <Edit2 size={14} />
                     </button>
                   </td>
@@ -477,15 +477,15 @@ function SponsorsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-bold text-amber-400 font-sans-app">Sponsors</h2>
-        <Button onClick={() => setShowAdd(!showAdd)} className="bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 font-sans-app" size="sm">
+        <h2 className="font-bold text-[#b06b10] font-sans-app">Sponsors</h2>
+        <Button onClick={() => setShowAdd(!showAdd)} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-sans-app" size="sm">
           <Plus size={14} className="mr-1.5" /> Add Sponsor
         </Button>
       </div>
 
       {showAdd && (
         <div className="atd-card rounded-xl p-4 space-y-3 font-sans-app">
-          <h3 className="text-amber-400/80 font-bold text-sm">New Sponsor</h3>
+          <h3 className="text-[#b06b10]/80 font-bold text-sm">New Sponsor</h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <Label className="text-[#1a2744]/60 text-xs mb-1 block">Sponsor Name *</Label>
@@ -520,7 +520,7 @@ function SponsorsTab() {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={() => createMutation.mutate(newSponsor)} className="bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 font-bold font-sans-app">
+            <Button onClick={() => createMutation.mutate(newSponsor)} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold font-sans-app">
               <Check size={14} className="mr-1.5" /> Add Sponsor
             </Button>
             <Button variant="ghost" onClick={() => setShowAdd(false)} className="text-[#1a2744]/55 font-sans-app">Cancel</Button>
@@ -535,7 +535,7 @@ function SponsorsTab() {
               {s.logoUrl && <img src={s.logoUrl} alt={s.name} className="h-8 max-w-[80px] object-contain opacity-70" />}
               <div>
                 <div className="font-bold text-[#1a2744] text-sm">{s.name}</div>
-                <Badge className="text-xs mt-0.5 bg-amber-500/10 text-amber-400/70 border-amber-500/20">{s.placement}</Badge>
+                <Badge className="text-xs mt-0.5 bg-amber-500/10 text-[#b06b10]/80 border-amber-500/20">{s.placement}</Badge>
               </div>
             </div>
             <button onClick={() => deleteMutation.mutate(s.id)} className="text-red-400/50 hover:text-red-400 p-1.5 rounded hover:bg-red-500/10">
@@ -591,7 +591,7 @@ function SettingsTab() {
   return (
     <div className="space-y-6 font-sans-app">
       <div className="atd-card rounded-xl p-5 space-y-4">
-        <h2 className="font-bold text-amber-400">Tournament Settings</h2>
+        <h2 className="font-bold text-[#b06b10]">Tournament Settings</h2>
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">
             <Label className="text-[#1a2744]/60 text-xs mb-1 block">Tournament Name</Label>
@@ -620,14 +620,14 @@ function SettingsTab() {
               className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]" />
           </div>
         </div>
-        <Button onClick={() => updateMutation.mutate(form)} className="bg-amber-500/20 border border-amber-500/40 text-amber-400 hover:bg-amber-500/30 font-bold">
+        <Button onClick={() => updateMutation.mutate(form)} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold">
           <Check size={14} className="mr-1.5" /> Save Settings
         </Button>
       </div>
 
       {/* CTP Management */}
       <div className="atd-card rounded-xl p-5 space-y-3">
-        <h2 className="font-bold text-amber-400">Manage CTP Entries</h2>
+        <h2 className="font-bold text-[#b06b10]">Manage CTP Entries</h2>
         {ctpHoles.length === 0 ? (
           <p className="text-[#1a2744]/50 text-sm italic">No CTP holes configured. Set up CTP holes in the Holes tab.</p>
         ) : (
@@ -696,7 +696,7 @@ function ScoresTab() {
   return (
     <div className="space-y-4 font-sans-app">
       <div className="flex items-center gap-3">
-        <h2 className="font-bold text-amber-400">Score Editor</h2>
+        <h2 className="font-bold text-[#b06b10]">Score Editor</h2>
         <Select value={selectedTeam?.toString() ?? ""} onValueChange={v => { setSelectedTeam(parseInt(v)); setEditScore({}); }}>
           <SelectTrigger className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] w-56">
             <SelectValue placeholder="Select team..." />
@@ -721,7 +721,7 @@ function ScoresTab() {
               const val = editScore[n] !== undefined ? editScore[n] : (s?.strokes?.toString() ?? "");
               return (
                 <div key={n} className="bg-[#1a2744]/5 rounded-lg p-2 border border-[#1a2744]/12">
-                  <div className="text-amber-400/60 text-xs mb-1">Hole {n} · Par {h?.par ?? 4}</div>
+                  <div className="text-[#b06b10]/60 text-xs mb-1">Hole {n} · Par {h?.par ?? 4}</div>
                   <Input
                     type="number"
                     min={1}
@@ -758,8 +758,8 @@ export default function AdminPortal() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <Shield size={20} className="text-amber-400" />
-        <h1 className="text-lg font-bold text-amber-400">Admin Portal</h1>
+        <Shield size={20} className="text-[#b06b10]" />
+        <h1 className="text-lg font-bold text-[#b06b10]">Admin Portal</h1>
         <button
           onClick={() => {  setAuthed(false); }}
           className="ml-auto text-[#1a2744]/50 hover:text-red-400 text-xs font-sans-app flex items-center gap-1 border border-[#1a2744]/12 rounded px-2 py-1 hover:border-red-500/30"
@@ -777,7 +777,7 @@ export default function AdminPortal() {
             { value: "sponsors", label: "Sponsors", icon: Star },
             { value: "settings", label: "Settings", icon: Settings },
           ].map(({ value, label, icon: Icon }) => (
-            <TabsTrigger key={value} value={value} className="font-sans-app data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 flex items-center gap-1.5 text-xs">
+            <TabsTrigger key={value} value={value} className="font-sans-app data-[state=active]:bg-amber-500/25 data-[state=active]:text-[#b06b10] flex items-center gap-1.5 text-xs">
               <Icon size={13} /> {label}
             </TabsTrigger>
           ))}

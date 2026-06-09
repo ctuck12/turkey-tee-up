@@ -68,7 +68,7 @@ export default function TeamScorecard() {
     return (
       <div className="p-8 text-center text-[#1a2744]/50 font-sans-app">
         <p>Team not found.</p>
-        <Link href="/" className="text-amber-400 hover:underline mt-2 block">← Back to Leaderboard</Link>
+        <Link href="/" className="text-[#b06b10] hover:underline mt-2 block">← Back to Leaderboard</Link>
       </div>
     );
   }
@@ -77,13 +77,13 @@ export default function TeamScorecard() {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <Link href="/">
-          <button className="flex items-center gap-1.5 text-amber-400/70 hover:text-amber-400 text-sm font-sans-app">
+          <button className="flex items-center gap-1.5 text-[#b06b10]/80 hover:text-[#b06b10] text-sm font-sans-app">
             <ArrowLeft size={15} /> Back
           </button>
         </Link>
-        <Flag size={18} className="text-amber-400" />
-        <h1 className="text-lg font-bold text-amber-400">{team.teamName}</h1>
-        <span className="text-xs font-sans-app px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400/80 capitalize">
+        <Flag size={18} className="text-[#b06b10]" />
+        <h1 className="text-lg font-bold text-[#b06b10]">{team.teamName}</h1>
+        <span className="text-xs font-sans-app px-2 py-0.5 rounded-full bg-amber-500/15 text-[#b06b10]/80 capitalize">
           {team.flight} Flight
         </span>
       </div>
@@ -104,7 +104,7 @@ export default function TeamScorecard() {
       {/* Horizontal Scorecard */}
       <div className="atd-card rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-[#1a2744]/12 flex items-center gap-2">
-          <span className="text-amber-400/60 text-xs uppercase tracking-widest font-sans-app">Official Scorecard</span>
+          <span className="text-[#b06b10]/60 text-xs uppercase tracking-widest font-sans-app">Official Scorecard</span>
           {!hasScores && <span className="text-[#1a2744]/35 text-xs font-sans-app italic">No scores entered yet</span>}
         </div>
         <div className="overflow-x-auto p-4">
@@ -189,7 +189,7 @@ export default function TeamScorecard() {
 
         {/* Score legend */}
         <div className="px-4 pb-3 flex flex-wrap gap-3 text-xs font-sans-app text-[#1a2744]/50 border-t border-[#1a2744]/8 pt-3">
-          <span className="font-bold text-amber-400/60">Legend:</span>
+          <span className="font-bold text-[#b06b10]/60">Legend:</span>
           <span style={{ background: "rgba(200,137,42,0.3)", color: "#e8a840", padding: "1px 4px", borderRadius: 2 }}>Eagle</span>
           <span style={{ border: "2px solid #e8a840", color: "#e8a840", padding: "1px 4px", borderRadius: "50%" }}>Birdie</span>
           <span style={{ color: "#e8e4d8" }}>Par</span>
