@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Trophy, Target, Wifi, Users, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -205,27 +205,18 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, teams 
 const POLL_INTERVAL = 4000;
 
 export default function Leaderboard() {
-  const queryClient = useQueryClient();
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
-  const { data: leaderboard = [], isLoading: loadingLb } = useQuery<LeaderboardEntry[]>({ queryKey: ["/api/leaderboard"], staleTime: 2000, placeholderData: (prev) => prev });
-  const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"], staleTime: 30000 });
-  const { data: ctpEntries = [] } = useQuery<ClosestToPin[]>({ queryKey: ["/api/ctp"], staleTime: 2000, placeholderData: (prev) => prev });
-  const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"], staleTime: 2000, placeholderData: (prev) => prev });
-  const { data: sponsors = [] } = useQuery<Sponsor[]>({ queryKey: ["/api/sponsors"], staleTime: 30000 });
+  const { data: leaderboard = [], isLoading: loadingLb } = useQuery<LeaderboardEntry[]>({ queryKey: ["/api/leaderboard"], refetchInterval: POLL_INTERVAL });
+  const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"], refetchInterval: 30000 });
+  const { data: ctpEntries = [] } = useQuery<ClosestToPin[]>({ queryKey: ["/api/ctp"], refetchInterval: POLL_INTERVAL });
+  const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"], refetchInterval: POLL_INTERVAL });
+  const { data: sponsors = [] } = useQuery<Sponsor[]>({ queryKey: ["/api/sponsors"], refetchInterval: 30000 });
 
-  const refresh = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/ctp"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
-    setLastUpdate(new Date());
-  }, [queryClient]);
-
-  // Poll every 4 seconds
+  // Update last update timestamp when leaderboard data changes
   useEffect(() => {
-    const id = setInterval(refresh, POLL_INTERVAL);
-    return () => clearInterval(id);
-  }, [refresh]);
+    if (leaderboard.length > 0) setLastUpdate(new Date());
+  }, [leaderboard]);
 
   const morningTeams = leaderboard.filter(e => e.team.flight === "morning");
   const afternoonTeams = leaderboard.filter(e => e.team.flight === "afternoon");

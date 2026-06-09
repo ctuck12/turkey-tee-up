@@ -38,8 +38,8 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: defaultQueryFn,
-      staleTime: 30000,
-      refetchInterval: 5000, // Poll every 5s as fallback
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
     },
   },
 });
