@@ -233,13 +233,13 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
         <div className="flex items-center gap-3">
           <div>
             <div className="font-bold text-[#1a2744] text-sm truncate max-w-[160px]">{team.teamName}</div>
-            <div className="text-[#1a2744]/50 text-xs truncate max-w-[160px]">{[team.player1, team.player2, team.player3, team.player4].filter(Boolean).map(n => n.split(' ').pop()).join(" · ")}</div>
+            <div className="text-[#1a2744]/50 text-xs">{[team.player1, team.player2, team.player3, team.player4].filter(Boolean).map(n => n.split(' ').pop()).join(" · ")}</div>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1 bg-[#1a2744]/8 rounded px-2 py-0.5 text-xs font-mono text-[#1a2744]/60">
+          <div className="flex items-center gap-1 bg-[#1a2744]/8 rounded px-2 py-0.5 text-xs font-mono text-[#1a2744]">
             {team.teamCode}
-            <button onClick={() => { navigator.clipboard.writeText(team.teamCode); toast({ title: "Code copied!" }); }} className="ml-1 text-[#1a2744]/40 hover:text-[#1a2744]/80">
+            <button onClick={() => { navigator.clipboard.writeText(team.teamCode); toast({ title: "Code copied!" }); }} className="ml-1 text-[#1a2744] hover:text-[#1a2744]/70">
               <Copy size={10} />
             </button>
           </div>
@@ -341,7 +341,7 @@ function TeamsTab() {
           <div className="flex bg-[#1a2744]/5 rounded-lg p-0.5 border border-[#1a2744]/10">
             <button
               onClick={() => setFlightFilter(f => f === "morning" ? "all" : "morning")}
-              className={`px-3 py-1 rounded text-xs font-sans-app font-bold transition-colors ${flightFilter === "morning" ? "bg-amber-500/25 text-[#b06b10] border border-amber-500/40" : "text-[#1a2744]/50 hover:text-[#1a2744]/70"}`}
+              className={`px-3 py-1 rounded text-xs font-sans-app font-bold transition-colors ${flightFilter === "morning" ? "bg-blue-500/20 text-blue-600 border border-blue-500/30" : "text-[#1a2744]/50 hover:text-[#1a2744]/70"}`}
             >AM</button>
             <button
               onClick={() => setFlightFilter(f => f === "afternoon" ? "all" : "afternoon")}
@@ -371,13 +371,13 @@ function TeamsTab() {
       <div className="space-y-2">
         {(flightFilter === "all" || flightFilter === "morning") && morning.length > 0 && (
           <>
-            <p className="text-[#1a2744]/50 text-xs uppercase tracking-wider font-sans-app px-1">AM Flight</p>
+            <p className="text-[#1a2744] text-xs uppercase tracking-wider font-sans-app px-1">AM Flight</p>
             {morning.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
         )}
         {(flightFilter === "all" || flightFilter === "afternoon") && afternoon.length > 0 && (
           <>
-            <p className="text-[#1a2744]/50 text-xs uppercase tracking-wider font-sans-app px-1 mt-3">PM Flight</p>
+            <p className="text-[#1a2744] text-xs uppercase tracking-wider font-sans-app px-1 mt-3">PM Flight</p>
             {afternoon.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
         )}
