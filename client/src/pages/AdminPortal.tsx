@@ -377,7 +377,7 @@ function TeamsTab() {
         )}
         {(flightFilter === "all" || flightFilter === "afternoon") && afternoon.length > 0 && (
           <>
-            <p className="text-[#1a2744] text-xs uppercase tracking-wider font-sans-app px-1 mt-3">PM Flight</p>
+            <p className="text-[#b06b10] text-xs uppercase tracking-wider font-sans-app px-1 mt-3">PM Flight</p>
             {afternoon.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
         )}
