@@ -264,9 +264,9 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1 bg-[#1a2744]/8 rounded px-2 py-0.5 text-xs text-[#1a2744] font-sans-app font-bold tracking-wide">
+          <div className={`flex items-center gap-1 bg-[#1a2744]/8 rounded px-2 py-0.5 text-xs font-sans-app font-bold tracking-wide ${team.flight === "morning" ? "text-blue-600" : "text-[#b06b10]"}`}>
             {team.teamCode}
-            <button onClick={() => { navigator.clipboard.writeText(team.teamCode); toast({ title: "Code copied!" }); }} className="ml-1 text-[#1a2744] hover:text-[#1a2744]/70">
+            <button onClick={() => { navigator.clipboard.writeText(team.teamCode); toast({ title: "Code copied!" }); }} className={`ml-1 ${team.flight === "morning" ? "text-blue-600 hover:text-blue-700" : "text-[#b06b10] hover:text-[#b06b10]/70"}`}>
               <Copy size={10} />
             </button>
           </div>
