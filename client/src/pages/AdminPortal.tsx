@@ -1150,12 +1150,11 @@ function SettingsTab() {
                         className="text-[#b06b10]/60 hover:text-[#b06b10] border border-amber-500/20 font-sans-app">
                         <Edit2 size={13} className="mr-1" /> Edit
                       </Button>
-                      {entry && (
-                        <Button variant="ghost" size="sm" onClick={() => setConfirmClearCtp(hole.holeNumber)}
-                          className="text-red-400/60 hover:text-red-400 border border-red-500/20 font-sans-app">
-                          <X size={13} className="mr-1" /> Clear
-                        </Button>
-                      )}
+                      <Button variant="ghost" size="sm"
+                        onClick={() => entry ? setConfirmClearCtp(hole.holeNumber) : toast({ title: "Nothing to clear", description: "No entry data exists for this hole yet." })}
+                        className="text-red-400/60 hover:text-red-400 border border-red-500/20 font-sans-app">
+                        <X size={13} className="mr-1" /> Clear
+                      </Button>
                     </div>
                   )}
                   </div>
@@ -1211,12 +1210,11 @@ function SettingsTab() {
                           className="text-[#b06b10]/60 hover:text-[#b06b10] border border-amber-500/20 font-sans-app">
                           <Edit2 size={13} className="mr-1" /> Edit
                         </Button>
-                        {entry && (
-                          <Button variant="ghost" size="sm" onClick={() => setConfirmClearCtp(ldHole.holeNumber)}
-                            className="text-red-400/60 hover:text-red-400 border border-red-500/20 font-sans-app">
-                            <X size={13} className="mr-1" /> Clear
-                          </Button>
-                        )}
+                        <Button variant="ghost" size="sm"
+                          onClick={() => entry ? setConfirmClearCtp(ldHole.holeNumber) : toast({ title: "Nothing to clear", description: "No entry data exists for this hole yet." })}
+                          className="text-red-400/60 hover:text-red-400 border border-red-500/20 font-sans-app">
+                          <X size={13} className="mr-1" /> Clear
+                        </Button>
                       </div>
                     )}
                   </div>
