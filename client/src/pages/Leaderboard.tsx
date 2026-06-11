@@ -196,7 +196,7 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
     <div className="atd-card rounded-xl overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-[#1a2744]/15 bg-[#1a2744]/5 flex items-center gap-2">
-        <span className="text-[#1a2744] font-bold text-xs uppercase tracking-widest font-sans-app">{label}</span>
+        <span className={`font-bold text-xs uppercase tracking-widest font-sans-app ${flight === "morning" ? "text-blue-600" : "text-[#b06b10]"}`}>{label}</span>
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => setShowInProgress(v => !v)}
@@ -253,8 +253,8 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
                   {idx + 1}
                 </td>
                 <td className="px-3 py-3">
-                  <div className="font-bold text-[#1a2744] truncate max-w-[180px]">{entry.team.teamName}</div>
-                  <div className="text-[#1a2744]/50 text-xs mt-0.5 truncate max-w-[180px]">
+                  <div className="font-bold text-[#1a2744] truncate max-w-[180px]" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{entry.team.teamName}</div>
+                  <div className="text-[#1a2744]/50 text-xs mt-0.5 truncate max-w-[180px]" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
                     {[entry.team.player1, entry.team.player2, entry.team.player3, entry.team.player4]
                       .filter(Boolean)
                       .map(name => (name ?? "").trim().split(/\s+/).pop() ?? name)
@@ -338,7 +338,7 @@ export default function Leaderboard() {
       ) : (
         <Tabs defaultValue={settings?.defaultFlight ?? "morning"}>
           <TabsList className="bg-white border border-[#1a2744]/20 mb-4 shadow-sm">
-            <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-amber-500/20 data-[state=active]:text-[#8a5008]">
+            <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-600">
               AM ({morningTeams.length})
             </TabsTrigger>
             <TabsTrigger value="afternoon" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-amber-500/20 data-[state=active]:text-[#8a5008]">
