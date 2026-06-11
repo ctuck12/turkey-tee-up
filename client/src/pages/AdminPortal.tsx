@@ -982,6 +982,18 @@ function SettingsTab() {
   const ctpOnlyHoles = holes.filter(h => h.isCtpHole && h.par === 3);
   const ldHole = holes.find(h => h.isCtpHole && h.par !== 3);
 
+  const [editCtp, setEditCtp] = useState<{ holeNumber: number; playerName: string; teamId: string; distance: string } | null>(null);
+
+  const upsertCtpMutation = useMutation({
+    mutationFn: (data: { holeNumber: number; playerName: string; teamId: number | null; distance: string }) =>
+      apiRequest("POST", "/api/ctp", data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/ctp"] });
+      setEditCtp(null);
+      toast({ title: "Entry saved!" });
+    },
+  });
+
   const clearCtpMutation = useMutation({
     mutationFn: (holeNumber: number) => apiRequest("DELETE", `/api/ctp/${holeNumber}`, {}),
     onSuccess: () => {
@@ -1087,13 +1099,43 @@ function SettingsTab() {
               const entry = ctpEntries.find(c => c.holeNumber === hole.holeNumber);
               const teamName = entry?.teamId ? teams.find(t => t.id === entry.teamId)?.teamName : null;
               return (
-                <div key={hole.id} className="flex items-center justify-between bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5">
-                  <div>
+                <div key={hole.id} className="bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5">
+                  <div className="flex items-start justify-between">
+                  <div className="flex-1">
                     <p className="text-[#b06b10] text-[10px] font-bold uppercase tracking-wider font-sans-app flex items-center gap-1"><Target size={10} />Closest to Pin</p>
                     <div className="font-bold text-[#1a2744] text-sm">
                       Hole {hole.holeNumber} <span className="text-[#1a2744]/40 font-normal">— {hole.ctpLabel ?? "CTP"}</span>
                     </div>
-                    {entry?.playerName ? (
+                    {editCtp?.holeNumber === hole.holeNumber ? (
+                      <div className="mt-2 space-y-2">
+                        <Input
+                          placeholder="Player name"
+                          value={editCtp.playerName}
+                          onChange={e => setEditCtp(c => c && ({ ...c, playerName: e.target.value }))}
+                          className="bg-white border-[#1a2744]/20 text-[#1a2744] h-7 text-xs"
+                        />
+                        <Select value={editCtp.teamId} onValueChange={v => setEditCtp(c => c && ({ ...c, teamId: v }))}>
+                          <SelectTrigger className="bg-white border-[#1a2744]/20 text-[#1a2744] h-7 text-xs">
+                            <SelectValue placeholder="Select team..." />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#1a2744] border-amber-500/20 text-amber-100 max-h-48">
+                            {teams.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.teamName}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          placeholder="Distance (e.g. 4ft 6in)"
+                          value={editCtp.distance}
+                          onChange={e => setEditCtp(c => c && ({ ...c, distance: e.target.value }))}
+                          className="bg-white border-[#1a2744]/20 text-[#1a2744] h-7 text-xs"
+                        />
+                        <div className="flex gap-1.5 pt-1">
+                          <Button size="sm" onClick={() => upsertCtpMutation.mutate({ holeNumber: hole.holeNumber, playerName: editCtp.playerName, teamId: editCtp.teamId ? parseInt(editCtp.teamId) : null, distance: editCtp.distance })} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-sans-app h-7 text-xs px-3">
+                            <Check size={11} className="mr-1" /> Save
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => setEditCtp(null)} className="text-[#1a2744]/50 font-sans-app h-7 text-xs">Cancel</Button>
+                        </div>
+                      </div>
+                    ) : entry?.playerName ? (
                       <div className="mt-0.5">
                         <div className="text-[#1a2744] text-xs font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{entry.playerName}</div>
                         {teamName && <div className="text-[#1a2744]/45 text-xs" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{teamName}</div>}
@@ -1102,12 +1144,21 @@ function SettingsTab() {
                       <span className="text-[#1a2744]/35 text-xs italic">No entry</span>
                     )}
                   </div>
-                  {entry && (
-                    <Button variant="ghost" size="sm" onClick={() => setConfirmClearCtp(hole.holeNumber)}
-                      className="text-red-400/60 hover:text-red-400 border border-red-500/20">
-                      <X size={13} className="mr-1" /> Clear
-                    </Button>
+                  {editCtp?.holeNumber !== hole.holeNumber && (
+                    <div className="flex gap-1.5 ml-2 shrink-0">
+                      <Button variant="ghost" size="sm" onClick={() => setEditCtp({ holeNumber: hole.holeNumber, playerName: entry?.playerName ?? "", teamId: entry?.teamId ? String(entry.teamId) : "", distance: entry?.distance ?? "" })}
+                        className="text-[#b06b10]/60 hover:text-[#b06b10] border border-amber-500/20 font-sans-app">
+                        <Edit2 size={13} className="mr-1" /> Edit
+                      </Button>
+                      {entry && (
+                        <Button variant="ghost" size="sm" onClick={() => setConfirmClearCtp(hole.holeNumber)}
+                          className="text-red-400/60 hover:text-red-400 border border-red-500/20 font-sans-app">
+                          <X size={13} className="mr-1" /> Clear
+                        </Button>
+                      )}
+                    </div>
                   )}
+                  </div>
                 </div>
               );
             })}
@@ -1115,27 +1166,60 @@ function SettingsTab() {
               const entry = ctpEntries.find(c => c.holeNumber === ldHole.holeNumber);
               const teamName = entry?.teamId ? teams.find(t => t.id === entry.teamId)?.teamName : null;
               return (
-                <div key={ldHole.id} className="flex items-center justify-between bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5">
-                  <div>
-                    <p className="text-green-600 text-[10px] font-bold uppercase tracking-wider font-sans-app flex items-center gap-1"><Zap size={10} />Long Drive</p>
-                    <div className="font-bold text-[#1a2744] text-sm">
-                      Hole {ldHole.holeNumber} <span className="text-[#1a2744]/40 font-normal">— {ldHole.ctpLabel ?? "LD"}</span>
-                    </div>
-                    {entry?.playerName ? (
-                      <div className="mt-0.5">
-                        <div className="text-[#1a2744] text-xs font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{entry.playerName}</div>
-                        {teamName && <div className="text-[#1a2744]/45 text-xs" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{teamName}</div>}
+                <div key={ldHole.id} className="bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-green-600 text-[10px] font-bold uppercase tracking-wider font-sans-app flex items-center gap-1"><Zap size={10} />Long Drive</p>
+                      <div className="font-bold text-[#1a2744] text-sm">
+                        Hole {ldHole.holeNumber} <span className="text-[#1a2744]/40 font-normal">— {ldHole.ctpLabel ?? "LD"}</span>
                       </div>
-                    ) : (
-                      <span className="text-[#1a2744]/35 text-xs italic">No entry</span>
+                      {editCtp?.holeNumber === ldHole.holeNumber ? (
+                        <div className="mt-2 space-y-2">
+                          <Input
+                            placeholder="Player name"
+                            value={editCtp.playerName}
+                            onChange={e => setEditCtp(c => c && ({ ...c, playerName: e.target.value }))}
+                            className="bg-white border-[#1a2744]/20 text-[#1a2744] h-7 text-xs"
+                          />
+                          <Select value={editCtp.teamId} onValueChange={v => setEditCtp(c => c && ({ ...c, teamId: v }))}>
+                            <SelectTrigger className="bg-white border-[#1a2744]/20 text-[#1a2744] h-7 text-xs">
+                              <SelectValue placeholder="Select team..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-[#1a2744] border-amber-500/20 text-amber-100 max-h-48">
+                              {teams.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.teamName}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <div className="flex gap-1.5 pt-1">
+                            <Button size="sm" onClick={() => upsertCtpMutation.mutate({ holeNumber: ldHole.holeNumber, playerName: editCtp.playerName, teamId: editCtp.teamId ? parseInt(editCtp.teamId) : null, distance: editCtp.distance })} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-sans-app h-7 text-xs px-3">
+                              <Check size={11} className="mr-1" /> Save
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => setEditCtp(null)} className="text-[#1a2744]/50 font-sans-app h-7 text-xs">Cancel</Button>
+                          </div>
+                        </div>
+                      ) : entry?.playerName ? (
+                        <div className="mt-0.5">
+                          <div className="text-[#1a2744] text-xs font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{entry.playerName}</div>
+                          {teamName && <div className="text-[#1a2744]/45 text-xs" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{teamName}</div>}
+                        </div>
+                      ) : (
+                        <span className="text-[#1a2744]/35 text-xs italic">No entry</span>
+                      )}
+                    </div>
+                    {editCtp?.holeNumber !== ldHole.holeNumber && (
+                      <div className="flex gap-1.5 ml-2 shrink-0">
+                        <Button variant="ghost" size="sm" onClick={() => setEditCtp({ holeNumber: ldHole.holeNumber, playerName: entry?.playerName ?? "", teamId: entry?.teamId ? String(entry.teamId) : "", distance: entry?.distance ?? "" })}
+                          className="text-[#b06b10]/60 hover:text-[#b06b10] border border-amber-500/20 font-sans-app">
+                          <Edit2 size={13} className="mr-1" /> Edit
+                        </Button>
+                        {entry && (
+                          <Button variant="ghost" size="sm" onClick={() => setConfirmClearCtp(ldHole.holeNumber)}
+                            className="text-red-400/60 hover:text-red-400 border border-red-500/20 font-sans-app">
+                            <X size={13} className="mr-1" /> Clear
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
-                  {entry && (
-                    <Button variant="ghost" size="sm" onClick={() => setConfirmClearCtp(ldHole.holeNumber)}
-                      className="text-red-400/60 hover:text-red-400 border border-red-500/20">
-                      <X size={13} className="mr-1" /> Clear
-                    </Button>
-                  )}
                 </div>
               );
             })()}
