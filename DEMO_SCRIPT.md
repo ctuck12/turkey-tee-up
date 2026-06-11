@@ -78,3 +78,41 @@ opens. Type a couple of hole scores, show the running total updating. Tap **Subm
 - Pre-load some demo scores so the leaderboard looks full.
 - For the broadcast beat, have a second window open as "Viewer" to capture the popup.
 - Keep cursor movements slow; let each screen breathe ~2 seconds.
+
+---
+---
+
+# Turkey Tee Up — 30-Second Cut (Social / Text Sharing)
+
+**Target length:** ~30 seconds · **Narration pace:** ~150 wpm
+**Use for:** Group texts, Instagram/Facebook stories, a quick "here's the app" share.
+Fast, punchy, one feature per beat.
+
+### SCENE 1 — Hook  (0:00–0:06)
+**On screen:** App loads — header and welcome card. Quick, snappy.
+
+> **VO:** "The Abilene Turkey Drive tournament — live in your pocket."
+
+### SCENE 2 — Live Leaderboard  (0:06–0:15)
+**On screen:** Tap **Viewer**. Scroll the standings; tap the **AM / PM** toggle once.
+
+> **VO:** "Watch the leaderboard update in real time — every flight, every score, the
+> second it's posted."
+
+### SCENE 3 — Scorekeeper  (0:15–0:23)
+**On screen:** Tap **Scorekeeper**, enter a code, type a score, tap **Submit**.
+
+> **VO:** "Scoring your team? Punch in your code, tap your scores, hit submit. Done."
+
+### SCENE 4 — Close  (0:23–0:30)
+**On screen:** Quick flash of the Admin broadcast popup, then end on the logo / Donate.
+
+> **VO:** "Live announcements, full admin control, and one-tap donating — all for a good
+> cause. Turkey Tee Up."
+
+---
+
+### Tips for the short cut
+- Cut faster — ~1.5 seconds per shot, no lingering.
+- Add upbeat background music; duck it under the VO.
+- End on a clear call-to-action card (the URL or "Scan to play").
