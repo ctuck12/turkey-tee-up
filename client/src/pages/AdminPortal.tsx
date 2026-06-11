@@ -142,6 +142,32 @@ function TeamForm({ data, onChange, onSubmit, onCancel, submitLabel }: any) {
   );
 }
 
+function ConfirmDialog({ open, onOpenChange, title, description, confirmLabel, onConfirm }: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-[#1a2744] border-red-500/25 text-amber-100 max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-red-400">{title}</DialogTitle>
+          <DialogDescription className="text-amber-100/60 font-sans-app">{description}</DialogDescription>
+        </DialogHeader>
+        <div className="flex gap-2 pt-2">
+          <Button onClick={() => { onConfirm(); onOpenChange(false); }} className="bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30 font-sans-app">
+            {confirmLabel}
+          </Button>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-amber-100/55 font-sans-app">Cancel</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function TeamScoreEditor({ teamId }: { teamId: number }) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -227,6 +253,7 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
 }) {
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
+  const [confirmClearScores, setConfirmClearScores] = useState(false);
   return (
     <div className="bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg overflow-hidden">
       <div className="flex items-center justify-between px-3 py-2.5">
@@ -266,9 +293,17 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
               <Button variant="ghost" size="sm" onClick={() => setEditTeam(team)} className="text-[#b06b10]/80 hover:text-[#b06b10] border border-amber-500/20 font-sans-app">
                 <Edit2 size={13} className="mr-1" /> Edit
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => clearScoresMutation.mutate(team.id)} className="text-blue-400/60 hover:text-blue-400 border border-blue-500/20 font-sans-app">
+              <Button variant="ghost" size="sm" onClick={() => setConfirmClearScores(true)} className="text-blue-400/60 hover:text-blue-400 border border-blue-500/20 font-sans-app">
                 <RefreshCw size={13} className="mr-1" /> Clear Scores
               </Button>
+              <ConfirmDialog
+                open={confirmClearScores}
+                onOpenChange={setConfirmClearScores}
+                title="Clear Scores?"
+                description={`This will erase all hole scores for ${team.teamName}. This cannot be undone.`}
+                confirmLabel="Clear Scores"
+                onConfirm={() => clearScoresMutation.mutate(team.id)}
+              />
               <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(team.id)} className="text-red-400/60 hover:text-red-400 border border-red-500/20 font-sans-app">
                 <Trash2 size={13} className="mr-1" /> Remove
               </Button>
@@ -573,6 +608,7 @@ function BroadcastTab() {
   const qc = useQueryClient();
   const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 4000 });
   const [message, setMessage] = useState(settings?.broadcastMessage ?? "");
+  const [confirmClear, setConfirmClear] = useState(false);
 
   useEffect(() => {
     setMessage(settings?.broadcastMessage ?? "");
@@ -618,7 +654,7 @@ function BroadcastTab() {
             <Send size={14} /> Send to All
           </Button>
           <Button
-            onClick={() => { setMessage(""); broadcastMutation.mutate(""); }}
+            onClick={() => setConfirmClear(true)}
             disabled={!active || broadcastMutation.isPending}
             variant="outline"
             className="border-red-500/30 text-red-500 hover:bg-red-500/10 font-sans-app flex items-center gap-2"
@@ -626,6 +662,14 @@ function BroadcastTab() {
             <XCircle size={14} /> Clear
           </Button>
         </div>
+        <ConfirmDialog
+          open={confirmClear}
+          onOpenChange={setConfirmClear}
+          title="Clear Broadcast?"
+          description="This will remove the active broadcast message for all users."
+          confirmLabel="Clear Message"
+          onConfirm={() => { setMessage(""); broadcastMutation.mutate(""); }}
+        />
       </div>
       {active && (
         <div className="rounded-xl border border-red-500/25 bg-red-500/5 p-4">
@@ -802,6 +846,7 @@ function SponsorsTab() {
   const { data: sponsors = [] } = useQuery<Sponsor[]>({ queryKey: ["/api/sponsors"] });
   const [newSponsor, setNewSponsor] = useState({ name: "", logoUrl: "", website: "", placement: "leaderboard" as const, displayOrder: 0 });
   const [showAdd, setShowAdd] = useState(false);
+  const [confirmDeleteSponsor, setConfirmDeleteSponsor] = useState<number | null>(null);
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/sponsors", data),
@@ -885,11 +930,19 @@ function SponsorsTab() {
                 <Badge className="text-xs mt-0.5 bg-amber-500/10 text-[#b06b10]/80 border-amber-500/20">{s.placement}</Badge>
               </div>
             </div>
-            <button onClick={() => deleteMutation.mutate(s.id)} className="text-red-400/50 hover:text-red-400 p-1.5 rounded hover:bg-red-500/10">
+            <button onClick={() => setConfirmDeleteSponsor(s.id)} className="text-red-400/50 hover:text-red-400 p-1.5 rounded hover:bg-red-500/10">
               <Trash2 size={14} />
             </button>
           </div>
         ))}
+        <ConfirmDialog
+          open={confirmDeleteSponsor !== null}
+          onOpenChange={open => { if (!open) setConfirmDeleteSponsor(null); }}
+          title="Delete Sponsor?"
+          description="This will permanently remove this sponsor from the tournament."
+          confirmLabel="Delete"
+          onConfirm={() => confirmDeleteSponsor !== null && deleteMutation.mutate(confirmDeleteSponsor)}
+        />
         {sponsors.length === 0 && (
           <div className="atd-card rounded-xl p-8 text-center">
             <Star size={36} className="text-[#1a2744]/25 mx-auto mb-3" />
@@ -908,6 +961,7 @@ function SettingsTab() {
   const { data: settings } = useQuery<TournamentSettings>({ queryKey: ["/api/settings"] });
   const [form, setForm] = useState<any>(null);
   const [holesExpanded, setHolesExpanded] = useState(false);
+  const [confirmClearCtp, setConfirmClearCtp] = useState<number | null>(null);
 
   useEffect(() => {
     if (settings && !form) setForm({ ...settings });
@@ -1040,7 +1094,7 @@ function SettingsTab() {
                     )}
                   </div>
                   {entry && (
-                    <Button variant="ghost" size="sm" onClick={() => clearCtpMutation.mutate(hole.holeNumber)}
+                    <Button variant="ghost" size="sm" onClick={() => setConfirmClearCtp(hole.holeNumber)}
                       className="text-red-400/60 hover:text-red-400 border border-red-500/20">
                       <X size={13} className="mr-1" /> Clear
                     </Button>
@@ -1050,6 +1104,14 @@ function SettingsTab() {
             })}
           </div>
         )}
+        <ConfirmDialog
+          open={confirmClearCtp !== null}
+          onOpenChange={open => { if (!open) setConfirmClearCtp(null); }}
+          title="Clear CTP Entry?"
+          description="This will remove the closest-to-pin entry for this hole."
+          confirmLabel="Clear"
+          onConfirm={() => confirmClearCtp !== null && clearCtpMutation.mutate(confirmClearCtp)}
+        />
       </div>
     </div>
   );
