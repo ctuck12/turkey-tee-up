@@ -978,7 +978,9 @@ function SettingsTab() {
   // CTP management
   const { data: ctpEntries = [] } = useQuery<ClosestToPin[]>({ queryKey: ["/api/ctp"] });
   const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
-  const ctpHoles = holes.filter(h => h.isCtpHole);
+  const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
+  const ctpOnlyHoles = holes.filter(h => h.isCtpHole && h.par === 3);
+  const ldHole = holes.find(h => h.isCtpHole && h.par !== 3);
 
   const clearCtpMutation = useMutation({
     mutationFn: (holeNumber: number) => apiRequest("DELETE", `/api/ctp/${holeNumber}`, {}),
@@ -1074,21 +1076,28 @@ function SettingsTab() {
         </Button>
       </div>
 
-      {/* CTP Management */}
+      {/* CTP & LD Management */}
       <div className="atd-card rounded-xl p-5 space-y-3">
-        <h2 className="font-bold text-[#b06b10]">Manage CTP Entries</h2>
-        {ctpHoles.length === 0 ? (
-          <p className="text-[#1a2744]/50 text-sm italic">No CTP holes configured. Set up CTP holes in Hole Settings above.</p>
+        <h2 className="font-bold text-[#b06b10]">Manage CTP &amp; LD Entries</h2>
+        {ctpOnlyHoles.length === 0 && !ldHole ? (
+          <p className="text-[#1a2744]/50 text-sm italic">No CTP or LD holes configured. Set up CTP holes in Hole Settings above.</p>
         ) : (
           <div className="space-y-2">
-            {ctpHoles.map(hole => {
+            {ctpOnlyHoles.map(hole => {
               const entry = ctpEntries.find(c => c.holeNumber === hole.holeNumber);
+              const teamName = entry?.teamId ? teams.find(t => t.id === entry.teamId)?.teamName : null;
               return (
                 <div key={hole.id} className="flex items-center justify-between bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5">
                   <div>
-                    <div className="font-bold text-[#1a2744] text-sm">Hole {hole.holeNumber} — {hole.ctpLabel ?? "CTP"}</div>
+                    <p className="text-[#b06b10] text-[10px] font-bold uppercase tracking-wider font-sans-app">Closest to Pin</p>
+                    <div className="font-bold text-[#1a2744] text-sm">
+                      Hole {hole.holeNumber} <span className="text-[#1a2744]/40 font-normal">— {hole.ctpLabel ?? "CTP"}</span>
+                    </div>
                     {entry?.playerName ? (
-                      <div className="text-amber-300 text-xs">{entry.playerName} · <span className="text-green-400">{entry.distance}</span></div>
+                      <div className="mt-0.5">
+                        <div className="text-[#1a2744] text-xs font-semibold">{entry.playerName}</div>
+                        {teamName && <div className="text-[#1a2744]/45 text-xs">{teamName}</div>}
+                      </div>
                     ) : (
                       <span className="text-[#1a2744]/35 text-xs italic">No entry</span>
                     )}
@@ -1102,13 +1111,41 @@ function SettingsTab() {
                 </div>
               );
             })}
+            {ldHole && (() => {
+              const entry = ctpEntries.find(c => c.holeNumber === ldHole.holeNumber);
+              const teamName = entry?.teamId ? teams.find(t => t.id === entry.teamId)?.teamName : null;
+              return (
+                <div key={ldHole.id} className="flex items-center justify-between bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5">
+                  <div>
+                    <p className="text-green-600 text-[10px] font-bold uppercase tracking-wider font-sans-app">Long Drive</p>
+                    <div className="font-bold text-[#1a2744] text-sm">
+                      Hole {ldHole.holeNumber} <span className="text-[#1a2744]/40 font-normal">— {ldHole.ctpLabel ?? "LD"}</span>
+                    </div>
+                    {entry?.playerName ? (
+                      <div className="mt-0.5">
+                        <div className="text-[#1a2744] text-xs font-semibold">{entry.playerName}</div>
+                        {teamName && <div className="text-[#1a2744]/45 text-xs">{teamName}</div>}
+                      </div>
+                    ) : (
+                      <span className="text-[#1a2744]/35 text-xs italic">No entry</span>
+                    )}
+                  </div>
+                  {entry && (
+                    <Button variant="ghost" size="sm" onClick={() => setConfirmClearCtp(ldHole.holeNumber)}
+                      className="text-red-400/60 hover:text-red-400 border border-red-500/20">
+                      <X size={13} className="mr-1" /> Clear
+                    </Button>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
         <ConfirmDialog
           open={confirmClearCtp !== null}
           onOpenChange={open => { if (!open) setConfirmClearCtp(null); }}
-          title="Clear CTP Entry?"
-          description="This will remove the closest-to-pin entry for this hole."
+          title="Clear Entry?"
+          description="This will remove the entry for this hole."
           confirmLabel="Clear"
           onConfirm={() => confirmClearCtp !== null && clearCtpMutation.mutate(confirmClearCtp)}
         />
