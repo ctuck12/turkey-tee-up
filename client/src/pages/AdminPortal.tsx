@@ -237,7 +237,7 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1 bg-[#1a2744]/8 rounded px-2 py-0.5 text-xs font-mono text-[#1a2744]">
+          <div className="flex items-center gap-1 bg-[#1a2744]/8 rounded px-2 py-0.5 text-xs text-[#1a2744] tracking-widest" style={{ fontFamily: "'Rajdhani', 'DM Sans', sans-serif", fontWeight: 600 }}>
             {team.teamCode}
             <button onClick={() => { navigator.clipboard.writeText(team.teamCode); toast({ title: "Code copied!" }); }} className="ml-1 text-[#1a2744] hover:text-[#1a2744]/70">
               <Copy size={10} />
