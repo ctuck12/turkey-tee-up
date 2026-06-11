@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, Flag, Settings, Plus, Trash2, Edit2, Check, X,
-  Copy, RefreshCw, ChevronDown, ChevronUp, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList
+  Copy, RefreshCw, ChevronDown, ChevronUp, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList, Target, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1089,14 +1089,14 @@ function SettingsTab() {
               return (
                 <div key={hole.id} className="flex items-center justify-between bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5">
                   <div>
-                    <p className="text-[#b06b10] text-[10px] font-bold uppercase tracking-wider font-sans-app">Closest to Pin</p>
+                    <p className="text-[#b06b10] text-[10px] font-bold uppercase tracking-wider font-sans-app flex items-center gap-1"><Target size={10} />Closest to Pin</p>
                     <div className="font-bold text-[#1a2744] text-sm">
                       Hole {hole.holeNumber} <span className="text-[#1a2744]/40 font-normal">— {hole.ctpLabel ?? "CTP"}</span>
                     </div>
                     {entry?.playerName ? (
                       <div className="mt-0.5">
-                        <div className="text-[#1a2744] text-xs font-semibold">{entry.playerName}</div>
-                        {teamName && <div className="text-[#1a2744]/45 text-xs">{teamName}</div>}
+                        <div className="text-[#1a2744] text-xs font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{entry.playerName}</div>
+                        {teamName && <div className="text-[#1a2744]/45 text-xs" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{teamName}</div>}
                       </div>
                     ) : (
                       <span className="text-[#1a2744]/35 text-xs italic">No entry</span>
@@ -1117,14 +1117,14 @@ function SettingsTab() {
               return (
                 <div key={ldHole.id} className="flex items-center justify-between bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5">
                   <div>
-                    <p className="text-green-600 text-[10px] font-bold uppercase tracking-wider font-sans-app">Long Drive</p>
+                    <p className="text-green-600 text-[10px] font-bold uppercase tracking-wider font-sans-app flex items-center gap-1"><Zap size={10} />Long Drive</p>
                     <div className="font-bold text-[#1a2744] text-sm">
                       Hole {ldHole.holeNumber} <span className="text-[#1a2744]/40 font-normal">— {ldHole.ctpLabel ?? "LD"}</span>
                     </div>
                     {entry?.playerName ? (
                       <div className="mt-0.5">
-                        <div className="text-[#1a2744] text-xs font-semibold">{entry.playerName}</div>
-                        {teamName && <div className="text-[#1a2744]/45 text-xs">{teamName}</div>}
+                        <div className="text-[#1a2744] text-xs font-bold" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{entry.playerName}</div>
+                        {teamName && <div className="text-[#1a2744]/45 text-xs" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{teamName}</div>}
                       </div>
                     ) : (
                       <span className="text-[#1a2744]/35 text-xs italic">No entry</span>
