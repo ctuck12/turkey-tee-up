@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fluid base font — scales everything proportionally between small phones and Pro Max.
+   375px (small iPhone) → ~13.95px | 430px (Pro Max) → 16px | desktop → capped 16px.
+   Because Tailwind uses rem, all text/spacing scales automatically. */
+html {
+  font-size: clamp(13.95px, 3.72vw, 16px);
+  /* Use dynamic viewport so browser chrome (Safari address bar) is always accounted for */
+  height: 100%;
+  /* Prevent white flash on navigation by matching the app background */
+  background-color: #f0ebe1;
+}
+
+body {
+  min-height: 100dvh;
+  /* Ensure content scrolls above browser chrome on all mobile browsers */
+  padding-bottom: env(safe-area-inset-bottom);
+  overscroll-behavior-y: none;
+  /* Prevent white flash on navigation */
+  background-color: #f0ebe1;
+}
+
 @layer base {
   :root {
     /* ATD Navy + Gold + Cream color palette */
@@ -43,6 +63,11 @@
     --chart-3: 103 43% 42%;
     --chart-4: 0 62% 45%;
     --chart-5: 188 35% 40%;
+
+    /* Header height — updated by ResizeObserver in AppHeader.
+       Default 130px is a safe fallback for PWA mode (Dynamic Island + header row).
+       Calculated as: env(safe-area-inset-top) + clamp(70px, 19.5vw, 84px) ≈ 59px + 84px = 143px on iPhone 17 Pro Max.*/
+    --header-h: calc(env(safe-area-inset-top, 0px) + clamp(70px, 19.5vw, 84px));
 
     /* ATD Brand colors */
     --atd-navy: #1a2744;
@@ -170,6 +195,8 @@
 
   .scorecard-table tr.score-data-row td {
     border-top: 2px solid var(--atd-gold);
+    padding: 6px 2px;
+    overflow: visible;
   }
 
   /* Live pulse animation */
@@ -253,5 +280,55 @@
     justify-content: center;
     width: 28px;
     height: 28px;
+  }
+}
+
+/* Browser bar spacer — height = difference between large viewport (browser bar hidden)
+   and small viewport (browser bar visible). Automatically 0 when installed as PWA or
+   on desktop. Uses a generous minimum so it works on all mobile browsers. */
+.browser-bar-spacer {
+  /* In browser: gap between large viewport (bar hidden) and small viewport (bar shown)
+     plus a comfortable minimum so the logo clears the browser chrome. */
+  height: max(calc(100lvh - 100svh), 80px);
+  flex-shrink: 0;
+}
+
+/* In PWA standalone mode the browser bar doesn't exist — collapse the spacer to zero */
+@media (display-mode: standalone) {
+  .browser-bar-spacer {
+    height: 0px;
+  }
+}
+
+/* Big Country Title logo on Leaderboard hero — responsive sizing */
+/* Base (small phones < 390px wide): compact */
+.bct-leaderboard-logo {
+  height: 80px;
+  max-width: 42vw;
+}
+
+/* Mid phones (390px+, e.g. iPhone 14/15 standard) */
+@media (min-width: 390px) {
+  .bct-leaderboard-logo {
+    height: 105px;
+    max-width: 44vw;
+  }
+}
+
+/* Pro Max / large phones (430px+, e.g. iPhone 15/16 Pro Max) */
+@media (min-width: 430px) {
+  .bct-leaderboard-logo {
+    height: 130px;
+    max-width: 46vw;
+    margin-right: 8px;
+  }
+}
+
+/* Tablet / desktop (768px+) — give it a bit more breathing room */
+@media (min-width: 768px) {
+  .bct-leaderboard-logo {
+    height: 130px;
+    max-width: 360px;
+    margin-right: 0;
   }
 }

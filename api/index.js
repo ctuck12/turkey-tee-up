@@ -27384,12 +27384,12 @@ var require_RealtimeChannel = __commonJS({
           this.socket.connect();
         }
         if (this.channelAdapter.isClosed()) {
-          const { config: { broadcast, presence, private: isPrivate } } = this.params;
+          const { config: { broadcast: broadcast2, presence, private: isPrivate } } = this.params;
           const postgres_changes = (_b = (_a = this.bindings.postgres_changes) === null || _a === void 0 ? void 0 : _a.map((r) => r.filter)) !== null && _b !== void 0 ? _b : [];
           const presence_enabled = !!this.bindings[REALTIME_LISTEN_TYPES.PRESENCE] && this.bindings[REALTIME_LISTEN_TYPES.PRESENCE].length > 0 || ((_c = this.params.config.presence) === null || _c === void 0 ? void 0 : _c.enabled) === true;
           const accessTokenPayload = {};
           const config = {
-            broadcast,
+            broadcast: broadcast2,
             presence: Object.assign(Object.assign({}, presence), { enabled: presence_enabled }),
             postgres_changes,
             private: isPrivate
@@ -35648,11 +35648,11 @@ var require_GoTrueClient = __commonJS({
           this._debug(debugName, "end");
         }
       }
-      async _notifyAllSubscribers(event, session, broadcast = true) {
+      async _notifyAllSubscribers(event, session, broadcast2 = true) {
         const debugName = `#_notifyAllSubscribers(${event})`;
-        this._debug(debugName, "begin", session, `broadcast = ${broadcast}`);
+        this._debug(debugName, "begin", session, `broadcast = ${broadcast2}`);
         try {
-          if (this.broadcastChannel && broadcast) {
+          if (this.broadcastChannel && broadcast2) {
             this.broadcastChannel.postMessage({ event, session });
           }
           const errors = [];
@@ -49866,7 +49866,7 @@ function mapHole(r) {
   return { id: r.id, holeNumber: r.hole_number, par: r.par, handicap: r.handicap, yardageBlue: r.yardage_blue, yardageWhite: r.yardage_white, yardageRed: r.yardage_red, isCtpHole: r.is_ctp_hole, ctpLabel: r.ctp_label };
 }
 function mapTeam(r) {
-  return { id: r.id, teamName: r.team_name, player1: r.player1, player2: r.player2, player3: r.player3, player4: r.player4, flight: r.flight, startingHole: r.starting_hole, teamCode: r.team_code, isActive: r.is_active };
+  return { id: r.id, teamName: r.team_name, player1: r.player1, player2: r.player2, player3: r.player3, player4: r.player4, flight: r.flight, startingHole: r.starting_hole, teamCode: r.team_code, isActive: r.is_active, isSubmitted: r.is_submitted ?? false };
 }
 function mapScore(r) {
   return { id: r.id, teamId: r.team_id, holeNumber: r.hole_number, strokes: r.strokes, updatedAt: r.updated_at };
@@ -49878,7 +49878,7 @@ function mapCtp(r) {
   return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, updatedAt: r.updated_at };
 }
 function mapSettings(r) {
-  return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active };
+  return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning" };
 }
 function createStorage() {
   return {
@@ -49896,6 +49896,8 @@ function createStorage() {
       if (data.adminPassword !== void 0) snake.admin_password = data.adminPassword;
       if (data.scorekeeperPassword !== void 0) snake.scorekeeper_password = data.scorekeeperPassword;
       if (data.isActive !== void 0) snake.is_active = data.isActive;
+      if (data.broadcastMessage !== void 0) snake.broadcast_message = data.broadcastMessage;
+      if (data.defaultFlight !== void 0) snake.default_flight = data.defaultFlight;
       const { data: row } = await supabase.from("tournament_settings").upsert({ id: 1, ...snake }, { onConflict: "id" }).select().single();
       return mapSettings(row);
     },
@@ -49949,6 +49951,13 @@ function createStorage() {
     },
     async deleteTeam(id) {
       await supabase.from("teams").update({ is_active: false }).eq("id", id);
+    },
+    async submitTeam(id) {
+      await supabase.from("teams").update({ is_submitted: true }).eq("id", id);
+    },
+    async isTeamSubmitted(id) {
+      const { data } = await supabase.from("teams").select("is_submitted").eq("id", id).single();
+      return data?.is_submitted ?? false;
     },
     // ── Scores ────────────────────────────────────────────────────────────────
     async getScoresForTeam(teamId) {
@@ -50020,8 +50029,102 @@ function createStorage() {
 var storage = createStorage();
 
 // server/routes.ts
+var sseClients = /* @__PURE__ */ new Set();
+var sseClientId = 0;
+var lastPayload = null;
+var broadcastTimer = null;
+async function buildPayload() {
+  const [teams, scores, holes, ctp, settings, sponsors] = await Promise.all([
+    storage.getTeams(),
+    storage.getAllScores(),
+    storage.getHoles(),
+    storage.getCtpEntries(),
+    storage.getSettings(),
+    storage.getSponsors()
+  ]);
+  const holeMap = new Map(holes.map((h) => [h.holeNumber, h]));
+  const leaderboard = teams.map((team) => {
+    const teamScores = scores.filter((s) => s.teamId === team.id);
+    const scoredHoles = teamScores.filter((s) => s.strokes != null);
+    const totalStrokes = scoredHoles.reduce((sum, s) => sum + (s.strokes ?? 0), 0);
+    const totalPar = scoredHoles.reduce((sum, s) => sum + (holeMap.get(s.holeNumber)?.par ?? 4), 0);
+    const totalToPar = totalStrokes - totalPar;
+    const maxHole = scoredHoles.length > 0 ? Math.max(...scoredHoles.map((s) => s.holeNumber)) : null;
+    return { team, scores: teamScores, totalStrokes, totalToPar, holesCompleted: scoredHoles.length, thruHole: maxHole };
+  });
+  leaderboard.sort((a, b) => {
+    if (b.holesCompleted !== a.holesCompleted) return b.holesCompleted - a.holesCompleted;
+    if (a.totalToPar !== b.totalToPar) return a.totalToPar - b.totalToPar;
+    return a.team.teamName.localeCompare(b.team.teamName);
+  });
+  const submissions = teams.map((team) => {
+    const isSubmitted = team.isSubmitted ?? false;
+    const teamScores = scores.filter((s) => s.teamId === team.id && s.strokes != null);
+    const holesScored = teamScores.length;
+    const holesRemaining = isSubmitted ? 0 : Math.max(0, 18 - holesScored);
+    return { id: team.id, teamName: team.teamName, flight: team.flight, startingHole: team.startingHole ?? 1, isSubmitted, holesScored, holesRemaining };
+  });
+  return { leaderboard, ctp, teams, settings, holes, sponsors, submissions };
+}
+function broadcast(payload) {
+  lastPayload = payload;
+  const data = `data: ${JSON.stringify(payload)}
+
+`;
+  for (const client of sseClients) {
+    try {
+      client.res.write(data);
+    } catch {
+      sseClients.delete(client);
+    }
+  }
+}
+async function tick() {
+  try {
+    broadcast(await buildPayload());
+  } catch (e) {
+    console.error("SSE tick error:", e);
+  }
+}
+function ensureTimer() {
+  if (broadcastTimer) return;
+  broadcastTimer = setInterval(tick, 4e3);
+  tick();
+}
+function scheduleImmediatePush() {
+  setTimeout(tick, 150);
+}
 function registerRoutes(app2) {
   const httpServer = (0, import_http.createServer)(app2);
+  app2.get("/api/stream", (req, res) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+    const client = { id: ++sseClientId, res };
+    sseClients.add(client);
+    ensureTimer();
+    if (lastPayload) {
+      try {
+        res.write(`data: ${JSON.stringify(lastPayload)}
+
+`);
+      } catch {
+      }
+    }
+    const hb = setInterval(() => {
+      try {
+        res.write(": heartbeat\n\n");
+      } catch {
+        clearInterval(hb);
+      }
+    }, 25e3);
+    req.on("close", () => {
+      clearInterval(hb);
+      sseClients.delete(client);
+    });
+  });
   app2.post("/api/auth/admin", async (req, res) => {
     const { password } = req.body;
     const settings = await storage.getSettings();
@@ -50045,6 +50148,7 @@ function registerRoutes(app2) {
   });
   app2.put("/api/settings", async (req, res) => {
     const updated = await storage.upsertSettings(req.body);
+    scheduleImmediatePush();
     res.json(updated);
   });
   app2.get("/api/holes", async (_req, res) => {
@@ -50081,15 +50185,42 @@ function registerRoutes(app2) {
     if (!team) return res.status(404).json({ message: "Team not found" });
     res.json(team);
   });
-  const submittedTeams = /* @__PURE__ */ new Set();
-  app2.post("/api/teams/:id/submit", (req, res) => {
+  app2.post("/api/teams/:id/submit", async (req, res) => {
     const id = parseInt(req.params.id);
-    submittedTeams.add(id);
+    await storage.submitTeam(id);
+    scheduleImmediatePush();
     res.json({ success: true, submitted: true });
   });
-  app2.get("/api/teams/:id/submitted", (req, res) => {
+  app2.get("/api/teams/:id/submitted", async (req, res) => {
     const id = parseInt(req.params.id);
-    res.json({ submitted: submittedTeams.has(id) });
+    const submitted = await storage.isTeamSubmitted(id);
+    res.json({ submitted });
+  });
+  app2.get("/api/submissions", async (_req, res) => {
+    const [teams, scores] = await Promise.all([
+      storage.getTeams(),
+      storage.getScores()
+    ]);
+    const result = teams.map((team) => {
+      const isSubmitted = team.isSubmitted ?? false;
+      const teamScores = scores.filter((s) => s.teamId === team.id && s.strokes != null);
+      const holesScored = teamScores.length;
+      const holesRemaining = isSubmitted ? 0 : Math.max(0, 18 - holesScored);
+      return {
+        id: team.id,
+        teamName: team.teamName,
+        flight: team.flight,
+        startingHole: team.startingHole ?? 1,
+        isSubmitted,
+        holesScored,
+        holesRemaining,
+        player1: team.player1 ?? null,
+        player2: team.player2 ?? null,
+        player3: team.player3 ?? null,
+        player4: team.player4 ?? null
+      };
+    });
+    res.json(result);
   });
   app2.delete("/api/teams/:id", async (req, res) => {
     await storage.deleteTeam(parseInt(req.params.id));
@@ -50105,6 +50236,7 @@ function registerRoutes(app2) {
     const { teamId, holeNumber, strokes } = req.body;
     if (!teamId || !holeNumber) return res.status(400).json({ message: "teamId and holeNumber required" });
     const score = await storage.upsertScore(teamId, holeNumber, strokes);
+    scheduleImmediatePush();
     res.json(score);
   });
   app2.delete("/api/scores/team/:teamId", async (req, res) => {
@@ -50157,6 +50289,7 @@ function registerRoutes(app2) {
     const { holeNumber, teamId, playerName, distance } = req.body;
     if (!holeNumber) return res.status(400).json({ message: "holeNumber required" });
     const entry = await storage.upsertCtp(holeNumber, teamId ?? null, playerName ?? null, distance ?? null);
+    scheduleImmediatePush();
     res.json(entry);
   });
   app2.delete("/api/ctp/:holeNumber", async (req, res) => {

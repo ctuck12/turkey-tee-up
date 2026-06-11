@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Trophy, Target, Wifi, Users, ChevronDown, ChevronUp, Zap } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Trophy, Target, Search, Users, ChevronDown, ChevronUp, Wifi, Zap } from "lucide-react";
+import bigCountryLogo from "@/assets/big-country-title.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { LeaderboardEntry, Hole, ClosestToPin, Team, Sponsor } from "@shared/schema";
+import type { LeaderboardEntry, Hole, ClosestToPin, Team, Sponsor, TournamentSettings } from "@shared/schema";
 
 function toParDisplay(toPar: number, holesCompleted: number): React.ReactNode {
   if (holesCompleted === 0) return <span className="text-[#1a2744]/50 text-sm">—</span>;
@@ -76,30 +76,22 @@ function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: 
               isLd ? "border border-emerald-600/25" : "border border-[#1a2744]/20"
             }`}
           >
+            {/* Type label */}
+            <div className={`text-[10px] font-bold uppercase tracking-widest font-sans-app mb-0.5 flex items-center gap-1 ${
+              isLd ? "text-emerald-600" : "text-[#b06b10]"
+            }`}>
+              {isLd ? <Zap size={10} /> : <Target size={10} />}
+              {isLd ? "Long Drive" : "Closest to Pin"}
+            </div>
+            {/* Hole + prize label */}
             <div className="text-xs font-sans-app mb-1 flex items-center gap-1">
-              {isLd ? (
-                <>
-                  <Zap size={11} className="text-emerald-600" />
-                  <span className="font-bold text-emerald-700">Hole {hole.holeNumber} — Long Drive</span>
-                </>
-              ) : (
-                <>
-                  <span className="font-bold text-[#b06b10]">Hole {hole.holeNumber}</span>
-                  {hole.ctpLabel && <span className="ml-1 text-[#1a2744]/45">· {hole.ctpLabel}</span>}
-                </>
-              )}
+              <span className="font-bold text-[#1a2744]">Hole {hole.holeNumber}</span>
+              {hole.ctpLabel && <span className="ml-1 text-[#1a2744]/45">· {hole.ctpLabel}</span>}
             </div>
             {entry && (entry.playerName || team) ? (
               <>
                 <div className="text-[#1a2744] font-bold text-sm">{entry.playerName || team?.teamName}</div>
                 {team && <div className="text-[#1a2744]/55 text-xs font-sans-app">{team.teamName}</div>}
-                {entry.distance && (
-                  <div className={`font-bold text-base mt-1 ${
-                    isLd ? "text-emerald-700" : "text-green-700"
-                  }`}>
-                    {isLd ? `${entry.distance} yds` : formatCtpDistance(entry.distance)}
-                  </div>
-                )}
               </>
             ) : (
               <div className="text-[#1a2744]/40 text-sm italic font-sans-app">No entry yet</div>
@@ -112,8 +104,8 @@ function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: 
 }
 
 function CtpPanel({ ctpEntries, holes, teams }: { ctpEntries: ClosestToPin[]; holes: Hole[]; teams: Team[] }) {
-  const ctpHoles = holes.filter(h => h.isCtpHole);
-  const ldHole = holes.find(h => h.holeNumber === 15);
+  const ctpHoles = holes.filter(h => h.isCtpHole && h.par === 3);
+  const ldHole = holes.find(h => h.isCtpHole && h.par !== 3);
   if (ctpHoles.length === 0 && !ldHole) return null;
 
   return (
@@ -129,10 +121,10 @@ function CtpPanel({ ctpEntries, holes, teams }: { ctpEntries: ClosestToPin[]; ho
       <Tabs defaultValue="morning">
         <TabsList className="bg-white border border-[#1a2744]/20 mb-3 shadow-sm">
           <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-[#b06b10] text-xs">
-            Morning
+            AM
           </TabsTrigger>
           <TabsTrigger value="afternoon" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-[#1a2744] data-[state=active]:text-[#b06b10] text-xs">
-            Afternoon
+            PM
           </TabsTrigger>
         </TabsList>
         <TabsContent value="morning">
@@ -157,6 +149,21 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
 }) {
   const [, navigate] = useLocation();
   const [showCtp, setShowCtp] = useState(false);
+  const [showInProgress, setShowInProgress] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const q = search.trim().toLowerCase();
+  const filtered = entries.filter(e => {
+    if (showInProgress && e.team.isSubmitted) return false;
+    if (!q) return true;
+    if (e.team.teamName.toLowerCase().includes(q)) return true;
+    const players = [e.team.player1, e.team.player2, e.team.player3, e.team.player4];
+    return players.some(p => {
+      if (!p) return false;
+      const lastName = p.trim().split(/\s+/).pop()?.toLowerCase() ?? "";
+      return lastName.includes(q);
+    });
+  });
 
   if (entries.length === 0) {
     return (
@@ -168,25 +175,53 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
   }
 
   return (
+    <div className="space-y-2">
+      {/* Search bar — sits right above the flight card */}
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1a2744]/35 pointer-events-none" />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search teams or players by last name..."
+          className="w-full pl-9 pr-8 py-2 rounded-xl border border-[#1a2744]/15 bg-white text-[#1a2744] placeholder:text-[#1a2744]/35 text-sm font-sans-app focus:outline-none focus:border-[#b06b10]/50 focus:ring-1 focus:ring-[#b06b10]/30"
+        />
+        {search && (
+          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1a2744]/35 hover:text-[#1a2744]/60 text-base leading-none">
+            ✕
+          </button>
+        )}
+      </div>
+
     <div className="atd-card rounded-xl overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-[#1a2744]/15 bg-[#1a2744]/5 flex items-center gap-2">
-        <span className="text-[#1a2744] font-bold text-xs uppercase tracking-widest font-sans-app">{label} Flight</span>
-        <Badge variant="outline" className="text-[#1a2744]/70 border-[#1a2744]/30 text-xs font-sans-app font-semibold">
-          {entries.length} teams
-        </Badge>
-        <button
-          onClick={() => setShowCtp(v => !v)}
-          className={`ml-auto flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors font-sans-app ${
-            showCtp
-              ? "bg-[#b06b10]/15 border-[#b06b10]/60 text-[#b06b10]"
-              : "border-[#1a2744]/20 text-[#1a2744]/50 hover:border-[#b06b10]/40 hover:text-[#b06b10]/80"
-          }`}
-        >
-          <Target size={11} />
-          Closest to Pin
-          {showCtp ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-        </button>
+        <span className="text-[#1a2744] font-bold text-xs uppercase tracking-widest font-sans-app">{label}</span>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setShowInProgress(v => !v)}
+            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors font-sans-app ${
+              showInProgress
+                ? "bg-green-600/15 border-green-600/60 text-green-700"
+                : "border-[#1a2744]/20 text-[#1a2744]/50 hover:border-green-600/40 hover:text-green-700/80"
+            }`}
+          >
+            <span className="flex items-center gap-1">⛳ In Progress</span>
+          </button>
+          <button
+            onClick={() => setShowCtp(v => !v)}
+            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors font-sans-app ${
+              showCtp
+                ? "bg-[#b06b10]/15 border-[#b06b10]/60 text-[#b06b10]"
+                : "border-[#1a2744]/20 text-[#1a2744]/50 hover:border-[#b06b10]/40 hover:text-[#b06b10]/80"
+            }`}
+          >
+            <span className="flex items-center gap-0.5"><Target size={11} />CTP</span>
+            &amp;
+            <span className="flex items-center gap-0.5"><Zap size={11} />Long Drive</span>
+            {showCtp ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+          </button>
+        </div>
       </div>
 
       {/* CTP / LD panel — shown inline when toggled */}
@@ -203,12 +238,12 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
             <tr className="border-b border-amber-500/10">
               <th className="px-3 py-2.5 text-left text-[#b06b10] text-xs uppercase tracking-wider w-10">#</th>
               <th className="px-3 py-2.5 text-left text-[#b06b10] text-xs uppercase tracking-wider">Team</th>
-              <th className="px-3 py-2.5 text-center text-[#b06b10] text-xs uppercase tracking-wider w-24">+/- Par</th>
+              <th className="px-3 py-2.5 text-center text-[#b06b10] text-xs uppercase tracking-wider w-24">Score</th>
               <th className="px-3 py-2.5 text-center text-[#b06b10] text-xs uppercase tracking-wider w-16">Thru</th>
             </tr>
           </thead>
           <tbody>
-            {entries.map((entry, idx) => (
+            {filtered.map((entry, idx) => (
               <tr
                 key={entry.team.id}
                 onClick={() => navigate(`/team/${entry.team.id}`)}
@@ -218,8 +253,8 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
                   {idx + 1}
                 </td>
                 <td className="px-3 py-3">
-                  <div className="font-bold text-[#1a2744]">{entry.team.teamName}</div>
-                  <div className="text-[#1a2744]/50 text-xs mt-0.5 truncate max-w-[200px]">
+                  <div className="font-bold text-[#1a2744] truncate max-w-[180px]">{entry.team.teamName}</div>
+                  <div className="text-[#1a2744]/50 text-xs mt-0.5 truncate max-w-[180px]">
                     {[entry.team.player1, entry.team.player2, entry.team.player3, entry.team.player4]
                       .filter(Boolean)
                       .map(name => (name ?? "").trim().split(/\s+/).pop() ?? name)
@@ -238,21 +273,20 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
         </table>
       </div>
     </div>
+    </div>
   );
 }
 
-const POLL_INTERVAL = 4000;
-
 export default function Leaderboard() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  // All data arrives via SSE (useSSE in AppShell) — no polling needed here
+  const { data: leaderboard = [], isLoading: loadingLb } = useQuery<LeaderboardEntry[]>({ queryKey: ["/api/leaderboard"] });
+  const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
+  const { data: ctpEntries = [] } = useQuery<ClosestToPin[]>({ queryKey: ["/api/ctp"] });
+  const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
+  const { data: sponsors = [] } = useQuery<Sponsor[]>({ queryKey: ["/api/sponsors"] });
+  const { data: settings } = useQuery<TournamentSettings>({ queryKey: ["/api/settings"] });
 
-  const { data: leaderboard = [], isLoading: loadingLb } = useQuery<LeaderboardEntry[]>({ queryKey: ["/api/leaderboard"], refetchInterval: POLL_INTERVAL });
-  const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"], refetchInterval: 30000 });
-  const { data: ctpEntries = [] } = useQuery<ClosestToPin[]>({ queryKey: ["/api/ctp"], refetchInterval: POLL_INTERVAL });
-  const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"], refetchInterval: POLL_INTERVAL });
-  const { data: sponsors = [] } = useQuery<Sponsor[]>({ queryKey: ["/api/sponsors"], refetchInterval: 30000 });
-
-  // Update last update timestamp when leaderboard data changes
   useEffect(() => {
     if (leaderboard.length > 0) setLastUpdate(new Date());
   }, [leaderboard]);
@@ -262,43 +296,53 @@ export default function Leaderboard() {
 
   return (
     <div className="space-y-6">
-      {/* Hero header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-[#b06b10] leading-tight">Live Leaderboard</h1>
+      {/* Hero header — logo floats right without affecting layout height */}
+      <div className="relative">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-xs font-sans-app px-3 py-1.5 rounded-full border border-green-600/40 text-green-700 bg-green-500/10">
+              <Wifi size={12} className="live-indicator" />
+              Live
+            </div>
+            {lastUpdate && (
+              <span className="text-[#1a2744]/35 text-xs font-sans-app">
+                Updated {lastUpdate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+              </span>
+            )}
           </div>
+          <h1 className="text-xl font-bold text-[#b06b10] leading-tight">Leaderboard</h1>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs font-sans-app px-3 py-1.5 rounded-full border border-green-600/40 text-green-700 bg-green-500/10">
-            <Wifi size={12} className="live-indicator" />
-            Live
-          </div>
-          {lastUpdate && (
-            <span className="text-[#1a2744]/35 text-xs font-sans-app">
-              Updated {lastUpdate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-            </span>
-          )}
+        {/* Logo floats right — zero height impact on surrounding layout */}
+        <div style={{ position: "absolute", top: 0, right: 0, pointerEvents: "none", zIndex: 0 }}>
+          <img
+            src={bigCountryLogo}
+            alt="Big Country Title Company"
+            className="bct-leaderboard-logo"
+            style={{
+              width: "auto",
+              objectFit: "contain",
+              display: "block",
+            }}
+          />
         </div>
       </div>
 
       {/* Sponsor banner */}
       <SponsorBanner sponsors={sponsors} placement="leaderboard" />
 
-      {/* Leaderboard tabs */}
       {loadingLb ? (
         <div className="atd-card rounded-xl p-12 text-center">
           <Trophy size={40} className="text-[#b06b10]/30 mx-auto mb-3 animate-pulse" />
           <p className="text-[#1a2744]/50 font-sans-app">Loading leaderboard...</p>
         </div>
       ) : (
-        <Tabs defaultValue="morning">
+        <Tabs defaultValue={settings?.defaultFlight ?? "morning"}>
           <TabsList className="bg-white border border-[#1a2744]/20 mb-4 shadow-sm">
             <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-amber-500/20 data-[state=active]:text-[#8a5008]">
-              Morning ({morningTeams.length})
+              AM ({morningTeams.length})
             </TabsTrigger>
             <TabsTrigger value="afternoon" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-amber-500/20 data-[state=active]:text-[#8a5008]">
-              Afternoon ({afternoonTeams.length})
+              PM ({afternoonTeams.length})
             </TabsTrigger>
           </TabsList>
           <TabsContent value="morning">
@@ -309,7 +353,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={morningTeams} label="Morning" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole)} ldHole={holes.find(h => h.holeNumber === 15)} teams={teams} />
+              <LeaderboardTable entries={morningTeams} label="AM Flight" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} />
             )}
           </TabsContent>
           <TabsContent value="afternoon">
@@ -320,7 +364,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={afternoonTeams} label="Afternoon" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole)} ldHole={holes.find(h => h.holeNumber === 15)} teams={teams} />
+              <LeaderboardTable entries={afternoonTeams} label="PM Flight" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} />
             )}
           </TabsContent>
         </Tabs>

@@ -1,34 +1,32 @@
+import React, { useEffect, useRef } from "react";
 import type { Hole, Score } from "@shared/schema";
 
 // ─── ScoreCell ────────────────────────────────────────────────────────────────
-// Single source of truth for all per-hole score cell rendering.
-// Edit this to change how scores look on BOTH the leaderboard scorecard
-// and the scorekeeper scorecard tab.
 export function ScoreCell({ strokes, par }: { strokes: number | null | undefined; par: number }) {
   if (strokes == null) {
-    return <td className="scorecard-table score-cell py-1.5 px-2 text-center border border-[#1a2744]/10 text-[#1a2744]/35">-</td>;
+    return <td className="scorecard-table score-cell text-center border border-[#1a2744]/10 text-[#1a2744]/35" style={{ padding: "6px 2px" }}>-</td>;
   }
   const diff = strokes - par;
 
-  // Eagle / Albatross: two distinct red circles — both contained within the cell
+  const cellStyle: React.CSSProperties = { padding: "6px 2px", overflow: "visible" };
+
   if (diff <= -2) {
     return (
-      <td className="scorecard-table score-cell text-center border border-[#1a2744]/10" style={{ padding: "3px 2px" }}>
+      <td className="scorecard-table score-cell text-center border border-[#1a2744]/10" style={cellStyle}>
         <span style={{
           display: "inline-flex", alignItems: "center", justifyContent: "center",
-          width: "22px", height: "22px", borderRadius: "50%",
+          width: "20px", height: "20px", borderRadius: "50%",
           border: "1.5px solid #c0323e",
-          boxShadow: "0 0 0 2.5px #faf8f4, 0 0 0 4.5px #c0323e",
+          boxShadow: "0 0 0 2px #faf8f4, 0 0 0 4px #c0323e",
           color: "#c0323e", fontWeight: 700, fontSize: "0.7rem",
         }}>{strokes}</span>
       </td>
     );
   }
 
-  // Birdie: single red circle
   if (diff === -1) {
     return (
-      <td className="scorecard-table score-cell py-1.5 px-2 text-center border border-[#1a2744]/10">
+      <td className="scorecard-table score-cell text-center border border-[#1a2744]/10" style={cellStyle}>
         <span style={{
           display: "inline-flex", alignItems: "center", justifyContent: "center",
           width: "24px", height: "24px", borderRadius: "50%",
@@ -39,19 +37,16 @@ export function ScoreCell({ strokes, par }: { strokes: number | null | undefined
     );
   }
 
-  // Par: plain navy
   if (diff === 0) {
     return (
-      <td className="scorecard-table score-cell py-1.5 px-2 text-center border border-[#1a2744]/10"
-        style={{ color: "#1a2744" }}>
+      <td className="scorecard-table score-cell text-center border border-[#1a2744]/10" style={{ ...cellStyle, color: "#1a2744" }}>
         {strokes}
       </td>
     );
   }
 
-  // Bogey (max): navy/black square border
   return (
-    <td className="scorecard-table score-cell py-1.5 px-2 text-center border border-[#1a2744]/10">
+    <td className="scorecard-table score-cell text-center border border-[#1a2744]/10" style={cellStyle}>
       <span style={{
         display: "inline-flex", alignItems: "center", justifyContent: "center",
         width: "24px", height: "24px", borderRadius: "2px",
@@ -63,15 +58,25 @@ export function ScoreCell({ strokes, par }: { strokes: number | null | undefined
 }
 
 // ─── ScorecardTable ───────────────────────────────────────────────────────────
-// Full scorecard table used in both TeamScorecard and Scorekeeper > Scorecard tab.
-// Edit rows, colors, column widths here — it updates everywhere automatically.
-export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score[] }) {
-  // Sort holes by hole number so columns are always in order
+// Full 18-hole scrollable scorecard.
+// scrollToHole: when provided, auto-scrolls the table so that hole's column is
+// visible on mount and whenever the value changes. Pass `currentHole` from the
+// Scorekeeper so the relevant nine is always in view without any toggle.
+export function ScorecardTable({
+  holes,
+  scores,
+  scrollToHole,
+}: {
+  holes: Hole[];
+  scores: Score[];
+  scrollToHole?: number;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const sortedHoles = [...holes].sort((a, b) => a.holeNumber - b.holeNumber);
   const holeMap = new Map(sortedHoles.map(h => [h.holeNumber, h]));
   const scoreMap = new Map(scores.map(s => [s.holeNumber, s]));
 
-  // Use actual hole numbers from the DB rather than assuming 1–18
   const allHoleNums = sortedHoles.map(h => h.holeNumber);
   const front9 = allHoleNums.filter(n => n <= 9);
   const back9  = allHoleNums.filter(n => n >= 10);
@@ -95,11 +100,25 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
   const totalStrokes  = front9Strokes + back9Strokes;
   const totalPar      = parTotal([...front9, ...back9]);
   const playedPar     = playedParTotal([...front9, ...back9]);
-  const totalToPar    = totalStrokes - playedPar;
   const hasScores     = scores.some(s => s.strokes != null);
 
+  // Auto-scroll so the active hole's nine is visible.
+  // Back-9 holes (10-18): scroll to the right end.
+  // Front-9 holes (1-9): scroll back to the left.
+  useEffect(() => {
+    if (!scrollToHole || !scrollRef.current) return;
+    const el = scrollRef.current;
+    if (scrollToHole >= 10) {
+      // Scroll to the right so back 9 is visible
+      el.scrollLeft = el.scrollWidth;
+    } else {
+      // Scroll back to left so front 9 is visible
+      el.scrollLeft = 0;
+    }
+  }, [scrollToHole]);
+
   return (
-    <div className="overflow-x-auto">
+    <div ref={scrollRef} className="overflow-x-auto">
       <table className="scorecard-table w-full" style={{ tableLayout: "fixed", minWidth: "680px" }}>
         <colgroup>
           <col style={{ width: "52px" }} />
@@ -120,7 +139,7 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
           </tr>
         </thead>
         <tbody>
-          {/* Yardage row — gray tint */}
+          {/* Yardage row */}
           <tr className="par-row">
             <td style={{ textAlign: "left", paddingLeft: "8px" }} className="text-[#1a2744]/55 text-xs">Yds</td>
             {front9.map(n => <td key={n} className="text-center text-[#1a2744]/55 text-xs">{holeMap.get(n)?.yardageBlue ?? "—"}</td>)}
@@ -136,7 +155,7 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
             </td>
           </tr>
 
-          {/* Handicap row — white */}
+          {/* Handicap row */}
           <tr className="score-row">
             <td style={{ textAlign: "left", paddingLeft: "8px" }} className="text-[#1a2744]/50 text-xs">Hdcp</td>
             {front9.map(n => <td key={n} className="text-center text-[#1a2744]/50 text-xs">{holeMap.get(n)?.handicap ?? "—"}</td>)}
@@ -146,7 +165,7 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
             <td className="total-col"></td>
           </tr>
 
-          {/* Par row — white */}
+          {/* Par row */}
           <tr className="score-row">
             <td style={{ textAlign: "left", paddingLeft: "8px" }} className="font-bold">Par</td>
             {front9.map(n => <td key={n}>{holeMap.get(n)?.par ?? 4}</td>)}
@@ -156,20 +175,20 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
             <td className="total-col font-bold">{totalPar}</td>
           </tr>
 
-          {/* Score row — white, gold top border */}
+          {/* Score row */}
           <tr className="score-row score-data-row">
             <td style={{ textAlign: "left", paddingLeft: "8px" }} className="font-bold text-[#1a2744]">Score</td>
             {front9.map(n => (
               <ScoreCell key={n} strokes={scoreMap.get(n)?.strokes} par={holeMap.get(n)?.par ?? 4} />
             ))}
             <td className="subtotal-col font-bold">
-              {front9.some(n => scoreMap.get(n)?.strokes) ? holeTotal(front9) : "—"}
+              {front9.some(n => scoreMap.get(n)?.strokes) ? front9Strokes : "—"}
             </td>
             {back9.map(n => (
               <ScoreCell key={n} strokes={scoreMap.get(n)?.strokes} par={holeMap.get(n)?.par ?? 4} />
             ))}
             <td className="subtotal-col font-bold">
-              {back9.some(n => scoreMap.get(n)?.strokes) ? holeTotal(back9) : "—"}
+              {back9.some(n => scoreMap.get(n)?.strokes) ? back9Strokes : "—"}
             </td>
             <td className="total-col font-bold text-base">
               {hasScores ? totalStrokes : "—"}
@@ -182,27 +201,22 @@ export function ScorecardTable({ holes, scores }: { holes: Hole[]; scores: Score
 }
 
 // ─── ScorecardLegend ──────────────────────────────────────────────────────────
-// Legend strip shown below the scorecard table.
 export function ScorecardLegend() {
   return (
     <div className="px-4 pb-3 flex flex-wrap gap-4 items-center text-xs font-sans-app text-[#1a2744]/50 border-t border-[#1a2744]/8 pt-3">
       <span className="font-bold text-[#b06b10]/60">Legend:</span>
-      {/* Eagle/Albatross: double red circle */}
       <span className="flex items-center gap-1">
         <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "18px", height: "18px", borderRadius: "50%", border: "1.5px solid #c0323e", boxShadow: "0 0 0 2px #f0ebe1, 0 0 0 3.5px #c0323e", color: "#c0323e", fontWeight: 700, fontSize: "0.6rem" }}>3</span>
         <span className="text-[#1a2744]/50 ml-1">Eagle</span>
       </span>
-      {/* Birdie: single red circle */}
       <span className="flex items-center gap-1">
         <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "50%", border: "2px solid #c0323e", color: "#c0323e", fontWeight: 600, fontSize: "0.65rem" }}>4</span>
         <span className="text-[#1a2744]/50 ml-1">Birdie</span>
       </span>
-      {/* Par: plain */}
       <span className="flex items-center gap-1">
         <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", color: "#1a2744", fontWeight: 600, fontSize: "0.65rem" }}>5</span>
         <span className="text-[#1a2744]/50 ml-1">Par</span>
       </span>
-      {/* Bogey: black square */}
       <span className="flex items-center gap-1">
         <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "20px", height: "20px", borderRadius: "2px", border: "2px solid #1a2744", color: "#1a2744", fontWeight: 700, fontSize: "0.65rem" }}>6</span>
         <span className="text-[#1a2744]/50 ml-1">Bogey</span>

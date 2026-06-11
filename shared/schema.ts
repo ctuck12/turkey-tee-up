@@ -12,6 +12,8 @@ export const tournamentSettings = sqliteTable("tournament_settings", {
   adminPassword: text("admin_password").notNull().default("atdadmin2025"),
   scorekeeperPassword: text("scorekeeper_password").notNull().default("atd2025"),
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  broadcastMessage: text("broadcast_message"),
+  defaultFlight: text("default_flight").notNull().default("morning"),
 });
 
 // ─── HOLES ────────────────────────────────────────────────────────────────────
@@ -50,6 +52,7 @@ export const teams = sqliteTable("teams", {
   startingHole: integer("starting_hole").notNull().default(1),
   teamCode: text("team_code").notNull(), // unique 4-digit code for scorekeeper access
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  isSubmitted: integer("is_submitted", { mode: "boolean" }).notNull().default(false),
 });
 
 // ─── SCORES ───────────────────────────────────────────────────────────────────

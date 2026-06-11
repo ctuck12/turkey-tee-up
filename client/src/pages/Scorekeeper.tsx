@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Target, ChevronRight, Check, Zap } from "lucide-react"; // Zap = Long Drive icon
+import { Target, ChevronLeft, ChevronRight, Check, Zap, X } from "lucide-react"; // Zap = Long Drive icon
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +13,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Team, Hole, Score, ClosestToPin, Sponsor } from "@shared/schema";
-import atdLogo from "@/assets/atd-logo.png";
-import bigCountryLogo from "@/assets/big-country-title.jpeg";
+import bigCountryLogo from "@/assets/big-country-title.png";
 import { ScorecardTable } from "@/components/ScorecardTable";
 
 // CTP / Long Drive Entry Modal
@@ -31,12 +31,10 @@ function CtpEntryModal({
 }) {
   const isLd = mode === "ld";
   const [playerName, setPlayerName] = useState(currentEntry?.playerName ?? "");
-  const [distance, setDistance] = useState(currentEntry?.distance ?? "");
   const [showPlayerList, setShowPlayerList] = useState(false);
 
   useEffect(() => {
     setPlayerName(currentEntry?.playerName ?? "");
-    setDistance(currentEntry?.distance ?? "");
     setShowPlayerList(false);
   }, [currentEntry, open]);
 
@@ -86,29 +84,10 @@ function CtpEntryModal({
               </div>
             )}
           </div>
-          <div>
-            <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">
-              {isLd ? "Distance (yards)" : "Distance (inches)"}
-            </Label>
-            <Input
-              value={distance}
-              onChange={e => {
-                const val = e.target.value.replace(/[^0-9]/g, "");
-                setDistance(val);
-              }}
-              placeholder={isLd ? "e.g. 285" : "e.g. 27"}
-              inputMode="numeric"
-              pattern="[0-9]*"
-              className="bg-white border-[#1a2744]/20 text-black placeholder:text-[#1a2744]/35"
-              data-testid="input-ctp-distance"
-            />
-            {!isLd && (
-              <p className="text-[#1a2744]/45 text-[11px] mt-1 font-sans-app">Enter total inches — will display as feet &amp; inches on leaderboard</p>
-            )}
-          </div>
+
           <div className="flex gap-2 pt-2">
             <Button
-              onClick={() => onSave({ holeNumber, playerName, distance })}
+              onClick={() => onSave({ holeNumber, playerName })}
               className={`flex-1 text-white ${
                 isLd
                   ? "bg-emerald-600 border border-emerald-600 hover:bg-emerald-700"
@@ -135,19 +114,45 @@ export default function Scorekeeper() {
   const qc = useQueryClient();
 
   const [teamCode, setTeamCode] = useState("");
-  const [authedTeam, setAuthedTeam] = useState<Team | null>(null);
+  const [authedTeam, setAuthedTeam] = useState<Team | null>(() => {
+    try {
+      const saved = sessionStorage.getItem("sk_authed_team");
+      return saved ? (JSON.parse(saved) as Team) : null;
+    } catch { return null; }
+  });
   const [authError, setAuthError] = useState("");
-  const [currentHole, setCurrentHole] = useState(1);
+  const [currentHole, setCurrentHole] = useState<number>(() => {
+    try {
+      const saved = sessionStorage.getItem("sk_current_hole");
+      return saved ? parseInt(saved) : 1;
+    } catch { return 1; }
+  });
   const [ctpModalHole, setCtpModalHole] = useState<number | null>(null);
   const [ctpWarningHole, setCtpWarningHole] = useState<number | null>(null);
   const [ldModalHole, setLdModalHole] = useState<number | null>(null);
   const [ldWarningHole, setLdWarningHole] = useState<number | null>(null);
+  const [pendingStrokes, setPendingStrokes] = useState<{ holeNumber: number; strokes: number } | null>(null);
   const [showRoundComplete, setShowRoundComplete] = useState(false);
+  const [showScorecardView, setShowScorecardView] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(() => !!(authedTeam?.isSubmitted));
+  const [showSkipWarning, setShowSkipWarning] = useState(false);
+  // Track which holes this team submitted CTP/LD entries for this session
+  const [submittedCtpHoles, setSubmittedCtpHoles] = useState<number[]>([]);
+
+
 
   const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
   const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
+
+  // Sync isSubmitted from live teams query so the persisted Supabase value is
+  // picked up even when the sessionStorage-cached team predates the is_submitted column.
+  useEffect(() => {
+    if (!authedTeam) return;
+    const live = teams.find((t) => t.id === authedTeam.id);
+    if (live) setIsSubmitted(!!live.isSubmitted);
+  }, [teams, authedTeam]);
+
   const { data: ctpEntries = [], refetch: refetchCtp } = useQuery<ClosestToPin[]>({ queryKey: ["/api/ctp"] });
   const { data: sponsors = [] } = useQuery<Sponsor[]>({ queryKey: ["/api/sponsors"] });
 
@@ -158,7 +163,7 @@ export default function Scorekeeper() {
 
   const holeMap = new Map(holes.map(h => [h.holeNumber, h]));
   const scoreMap = new Map((teamScores.data ?? []).map(s => [s.holeNumber, s]));
-  const ctpHoles = holes.filter(h => h.isCtpHole);
+  const ctpHoles = holes.filter(h => h.isCtpHole && h.par === 3);
   const currentHoleData = holeMap.get(currentHole);
   const currentScore = scoreMap.get(currentHole);
   const [localScore, setLocalScore] = useState<string>("");
@@ -167,11 +172,40 @@ export default function Scorekeeper() {
     setLocalScore(currentScore?.strokes?.toString() ?? "");
   }, [currentHole, currentScore?.strokes]);
 
-  // Auto-login if routeTeamId exists
+  // Once scores are actually fetched, seek to the first unscored hole in sequence.
+  // If all holes are scored, land on the last hole in their sequence.
+  useEffect(() => {
+    if (!authedTeam || !teamScores.isFetched) return;
+    const start = authedTeam.startingHole ?? 1;
+    const last  = start === 1 ? 18 : start - 1;
+    const scored = new Set((teamScores.data ?? []).filter(s => s.strokes != null).map(s => s.holeNumber));
+    let h = start;
+    let allScored = false;
+    for (let i = 0; i < 18; i++) {
+      if (!scored.has(h)) break;
+      const next = h === 18 ? 1 : h + 1;
+      if (next === start) { allScored = true; break; } // completed full loop
+      h = next;
+    }
+    const target = allScored ? last : h;
+    setCurrentHole(target);
+    try { sessionStorage.setItem("sk_current_hole", String(target)); } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authedTeam?.id, teamScores.isFetched]);
+
+  // Auto-login if routeTeamId exists (e.g. launched from admin portal)
   useEffect(() => {
     if (routeTeamId && teams.length > 0) {
       const team = teams.find(t => t.id === parseInt(routeTeamId));
-      if (team) setAuthedTeam(team);
+      if (team) {
+        setAuthedTeam(team);
+        const startHole = team.startingHole ?? 1;
+        setCurrentHole(startHole);
+        try {
+          sessionStorage.setItem("sk_authed_team", JSON.stringify(team));
+          sessionStorage.setItem("sk_current_hole", String(startHole));
+        } catch {}
+      }
     }
   }, [routeTeamId, teams]);
 
@@ -200,30 +234,59 @@ export default function Scorekeeper() {
       setIsSubmitted(true);
       setShowSubmitConfirm(false);
       setShowRoundComplete(false);
+      // Clear session so next team starts fresh
+      try { sessionStorage.removeItem("sk_authed_team"); sessionStorage.removeItem("sk_current_hole"); } catch {}
       toast({ title: "Scorecard officially submitted!" });
     },
     onError: () => toast({ title: "Error submitting scorecard", variant: "destructive" }),
   });
 
+  const pendingStrokesRef = { current: pendingStrokes };
+  pendingStrokesRef.current = pendingStrokes;
+
   const ctpMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/ctp", data),
-    onSuccess: () => {
+    onSuccess: (_res, variables) => {
       qc.invalidateQueries({ queryKey: ["/api/ctp"] });
-      // Advance to next hole after saving CTP (modal was opened from warning)
-      if (ctpModalHole !== null) advanceHole(ctpModalHole);
+      const pending = pendingStrokesRef.current;
+      // Commit the held hole score silently — combined toast below handles messaging
+      commitPendingScore(pending, true);
+      // Track which hole this team submitted CTP for
+      const ctpHole = ctpModalHole;
+      if (ctpHole !== null) {
+        setSubmittedCtpHoles(prev => prev.includes(ctpHole) ? prev : [...prev, ctpHole]);
+        advanceHole(ctpHole);
+      }
       setCtpModalHole(null);
-      toast({ title: "CTP entry saved!" });
+      const player = variables?.playerName ?? "";
+      const title = pending
+        ? `Hole ${pending.holeNumber}: Score saved (${pending.strokes}) · CTP: ${player}`
+        : `CTP saved${player ? ` — ${player}` : ""}`;
+      const { dismiss } = toast({ title });
+      setTimeout(dismiss, 3000);
     },
   });
 
   const ldMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/ctp", data),
-    onSuccess: () => {
+    onSuccess: (_res, variables) => {
       qc.invalidateQueries({ queryKey: ["/api/ctp"] });
-      // Advance after saving LD (modal opened from warning)
-      if (ldModalHole !== null) advanceHole(ldModalHole);
+      const pending = pendingStrokesRef.current;
+      // Commit the held hole score silently — combined toast below handles messaging
+      commitPendingScore(pending, true);
+      // Track that this team submitted LD (hole 15)
+      const ldHole = ldModalHole;
+      if (ldHole !== null) {
+        setSubmittedCtpHoles(prev => prev.includes(ldHole) ? prev : [...prev, ldHole]);
+        advanceHole(ldHole);
+      }
       setLdModalHole(null);
-      toast({ title: "Long Drive entry saved!" });
+      const player = variables?.playerName ?? "";
+      const title = pending
+        ? `Hole ${pending.holeNumber}: Score saved (${pending.strokes}) · Long Drive: ${player}`
+        : `Long Drive saved${player ? ` — ${player}` : ""}`;
+      const { dismiss } = toast({ title });
+      setTimeout(dismiss, 3000);
     },
   });
 
@@ -232,15 +295,32 @@ export default function Scorekeeper() {
       const res = await apiRequest("POST", "/api/auth/scorekeeper", { teamCode: teamCode.toUpperCase().trim() });
       const data = await res.json();
       setAuthedTeam(data.team);
-      setCurrentHole(data.team.startingHole ?? 1);
+      // Don't set currentHole here — the seek effect will set it once scores load
+      sessionStorage.setItem("sk_authed_team", JSON.stringify(data.team));
       setAuthError("");
     } catch {
       setAuthError("Invalid team code. Check with your admin.");
     }
   }
 
+  function commitPendingScore(pending: { holeNumber: number; strokes: number } | null, silent = false) {
+    if (!pending || !authedTeam) return;
+    scoreMutation.mutate({ teamId: authedTeam.id, holeNumber: pending.holeNumber, strokes: pending.strokes });
+    if (!silent) {
+      const { dismiss } = toast({ title: `Hole ${pending.holeNumber}: Score saved (${pending.strokes})` });
+      setTimeout(dismiss, 3000);
+    }
+    setPendingStrokes(null);
+  }
+
   function handleSaveScore() {
     if (!authedTeam) return;
+    // Block if previous hole in sequence has no saved score
+    const prevH = getPrevHoleInSequence(currentHole, startingHole);
+    if (prevH !== null && !scoreMap.has(prevH)) {
+      setShowSkipWarning(true);
+      return;
+    }
     const strokes = parseInt(localScore);
     const bogey = par + 1;
     if (isNaN(strokes) || strokes < 1) {
@@ -251,30 +331,45 @@ export default function Scorekeeper() {
       toast({ title: `Max score for this hole is ${bogey} (Bogey)`, variant: "destructive" });
       return;
     }
-    scoreMutation.mutate({ teamId: authedTeam.id, holeNumber: currentHole, strokes });
-    toast({ title: `Hole ${currentHole}: Score saved (${strokes})` });
     setLocalScore("");
 
-    // If this is a CTP hole and no entry exists yet, show warning instead of advancing
-    const isCtp = currentHoleData?.isCtpHole;
+    // If this is a CTP hole and no entry exists yet, hold the score until the popup resolves
+    const isCtp = currentHoleData?.isCtpHole && currentHoleData?.par === 3;
     const ctpAlreadySaved = ctpEntries.some(c => c.holeNumber === currentHole);
     if (isCtp && !ctpAlreadySaved) {
+      setPendingStrokes({ holeNumber: currentHole, strokes });
       setCtpWarningHole(currentHole);
       return;
     }
-    // If this is hole 15 (Long Drive hole) and no LD entry yet, show LD warning
-    const isLdHole = currentHole === 15;
-    const ldAlreadySaved = ctpEntries.some(c => c.holeNumber === 15);
+    // If this is an LD hole (par 4/5 with toggle on) and no LD entry yet, hold the score until the popup resolves
+    const isLdHole = !!(currentHoleData?.isCtpHole && currentHoleData?.par !== 3);
+    const ldAlreadySaved = ctpEntries.some(c => c.holeNumber === currentHole && c.holeNumber !== undefined);
     if (isLdHole && !ldAlreadySaved) {
+      setPendingStrokes({ holeNumber: currentHole, strokes });
       setLdWarningHole(currentHole);
       return;
     }
-    // Otherwise advance normally
+    // Otherwise save and advance normally
+    scoreMutation.mutate({ teamId: authedTeam.id, holeNumber: currentHole, strokes });
+    const { dismiss } = toast({ title: `Hole ${currentHole}: Score saved (${strokes})` });
+    setTimeout(dismiss, 3000);
     advanceHole(currentHole);
+  }
+
+  // The hole immediately before currentHole in playing sequence (wrapping); null if currentHole === startingHole
+  function getPrevHoleInSequence(hole: number, start: number): number | null {
+    if (hole === start) return null;
+    return hole === 1 ? 18 : hole - 1;
   }
 
   // Quick score just selects — does NOT save or advance
   function handleQuickScore(n: number) {
+    // Block if previous hole in sequence has no saved score
+    const prevH = getPrevHoleInSequence(currentHole, startingHole);
+    if (prevH !== null && !scoreMap.has(prevH)) {
+      setShowSkipWarning(true);
+      return;
+    }
     setLocalScore(n.toString());
   }
 
@@ -309,7 +404,7 @@ export default function Scorekeeper() {
     return (
       <div className="max-w-sm mx-auto space-y-6 pt-8">
         <div className="text-center">
-          <img src={atdLogo} alt="ATD" className="w-56 mx-auto mb-6 object-contain" />
+          <img src={bigCountryLogo} alt="Big Country Title Company" className="w-56 mx-auto mb-6 object-contain" />
           <h1 className="text-xl font-bold text-[#b06b10] mb-1">Scorekeeper Entry</h1>
           <p className="text-[#1a2744]/55 text-sm font-sans-app">Enter your team code to begin</p>
         </div>
@@ -370,6 +465,7 @@ export default function Scorekeeper() {
     }
     const next = from === 18 ? 1 : from + 1;
     setCurrentHole(next);
+    try { sessionStorage.setItem("sk_current_hole", String(next)); } catch {}
   }
 
   const completedHoles = (teamScores.data ?? []).filter(s => s.strokes != null).length;
@@ -380,26 +476,32 @@ export default function Scorekeeper() {
   const runningToPar = totalStrokes - totalPar;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
+    <div className="max-w-2xl mx-auto space-y-4 pb-10">
       {/* Team header */}
       <div className="atd-card rounded-xl p-4">
         {/* Row 1: team name + total score + flight badge */}
         {(() => {
-          const totalDisp = completedHoles === 0 ? "E" : runningToPar === 0 ? "E" : runningToPar > 0 ? `+${runningToPar}` : `${runningToPar}`;
+          const rawScore = completedHoles === 0 ? "E" : runningToPar === 0 ? "E" : runningToPar > 0 ? `+${runningToPar}` : `${runningToPar}`;
           const isUnder = runningToPar < 0 && completedHoles > 0;
+          const isOver = runningToPar > 0 && completedHoles > 0;
+          const isEven = !isUnder && !isOver;
+          // Parentheses: red for under par, black for E/over
+          const totalDisp = isUnder
+            ? <span style={{ color: "#c0323e" }}>(<span>{rawScore}</span>)</span>
+            : <span style={{ color: "#1a2744" }}>(<span>{rawScore}</span>)</span>;
           return (
             <div className="flex items-center gap-2 mb-2">
-              <h2 className="font-bold text-[#b06b10] text-lg leading-tight">{authedTeam.teamName}</h2>
-              <span className={`font-bold text-lg leading-tight ${isUnder ? "text-[#c0323e]" : "text-[#1a2744]"}`} style={{ fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.05em" }}>{totalDisp}</span>
+              <h2 className="font-bold text-[#b06b10] text-lg leading-tight truncate max-w-[180px]">{authedTeam.teamName}</h2>
+              <span className="font-bold text-lg leading-tight" style={{ fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.05em" }}>{totalDisp}</span>
               <div className="flex-1" />
-              <Badge className="bg-amber-500/15 text-[#b06b10]/80 border-amber-500/20 capitalize font-sans-app shrink-0">
-                {authedTeam.flight}
+              <Badge className="bg-[#1a2744]/8 text-[#1a2744]/60 border-[#1a2744]/15 font-sans-app shrink-0">
+                Starting Hole: {authedTeam.startingHole ?? 1}
               </Badge>
             </div>
           );
         })()}
         {/* Row 2: player names */}
-        <div className="text-[#1a2744]/55 text-xs font-sans-app">
+        <div className="text-[#1a2744]/55 text-xs font-sans-app truncate">
           {[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean).join(" · ")}
         </div>
       </div>
@@ -423,32 +525,48 @@ export default function Scorekeeper() {
           {/* Submitted banner */}
           {isSubmitted && (
             <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-2 font-sans-app text-sm">
-              <span className="text-green-700 font-bold">✅ Scorecard officially submitted — scores are locked.</span>
-              <button onClick={() => setShowRoundComplete(true)} className="ml-auto text-green-700 underline text-xs">View Summary</button>
+              <span className="text-green-700 font-bold whitespace-nowrap">✅ Scorecard officially submitted</span>
+              <button onClick={() => setShowRoundComplete(true)} className="ml-auto text-green-700 underline text-xs whitespace-nowrap">View Summary</button>
             </div>
           )}
 
           {/* Hole navigation */}
-          <div className="atd-card rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              {/* Back arrow hidden — scorekeepers cannot go backwards */}
-              <div className="w-10" />
+          <div className="atd-card rounded-xl p-3">
+            <div className="flex items-center justify-between mb-2">
+              {/* Back arrow — allowed only if the previous hole has a saved score */}
+              {(() => {
+                const prevHole = currentHole === 1 ? 18 : currentHole - 1;
+                const canGoBack = currentHole !== startingHole;
+                return (
+                  <button
+                    onClick={() => {
+                      setCurrentHole(prevHole);
+                      try { sessionStorage.setItem("sk_current_hole", String(prevHole)); } catch {}
+                    }}
+                    disabled={!canGoBack}
+                    className="p-2 rounded-lg bg-[#1a2744]/5 hover:bg-[#1a2744]/8 disabled:opacity-30 text-[#1a2744]/70 transition-colors"
+                    data-testid="button-prev-hole"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                );
+              })()}
               <div className="text-center">
                 <div className="text-[#b06b10]/70 text-xs uppercase tracking-widest font-sans-app">Hole</div>
-                <div className="flex items-center justify-center gap-2">
-                  <div className="text-4xl font-bold text-[#b06b10]">{currentHole}</div>
-                  {currentHoleData?.isCtpHole && (
-                    <Badge className="bg-amber-500/25 text-[#b06b10] border-amber-500/30 text-xs">
-                      <Target size={10} className="mr-1" /> CTP
-                    </Badge>
+                <div className="flex items-center justify-center gap-1.5">
+                  {((currentHoleData?.isCtpHole && currentHoleData?.par !== 3) || (currentHoleData?.isCtpHole && currentHoleData?.par === 3)) && (
+                    <div className="invisible">
+                      <Badge className="text-xs">{(currentHoleData?.isCtpHole && currentHoleData?.par !== 3) ? "LD" : "CTP"}</Badge>
+                    </div>
                   )}
-                  {currentHole === 15 && (
-                    <Badge className="bg-emerald-600/20 text-emerald-800 border-emerald-600/35 text-xs">
-                      <Zap size={10} className="mr-1" /> LD
-                    </Badge>
-                  )}
+                  <div className="text-3xl font-bold text-[#b06b10]">{currentHole}</div>
+                  {(currentHoleData?.isCtpHole && currentHoleData?.par !== 3) ? (
+                    <Badge className="bg-emerald-600/20 text-emerald-800 border-emerald-600/35 text-xs">LD</Badge>
+                  ) : (currentHoleData?.isCtpHole && currentHoleData?.par === 3) ? (
+                    <Badge className="bg-amber-500/25 text-[#b06b10] border-amber-500/30 text-xs">CTP</Badge>
+                  ) : null}
                 </div>
-                <div className="flex items-center justify-center gap-3 mt-1 font-sans-app text-xs text-[#1a2744]/55">
+                <div className="flex items-center justify-center gap-3 font-sans-app text-xs text-[#1a2744]/55">
                   <span>Par {par}</span>
                   {currentHoleData?.handicap && <span>Hdcp {currentHoleData.handicap}</span>}
                   {currentHoleData?.yardageBlue && <span>{currentHoleData.yardageBlue} yds</span>}
@@ -465,8 +583,8 @@ export default function Scorekeeper() {
             </div>
 
             {/* Score selection buttons + Save in same row */}
-            <div className="mb-4">
-              <p className="text-[#1a2744]/50 text-xs uppercase tracking-wider font-sans-app mb-2">Select Score</p>
+            <div className="mb-2">
+              <p className="text-[#1a2744]/50 text-xs uppercase tracking-wider font-sans-app mb-1.5">Select Score</p>
               <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${scoreOptions.length + 1}, 1fr)` }}>
                 {scoreOptions.map(({ score, label }) => {
                   const isActive = localScore === score.toString();
@@ -475,7 +593,7 @@ export default function Scorekeeper() {
                       key={score}
                       onClick={() => handleQuickScore(score)}
                       data-testid={`button-score-${score}`}
-                      className={`flex items-center justify-center rounded-lg py-3 px-1 border transition-all font-sans-app ${
+                      className={`flex items-center justify-center rounded-lg py-2 px-1 border transition-all font-sans-app ${
                         isActive
                           ? "bg-amber-500/30 border-amber-400/60 text-[#1a2744]"
                           : "bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]/70 hover:bg-[#1a2744]/8 hover:text-[#1a2744]"
@@ -485,12 +603,16 @@ export default function Scorekeeper() {
                     </button>
                   );
                 })}
-                {/* Save button — same size as score buttons */}
+                {/* Save button — lights up amber gold when a score is selected */}
                 <button
                   onClick={handleSaveScore}
                   disabled={scoreMutation.isPending || !localScore || isSubmitted}
                   data-testid="button-save-score"
-                  className="flex items-center justify-center rounded-lg py-3 px-1 border transition-all font-sans-app bg-amber-500/25 border-amber-400/60 text-[#1a2744] hover:bg-amber-500/35 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-sm"
+                  className={`flex items-center justify-center rounded-lg py-2 px-1 border transition-all font-sans-app font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed ${
+                    localScore
+                      ? "bg-[#b06b10] border-[#b06b10] text-white hover:bg-[#8a5008]"
+                      : "bg-amber-500/25 border-amber-400/60 text-[#1a2744] hover:bg-amber-500/35"
+                  }`}
                 >
                   Save
                 </button>
@@ -498,23 +620,23 @@ export default function Scorekeeper() {
             </div>
 
             {/* CTP quick-entry if this is a CTP hole */}
-            {currentHoleData?.isCtpHole && (
+            {currentHoleData?.isCtpHole && currentHoleData?.par === 3 && !isSubmitted && (
               <button
                 onClick={() => setCtpModalHole(currentHole)}
-                className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-[#1a2744]/15 border border-[#1a2744]/25 text-[#1a2744] hover:bg-[#1a2744]/22 transition-all font-sans-app text-sm font-bold"
+                className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-amber-500/40 border border-amber-500/60 text-amber-900 hover:bg-amber-500/55 transition-all font-sans-app text-sm font-bold"
                 data-testid="button-enter-ctp"
               >
                 <Target size={14} /> Enter Closest to Pin for Hole {currentHole}
               </button>
             )}
-            {/* Long Drive quick-entry if this is hole 15 */}
-            {currentHole === 15 && (
+            {/* Long Drive quick-entry if this is an LD hole (par 4/5 with toggle on) */}
+            {(currentHoleData?.isCtpHole && currentHoleData?.par !== 3) && !isSubmitted && (
               <button
                 onClick={() => setLdModalHole(currentHole)}
-                className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-600/15 border border-emerald-600/30 text-emerald-800 hover:bg-emerald-600/22 transition-all font-sans-app text-sm font-bold"
+                className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-600/40 border border-emerald-600/60 text-emerald-900 hover:bg-emerald-600/55 transition-all font-sans-app text-sm font-bold"
                 data-testid="button-enter-ld"
               >
-                <Zap size={14} /> Enter Long Drive for Hole 15
+                <Zap size={14} /> Enter Long Drive for Hole {currentHole}
               </button>
             )}
           </div>
@@ -522,26 +644,75 @@ export default function Scorekeeper() {
           {/* Inline scorecard — no header, no legend */}
           <div className="atd-card rounded-xl overflow-hidden">
             <div className="p-3">
-              <ScorecardTable holes={holes} scores={teamScores.data ?? []} />
+              <ScorecardTable
+                holes={holes}
+                scores={teamScores.data ?? []}
+                scrollToHole={currentHole}
+              />
             </div>
           </div>
 
           {/* Big Country Title sponsor logo */}
-          <div className="flex justify-center py-2">
+          <div className="flex justify-center px-4">
             <img
               src={bigCountryLogo}
               alt="Big Country Title Company"
-              className="w-full max-w-xs object-contain"
+              style={{
+                width: "100%",
+                maxWidth: "min(320px, 80vw)",
+                maxHeight: "min(200px, 25vh)",
+                height: "auto",
+                display: "block",
+                objectFit: "contain",
+              }}
             />
           </div>
+          {/* Browser-bar spacer: always pushes content above Safari/Chrome URL bar */}
+          <div className="browser-bar-spacer" />
       </div>
 
-      {/* CTP Warning Dialog */}
+      {/* Skip Warning Dialog — previous hole not yet scored */}
+      <Dialog open={showSkipWarning} onOpenChange={() => setShowSkipWarning(false)}>
+        <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-[#1a2744] font-bold">Hole Not Completed</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 font-sans-app">
+            <p className="text-[#1a2744]/75 text-sm">
+              You need to save a score for Hole {getPrevHoleInSequence(currentHole, startingHole)} before entering a score for Hole {currentHole}.
+            </p>
+            <Button
+              onClick={() => {
+                // Find the first hole in sequence with no saved score
+                let h = startingHole;
+                for (let i = 0; i < 18; i++) {
+                  if (!scoreMap.has(h)) break;
+                  h = h === 18 ? 1 : h + 1;
+                  if (h === startingHole) break; // full loop, all scored
+                }
+                setCurrentHole(h);
+                try { sessionStorage.setItem("sk_current_hole", String(h)); } catch {}
+                setShowSkipWarning(false);
+              }}
+              className="w-full bg-[#1a2744] text-white hover:bg-[#243461]"
+            >
+              Go to Current Hole
+            </Button>
+            <Button variant="ghost" onClick={() => setShowSkipWarning(false)} className="w-full text-[#1a2744]/55">
+              Dismiss
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* CTP Warning Dialog — conditionally rendered when needed */}
       {ctpWarningHole !== null && (
-        <Dialog open={true} onOpenChange={() => {
-          // Dismiss = treat as No
-          advanceHole(ctpWarningHole);
-          setCtpWarningHole(null);
+        <Dialog open={true} onOpenChange={(open) => {
+          if (!open) {
+            commitPendingScore(pendingStrokes);
+            advanceHole(ctpWarningHole);
+            setCtpWarningHole(null);
+          }
         }}>
           <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 max-w-sm">
             <DialogHeader>
@@ -555,7 +726,6 @@ export default function Scorekeeper() {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => {
-                  // Yes — open CTP modal; onSuccess will call advanceHole
                   setCtpModalHole(ctpWarningHole);
                   setCtpWarningHole(null);
                 }}
@@ -565,7 +735,7 @@ export default function Scorekeeper() {
               </button>
               <button
                 onClick={() => {
-                  // No — just advance
+                  commitPendingScore(pendingStrokes);
                   advanceHole(ctpWarningHole);
                   setCtpWarningHole(null);
                 }}
@@ -592,11 +762,14 @@ export default function Scorekeeper() {
         />
       )}
 
-      {/* LD Warning Dialog */}
+      {/* LD Warning Dialog — conditionally rendered when needed */}
       {ldWarningHole !== null && (
-        <Dialog open={true} onOpenChange={() => {
-          advanceHole(ldWarningHole);
-          setLdWarningHole(null);
+        <Dialog open={true} onOpenChange={(open) => {
+          if (!open) {
+            commitPendingScore(pendingStrokes);
+            advanceHole(ldWarningHole);
+            setLdWarningHole(null);
+          }
         }}>
           <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 max-w-sm">
             <DialogHeader>
@@ -619,6 +792,7 @@ export default function Scorekeeper() {
               </button>
               <button
                 onClick={() => {
+                  commitPendingScore(pendingStrokes);
                   advanceHole(ldWarningHole);
                   setLdWarningHole(null);
                 }}
@@ -671,110 +845,197 @@ export default function Scorekeeper() {
         const frontVal = groupToPar(front);
         const backVal  = groupToPar(back);
         const totalVal = frontVal!==null||backVal!==null ? (frontVal??0)+(backVal??0) : null;
-        // My CTP entries this round
-        const myCtp = ctpEntries.filter(c => c.teamId === authedTeam.id);
+        // All holes this team submitted CTP/LD for — cross-reference live ctpEntries for current status
+        const submittedEntries = submittedCtpHoles
+          .map(holeNum => {
+            // Find what the team submitted: the live entry for this hole
+            const liveEntry = ctpEntries.find(c => c.holeNumber === holeNum);
+            const stillLeading = liveEntry?.teamId === authedTeam.id;
+            // Get player name from live entry if still leading, otherwise use last known from ctpEntries history
+            // Since we may not have historical data, use the live entry if available
+            return { holeNum, liveEntry, stillLeading };
+          })
+          .sort((a, b) => a.holeNum - b.holeNum);
+        // Fall back: also show current myCtp entries not already tracked
+        const myCtp = ctpEntries.filter(c => c.teamId === authedTeam.id && !submittedCtpHoles.includes(c.holeNumber));
 
-        return (
-          <Dialog open={true} onOpenChange={() => {}}>
-            <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 max-w-sm">
-              <DialogHeader>
-                <DialogTitle className="text-[#1a2744] font-bold text-lg">
-                  🏁 All Holes Submitted!
-                </DialogTitle>
-              </DialogHeader>
+        return createPortal(
+          <>
+            {/* ── ROUND COMPLETE MODAL ── */}
+            <div
+              className="fixed inset-0 z-[9000] flex items-center justify-center p-4"
+              style={{ background: "rgba(17,27,51,0.6)" }}
+              onClick={(e) => { if (isSubmitted && e.target === e.currentTarget) setShowRoundComplete(false); }}
+            >
+              <div className="bg-[#f0ebe1] rounded-2xl border border-[#1a2744]/20 shadow-2xl w-full max-w-sm flex flex-col gap-4 p-5">
+                {/* Header */}
+                <div>
+                  <p className="text-[#1a2744] font-bold text-lg">🏁 All Holes Submitted!</p>
+                </div>
 
-              {/* Score summary */}
-              <div className="bg-white rounded-xl border border-[#1a2744]/12 p-4 space-y-2">
-                {[
-                  { label: "Front 9", val: frontVal },
-                  { label: "Back 9",  val: backVal  },
-                  { label: "Total",   val: totalVal },
-                ].map(({ label, val }) => (
-                  <div key={label} className="flex items-center justify-between font-sans-app">
-                    <span className="text-[#1a2744]/55 text-sm">{label}</span>
-                    <span className={`font-bold text-base ${
-                      val !== null && val < 0 ? "text-[#c0323e]" : "text-[#1a2744]"
-                    }`} style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "1.1rem" }}>{fmt(val)}</span>
+                {/* Score summary */}
+                <div className="bg-white rounded-xl border border-[#1a2744]/12 p-4 space-y-2">
+                  {[
+                    { label: "Front 9", val: frontVal },
+                    { label: "Back 9",  val: backVal  },
+                    { label: "Total",   val: totalVal },
+                  ].map(({ label, val }) => (
+                    <div key={label} className="flex items-center justify-between font-sans-app">
+                      <span className="text-[#1a2744]/55 text-sm">{label}</span>
+                      <span className={`font-bold text-base ${
+                        val !== null && val < 0 ? "text-[#c0323e]" : "text-[#1a2744]"
+                      }`} style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: "1.1rem" }}>{fmt(val)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTP / LD entries with leading status */}
+                {(submittedEntries.length > 0 || myCtp.length > 0) && (
+                  <div className="bg-white rounded-xl border border-amber-500/20 p-3 space-y-2">
+                    <p className="text-[#b06b10] text-xs uppercase tracking-widest font-bold font-sans-app">CTP &amp; Long Drive</p>
+
+                    {submittedEntries.map(({ holeNum, liveEntry, stillLeading }) => {
+                      const isLd = !!(holeMap.get(holeNum)?.isCtpHole && holeMap.get(holeNum)?.par !== 3);
+                      const playerName = liveEntry?.playerName ?? "";
+                      const distFmt = (() => {
+                        if (!liveEntry?.distance) return "";
+                        if (isLd) return `${liveEntry.distance} yds`;
+                        const inches = parseInt(liveEntry.distance);
+                        return !isNaN(inches)
+                          ? inches < 12 ? `${inches}"` : `${Math.floor(inches/12)}' ${inches%12}"`
+                          : liveEntry.distance;
+                      })();
+                      return (
+                        <div key={holeNum} className="space-y-0.5">
+                          <div className="flex items-center justify-between text-sm font-sans-app">
+                            <span className="text-[#1a2744]/70">
+                              {isLd
+                                ? <span className="text-emerald-700 font-bold">Long Drive</span>
+                                : <>Hole {holeNum} CTP</>
+                              }
+                              {playerName ? <>{" — "}<span className="font-bold text-[#1a2744]">{playerName}</span></> : null}
+                            </span>
+                            {distFmt && (
+                              <span className={isLd ? "text-emerald-700 font-bold text-xs" : "text-green-700 font-bold text-xs"}>{distFmt}</span>
+                            )}
+                          </div>
+                          <p className={`text-[10px] font-bold font-sans-app ml-0.5 ${
+                            stillLeading ? "text-[#b06b10]" : "text-[#1a2744]/40"
+                          }`}>
+                            {stillLeading
+                              ? "(STILL LEADING!)"
+                              : isLd ? "(No longer longest drive)" : "(No longer closest to pin)"}
+                          </p>
+                        </div>
+                      );
+                    })}
+
+                    {myCtp.map(c => {
+                      const isLd = !!(holeMap.get(c.holeNumber)?.isCtpHole && holeMap.get(c.holeNumber)?.par !== 3);
+                      const distFmt = (() => {
+                        if (!c.distance) return "";
+                        if (isLd) return `${c.distance} yds`;
+                        const inches = parseInt(c.distance);
+                        return !isNaN(inches)
+                          ? inches < 12 ? `${inches}"` : `${Math.floor(inches/12)}' ${inches%12}"`
+                          : c.distance;
+                      })();
+                      return (
+                        <div key={c.id} className="space-y-0.5">
+                          <div className="flex items-center justify-between text-sm font-sans-app">
+                            <span className="text-[#1a2744]/70">
+                              {isLd
+                                ? <span className="text-emerald-700 font-bold">Long Drive</span>
+                                : <>Hole {c.holeNumber} CTP</>
+                              }
+                              {" — "}<span className="font-bold text-[#1a2744]">{c.playerName}</span>
+                            </span>
+                            {distFmt && <span className={isLd ? "text-emerald-700 font-bold text-xs" : "text-green-700 font-bold text-xs"}>{distFmt}</span>}
+                          </div>
+                          <p className="text-[10px] font-bold font-sans-app ml-0.5 text-[#b06b10]">(STILL LEADING!)</p>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
+                )}
+
+                {/* Action buttons */}
+                {isSubmitted ? (
+                  <div className="space-y-2">
+                    <div className="text-center py-1">
+                      <span className="text-green-700 font-bold font-sans-app text-sm">✅ Scorecard officially submitted</span>
+                    </div>
+                    <button
+                      onClick={() => setShowRoundComplete(false)}
+                      className="w-full py-2.5 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setShowSubmitConfirm(true)}
+                      className="w-full py-2.5 rounded-lg bg-[#1a2744] text-white font-bold font-sans-app text-sm hover:bg-[#243461] transition-colors"
+                    >
+                      Submit Scorecard
+                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowRoundComplete(false)}
+                        className="flex-1 py-2 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
+                      >
+                        Edit Scores
+                      </button>
+                      <button
+                        onClick={() => setShowScorecardView(true)}
+                        className="flex-1 py-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[#8a5008] font-bold font-sans-app text-sm hover:bg-amber-500/20 transition-colors"
+                      >
+                        View Scorecard
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+            </div>
 
-              {/* CTP / LD entries */}
-              {myCtp.length > 0 && (
-                <div className="bg-white rounded-xl border border-amber-500/20 p-3 space-y-1.5">
-                  <p className="text-[#b06b10] text-xs uppercase tracking-widest font-bold font-sans-app mb-2">CTP &amp; Long Drive</p>
-                  {myCtp.map(c => {
-                    const isLdEntry = c.holeNumber === 15;
-                    const distFmt = isLdEntry
-                      ? (c.distance ? `${c.distance} yds` : "")
-                      : (() => {
-                          const inches = parseInt(c.distance ?? "");
-                          return !isNaN(inches)
-                            ? inches < 12 ? `${inches}"` : `${Math.floor(inches/12)}' ${inches%12}"`
-                            : c.distance ?? "";
-                        })();
-                    return (
-                      <div key={c.id} className="flex items-center justify-between text-sm font-sans-app">
-                        <span className="text-[#1a2744]/70">
-                          {isLdEntry ? (
-                            <span className="text-emerald-700 font-bold">Long Drive</span>
-                          ) : (
-                            <>Hole {c.holeNumber} CTP</>  
-                          )}
-                          {" — "}<span className="font-bold text-[#1a2744]">{c.playerName}</span>
-                        </span>
-                        <span className={isLdEntry ? "text-emerald-700 font-bold" : "text-green-700 font-bold"}>{distFmt}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Action buttons */}
-              {isSubmitted ? (
-                <div className="text-center py-2">
-                  <span className="text-green-700 font-bold font-sans-app text-sm">✅ Scorecard officially submitted</span>
-                </div>
-              ) : (
-                <div className="space-y-2 pt-1">
-                  <button
-                    onClick={() => setShowSubmitConfirm(true)}
-                    className="w-full py-2.5 rounded-lg bg-[#1a2744] text-white font-bold font-sans-app text-sm hover:bg-[#243461] transition-colors"
-                  >
-                    Submit Scorecard
-                  </button>
-                  <div className="flex gap-2">
+            {/* ── SCORECARD VIEW (layered on top of round complete) ── */}
+            {showScorecardView && (
+              <div className="fixed inset-0 z-[9100] flex items-center justify-center p-4" style={{ background: "rgba(17,27,51,0.55)" }}>
+                <div className="bg-[#f0ebe1] rounded-2xl border border-[#1a2744]/20 shadow-2xl w-full max-w-lg p-4 flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#1a2744] text-base">{authedTeam?.teamName} — Scorecard</span>
                     <button
-                      onClick={() => setShowRoundComplete(false)}
-                      className="flex-1 py-2 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
+                      onClick={() => setShowScorecardView(false)}
+                      className="text-[#1a2744]/50 hover:text-[#1a2744]/80 p-1"
                     >
-                      Edit Scores
-                    </button>
-                    <button
-                      onClick={() => setShowRoundComplete(false)}
-                      className="flex-1 py-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[#8a5008] font-bold font-sans-app text-sm hover:bg-amber-500/20 transition-colors"
-                    >
-                      View Scorecard
+                      <X size={18} />
                     </button>
                   </div>
+                  <div className="overflow-x-auto -mx-1">
+                    <ScorecardTable
+                      holes={holes}
+                      scores={teamScores.data ?? []}
+                      scrollToHole={1}
+                    />
+                  </div>
                 </div>
-              )}
-            </DialogContent>
-          </Dialog>
+              </div>
+            )}
+          </>,
+          document.body
         );
       })()}
 
-      {/* ── SUBMIT CONFIRMATION ── */}
-      {showSubmitConfirm && (
-        <Dialog open={true} onOpenChange={() => setShowSubmitConfirm(false)}>
-          <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="text-[#1a2744] font-bold">⚠️ Confirm Submission</DialogTitle>
-            </DialogHeader>
+      {/* ── SUBMIT CONFIRMATION — portal, no Radix ── */}
+      {showSubmitConfirm && createPortal(
+        <div className="fixed inset-0 z-[9200] flex items-center justify-center p-4" style={{ background: "rgba(17,27,51,0.7)" }}>
+          <div className="bg-[#f0ebe1] rounded-2xl border border-[#1a2744]/20 shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4">
+            <p className="text-[#1a2744] font-bold text-base">⚠️ Confirm Submission</p>
             <p className="text-[#1a2744]/75 font-sans-app text-sm leading-relaxed">
               You will <span className="font-bold text-[#1a2744]">not be able to edit</span> your scorecard after submitting. Are you sure you want to officially submit?
             </p>
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3">
               <button
                 onClick={() => submitMutation.mutate()}
                 disabled={submitMutation.isPending}
@@ -789,8 +1050,9 @@ export default function Scorekeeper() {
                 Go Back
               </button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

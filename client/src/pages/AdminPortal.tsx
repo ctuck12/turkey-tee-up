@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Shield, Users, Flag, Star, Settings, Plus, Trash2, Edit2, Check, X,
-  Copy, RefreshCw, ChevronDown, ChevronUp, Eye, EyeOff
+  Shield, Users, Flag, Settings, Plus, Trash2, Edit2, Check, X,
+  Copy, RefreshCw, ChevronDown, ChevronUp, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -103,15 +103,23 @@ function TeamForm({ data, onChange, onSubmit, onCancel, submitLabel }: any) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-[#1a2744] border-amber-500/20 text-amber-100">
-              <SelectItem value="morning">Morning</SelectItem>
-              <SelectItem value="afternoon">Afternoon</SelectItem>
+              <SelectItem value="morning">AM</SelectItem>
+              <SelectItem value="afternoon">PM</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div>
           <Label className="text-[#1a2744]/60 text-xs mb-1 block">Starting Hole</Label>
-          <Input type="number" min={1} max={18} value={data.startingHole} onChange={e => onChange({ ...data, startingHole: parseInt(e.target.value) })}
-            className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]" />
+          <Select value={String(data.startingHole ?? 1)} onValueChange={v => onChange({ ...data, startingHole: parseInt(v) })}>
+            <SelectTrigger className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]">
+              <SelectValue placeholder="Hole" />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 18 }, (_, i) => i + 1).map(h => (
+                <SelectItem key={h} value={String(h)}>Hole {h}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="col-span-2">
           <Label className="text-[#1a2744]/60 text-xs mb-1 block">Team Code (for scorekeeper login)</Label>
@@ -134,6 +142,81 @@ function TeamForm({ data, onChange, onSubmit, onCancel, submitLabel }: any) {
   );
 }
 
+function TeamScoreEditor({ teamId }: { teamId: number }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
+  const { data: scores = [] } = useQuery<Score[]>({
+    queryKey: ["/api/scores/team", teamId],
+    queryFn: () => apiRequest("GET", `/api/scores/team/${teamId}`).then(r => r.json()),
+    enabled: !!teamId,
+  });
+
+  const scoreMap = new Map(scores.map((s: Score) => [s.holeNumber, s]));
+  const [editScore, setEditScore] = useState<Record<number, string>>({});
+
+  const saveMutation = useMutation({
+    mutationFn: (data: any) => apiRequest("POST", "/api/scores", data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/scores/team", teamId] });
+      qc.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+    },
+    onError: () => toast({ title: "Failed to save score", variant: "destructive" }),
+  });
+
+  const sortedHoles = [...holes].sort((a, b) => a.holeNumber - b.holeNumber);
+
+  function handleBlur(holeNumber: number) {
+    const raw = editScore[holeNumber];
+    if (raw === undefined) return;
+    const v = parseInt(raw);
+    if (!isNaN(v) && v > 0) {
+      saveMutation.mutate({ teamId, holeNumber, strokes: v });
+    }
+  }
+
+  if (sortedHoles.length === 0) return null;
+
+  return (
+    <div className="mt-3 border-t border-[#1a2744]/12 pt-3">
+      <div className="text-xs font-bold text-[#b06b10] mb-2 font-sans-app">Scores</div>
+      <div className="grid grid-cols-9 gap-1">
+        {sortedHoles.map(hole => {
+          const s = scoreMap.get(hole.holeNumber);
+          const val = editScore[hole.holeNumber] !== undefined ? editScore[hole.holeNumber] : (s?.strokes?.toString() ?? "");
+          const diff = s ? s.strokes - hole.par : null;
+          return (
+            <div key={hole.holeNumber} className="flex flex-col items-center gap-0.5">
+              <div className="text-[10px] font-bold text-[#b06b10]/70">{hole.holeNumber}</div>
+              <div className="text-[9px] text-[#1a2744]/40">p{hole.par}</div>
+              <input
+                type="number"
+                min={1}
+                max={12}
+                value={val}
+                onChange={e => setEditScore(p => ({ ...p, [hole.holeNumber]: e.target.value }))}
+                onBlur={() => handleBlur(hole.holeNumber)}
+                onFocus={e => e.target.select()}
+                placeholder="-"
+                className="w-full text-center text-xs font-bold rounded border bg-white border-[#1a2744]/20 text-[#1a2744] h-7 focus:border-[#b06b10] focus:outline-none focus:ring-0 px-0"
+                style={{ fontSize: '11px' }}
+              />
+              {diff !== null && (
+                <div className={`text-[9px] font-bold ${
+                  diff < 0 ? 'text-[#c0323e]' : diff === 0 ? 'text-[#1a2744]/50' : 'text-[#1a2744]/50'
+                }`}>
+                  {diff < 0 ? diff : diff === 0 ? 'E' : `+${diff}`}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="text-[#1a2744]/35 text-[10px] mt-2 font-sans-app">Scores auto-save on blur. Par shown below hole number.</div>
+    </div>
+  );
+}
+
 function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutation, setConfirmDelete }: {
   team: Team;
   editTeam: Team | null;
@@ -152,8 +235,8 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
             {team.flight === "morning" ? "AM" : "PM"}
           </Badge>
           <div>
-            <div className="font-bold text-[#1a2744] text-sm">{team.teamName}</div>
-            <div className="text-[#1a2744]/50 text-xs">{[team.player1, team.player2, team.player3, team.player4].filter(Boolean).join(" · ")}</div>
+            <div className="font-bold text-[#1a2744] text-sm truncate max-w-[160px]">{team.teamName}</div>
+            <div className="text-[#1a2744]/50 text-xs truncate max-w-[160px]">{[team.player1, team.player2, team.player3, team.player4].filter(Boolean).join(" · ")}</div>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -171,13 +254,16 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
       {expanded && (
         <div className="border-t border-[#1a2744]/12 px-3 py-3">
           {editTeam?.id === team.id ? (
-            <TeamForm
-              data={editTeam}
-              onChange={setEditTeam}
-              onSubmit={() => updateMutation.mutate({ id: team.id, data: editTeam })}
-              onCancel={() => setEditTeam(null)}
-              submitLabel="Save Changes"
-            />
+            <div>
+              <TeamForm
+                data={editTeam}
+                onChange={setEditTeam}
+                onSubmit={() => updateMutation.mutate({ id: team.id, data: editTeam })}
+                onCancel={() => setEditTeam(null)}
+                submitLabel="Save Changes"
+              />
+              <TeamScoreEditor teamId={team.id} />
+            </div>
           ) : (
             <div className="flex flex-wrap gap-2">
               <Button variant="ghost" size="sm" onClick={() => setEditTeam(team)} className="text-[#b06b10]/80 hover:text-[#b06b10] border border-amber-500/20 font-sans-app">
@@ -251,7 +337,7 @@ function TeamsTab() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-[#b06b10] font-sans-app">Teams</h2>
-          <p className="text-[#1a2744]/50 text-xs font-sans-app">{teams.length} teams · {morning.length} morning · {afternoon.length} afternoon</p>
+          <p className="text-[#1a2744]/50 text-xs font-sans-app">{teams.length} teams · {morning.length} AM · {afternoon.length} PM</p>
         </div>
         <Button onClick={() => { setShowAdd(!showAdd); setNewTeam({ ...newTeam, teamCode: genCode() }); }}
           className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-sans-app" size="sm">
@@ -275,13 +361,13 @@ function TeamsTab() {
       <div className="space-y-2">
         {morning.length > 0 && (
           <>
-            <p className="text-blue-400/50 text-xs uppercase tracking-wider font-sans-app px-1">Morning Flight</p>
+            <p className="text-blue-400/50 text-xs uppercase tracking-wider font-sans-app px-1">AM Flight</p>
             {morning.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
         )}
         {afternoon.length > 0 && (
           <>
-            <p className="text-amber-500/50 text-xs uppercase tracking-wider font-sans-app px-1 mt-3">Afternoon Flight</p>
+            <p className="text-amber-500/50 text-xs uppercase tracking-wider font-sans-app px-1 mt-3">PM Flight</p>
             {afternoon.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
         )}
@@ -338,6 +424,7 @@ function HolesTab() {
 
   function startEdit(hole: Hole) {
     setEditHole(hole.holeNumber);
+    // Start with the hole's actual saved values — no auto-defaulting toggle state
     setHoleData(prev => ({ ...prev, [hole.holeNumber]: { ...hole } }));
   }
 
@@ -359,19 +446,19 @@ function HolesTab() {
       <div className="atd-card rounded-xl p-4 space-y-3 font-sans-app">
         <h2 className="font-bold text-[#b06b10]">Course Info</h2>
         <div className="flex items-center gap-2">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <Label className="text-[#1a2744]/60 text-xs mb-1 block">Course Name</Label>
             <Input
               value={courseName}
               onChange={e => { setCourseName(e.target.value); setEditingCourseName(true); }}
               placeholder="e.g. ACC: North Course"
-              className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]"
+              className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] truncate"
             />
           </div>
           <Button
             onClick={() => saveSettingsMutation.mutate({ ...settings, courseName: courseName })}
             disabled={!editingCourseName}
-            className="mt-5 bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold"
+            className="mt-5 shrink-0 bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold px-3"
           >
             <Check size={14} className="mr-1" /> Save
           </Button>
@@ -392,12 +479,12 @@ function HolesTab() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full font-sans-app text-sm min-w-[600px]">
+      <div className="overflow-x-auto -mx-4 px-4">
+        <table className="w-full font-sans-app text-xs">
           <thead>
             <tr className="border-b border-amber-500/15">
-              {["Hole", "Par", "Hdcp", "Yards", "CTP Hole", "CTP Prize", ""].map(h => (
-                <th key={h} className="text-[#1a2744]/50 text-xs uppercase tracking-wide px-2 py-2 text-left">{h}</th>
+              {["#", "Par", "Hcp", "Yds", "CTP/LD", "Prize", ""].map(h => (
+                <th key={h} className="text-[#1a2744]/50 text-[10px] uppercase tracking-wide px-1 py-2 text-left">{h}</th>
               ))}
             </tr>
           </thead>
@@ -408,18 +495,32 @@ function HolesTab() {
               if (isEditing) {
                 return (
                   <tr key={hole.id} className="border-b border-[#1a2744]/8 bg-amber-500/5">
-                    <td className="px-2 py-2 text-[#b06b10] font-bold">{hole.holeNumber}</td>
-                    <td className="px-2 py-1"><Input type="number" min={3} max={5} value={ed.par ?? hole.par} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, par: parseInt(e.target.value) } }))} className="bg-white border-amber-500/60 text-[#1a2744] w-16 h-7 text-xs" /></td>
-                    <td className="px-2 py-1"><Input type="number" min={1} max={18} value={ed.handicap ?? hole.handicap} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, handicap: parseInt(e.target.value) } }))} className="bg-white border-amber-500/60 text-[#1a2744] w-16 h-7 text-xs" /></td>
-                    <td className="px-2 py-1"><Input type="number" value={ed.yardageBlue ?? hole.yardageBlue} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, yardageBlue: parseInt(e.target.value) } }))} className="bg-white border-amber-500/60 text-[#1a2744] w-20 h-7 text-xs" /></td>
-                    <td className="px-2 py-1">
-                      <Switch checked={!!(ed.isCtpHole ?? hole.isCtpHole)} onCheckedChange={v => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, isCtpHole: v } }))} />
+                    <td className="px-1 py-1 text-[#b06b10] font-bold text-xs">{hole.holeNumber}</td>
+                    <td className="px-1 py-1"><Input type="number" min={3} max={5} value={ed.par ?? hole.par} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, par: parseInt(e.target.value) } }))} className="bg-white border-amber-500/60 text-[#1a2744] w-10 h-6 text-xs px-1" /></td>
+                    <td className="px-1 py-1"><Input type="number" min={1} max={18} value={ed.handicap ?? hole.handicap} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, handicap: parseInt(e.target.value) } }))} className="bg-white border-amber-500/60 text-[#1a2744] w-10 h-6 text-xs px-1" /></td>
+                    <td className="px-1 py-1"><Input type="number" value={ed.yardageBlue ?? hole.yardageBlue} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, yardageBlue: parseInt(e.target.value) } }))} className="bg-white border-amber-500/60 text-[#1a2744] w-14 h-6 text-xs px-1" /></td>
+                    <td className="px-1 py-1">
+                      <Switch
+                        checked={!!(ed.isCtpHole ?? hole.isCtpHole)}
+                        onCheckedChange={v => setHoleData(p => ({
+                          ...p,
+                          [hole.holeNumber]: {
+                            ...p[hole.holeNumber] || hole,
+                            isCtpHole: v,
+                            // When toggling on, auto-fill label based on par if not already set
+                            ctpLabel: v && !(p[hole.holeNumber]?.ctpLabel || hole.ctpLabel)
+                              ? (hole.par === 3 ? "CTP" : "LD")
+                              : (p[hole.holeNumber]?.ctpLabel ?? hole.ctpLabel ?? ""),
+                          }
+                        }))}
+                        className="scale-75 origin-left"
+                      />
                     </td>
-                    <td className="px-2 py-1"><Input value={ed.ctpLabel ?? ""} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, ctpLabel: e.target.value } }))} placeholder="Prize description" className="bg-white border-amber-500/60 text-[#1a2744] w-28 h-7 text-xs" /></td>
-                    <td className="px-2 py-1">
-                      <div className="flex gap-1">
-                        <button onClick={() => updateMutation.mutate({ holeNumber: hole.holeNumber, data: holeData[hole.holeNumber] ?? hole })} className="text-green-400 hover:text-green-300 p-1"><Check size={14} /></button>
-                        <button onClick={() => setEditHole(null)} className="text-red-400 hover:text-red-300 p-1"><X size={14} /></button>
+                    <td className="px-1 py-1"><Input value={ed.ctpLabel ?? ""} onChange={e => setHoleData(p => ({ ...p, [hole.holeNumber]: { ...p[hole.holeNumber] || hole, ctpLabel: e.target.value } }))} placeholder={hole.par === 3 ? "CTP" : "LD"} className="bg-white border-amber-500/60 text-[#1a2744] w-20 h-6 text-xs px-1" /></td>
+                    <td className="px-1 py-1">
+                      <div className="flex gap-0.5">
+                        <button onClick={() => updateMutation.mutate({ holeNumber: hole.holeNumber, data: holeData[hole.holeNumber] ?? hole })} className="text-green-400 hover:text-green-300 p-0.5"><Check size={13} /></button>
+                        <button onClick={() => setEditHole(null)} className="text-red-400 hover:text-red-300 p-0.5"><X size={13} /></button>
                       </div>
                     </td>
                   </tr>
@@ -427,14 +528,21 @@ function HolesTab() {
               }
               return (
                 <tr key={hole.id} className="border-b border-[#1a2744]/8 hover:bg-[#1a2744]/5 group">
-                  <td className="px-2 py-2.5 font-bold text-[#b06b10]">{hole.holeNumber}</td>
-                  <td className="px-2 py-2.5 text-[#1a2744]">{hole.par}</td>
-                  <td className="px-2 py-2.5 text-[#1a2744]/60">{hole.handicap}</td>
-                  <td className="px-2 py-2.5 text-[#1a2744]/60">{hole.yardageBlue}</td>
-                  <td className="px-2 py-2.5">{hole.isCtpHole ? <Badge className="bg-amber-500/25 text-[#b06b10] border-amber-500/30 text-xs">CTP</Badge> : <span className="text-[#1a2744]/35">—</span>}</td>
-                  <td className="px-2 py-2.5 text-[#1a2744]/55 text-xs">{hole.ctpLabel || "—"}</td>
-                  <td className="px-2 py-2.5">
-                    <button onClick={() => startEdit(hole)} className="opacity-0 group-hover:opacity-100 transition-opacity text-[#b06b10]/80 hover:text-[#b06b10]">
+                  <td className="px-1 py-2 font-bold text-[#b06b10]">{hole.holeNumber}</td>
+                  <td className="px-1 py-2 text-[#1a2744]">{hole.par}</td>
+                  <td className="px-1 py-2 text-[#1a2744]/60">{hole.handicap}</td>
+                  <td className="px-1 py-2 text-[#1a2744]/60">{hole.yardageBlue}</td>
+                  <td className="px-1 py-2">
+                    {hole.isCtpHole
+                      ? hole.par === 3
+                        ? <Badge className="bg-amber-500/25 text-[#b06b10] border-amber-500/30 text-[10px] px-1 py-0">CTP</Badge>
+                        : <Badge className="bg-emerald-500/20 text-emerald-700 border-emerald-500/30 text-[10px] px-1 py-0">LD</Badge>
+                      : <span className="text-[#1a2744]/35">—</span>
+                    }
+                  </td>
+                  <td className="px-1 py-2 text-[#1a2744]/55 text-[11px] max-w-[80px] truncate">{hole.ctpLabel || "—"}</td>
+                  <td className="px-1 py-2">
+                    <button onClick={() => startEdit(hole)} className="opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity text-[#b06b10]/80 hover:text-[#b06b10]">
                       <Edit2 size={14} />
                     </button>
                   </td>
@@ -449,6 +557,235 @@ function HolesTab() {
 }
 
 // ─── SPONSORS TAB ─────────────────────────────────────────────────────────────
+// ─── BROADCAST TAB ───────────────────────────────────────────────────────────
+function BroadcastTab() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 4000 });
+  const [message, setMessage] = useState(settings?.broadcastMessage ?? "");
+
+  useEffect(() => {
+    setMessage(settings?.broadcastMessage ?? "");
+  }, [settings?.broadcastMessage]);
+
+  const broadcastMutation = useMutation({
+    mutationFn: (msg: string) => apiRequest("PUT", "/api/settings", { broadcastMessage: msg || null }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/settings"] }); toast({ title: message ? "Message broadcast!" : "Broadcast cleared" }); },
+    onError: () => toast({ title: "Error updating broadcast", variant: "destructive" }),
+  });
+
+  const active = !!(settings?.broadcastMessage);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Bell size={16} className="text-[#b06b10]" />
+        <h2 className="font-bold text-[#b06b10] font-sans-app">Broadcast Message</h2>
+        {active && (
+          <span className="ml-auto text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 border border-red-500/30 font-sans-app animate-pulse">
+            LIVE
+          </span>
+        )}
+      </div>
+      <p className="text-[#1a2744]/55 text-sm font-sans-app">
+        Type a message below and hit Send — it will instantly appear as a pop-up to everyone currently viewing the app. Clear it when you're done.
+      </p>
+      <div className="atd-card rounded-xl p-4 space-y-3">
+        <Label className="text-[#1a2744]/60 text-xs font-sans-app">Message</Label>
+        <textarea
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          placeholder="e.g. Scoring is now closed. Please report to the clubhouse."
+          rows={4}
+          className="w-full rounded-lg border border-[#1a2744]/15 bg-[#1a2744]/5 text-[#1a2744] placeholder:text-[#1a2744]/35 text-sm font-sans-app p-3 focus:outline-none focus:border-[#b06b10]/50 focus:ring-1 focus:ring-[#b06b10]/30 resize-none"
+        />
+        <div className="flex gap-2">
+          <Button
+            onClick={() => broadcastMutation.mutate(message)}
+            disabled={!message.trim() || broadcastMutation.isPending}
+            className="flex-1 bg-[#1a2744] hover:bg-[#243461] text-white font-sans-app flex items-center gap-2"
+          >
+            <Send size={14} /> Send to All
+          </Button>
+          <Button
+            onClick={() => { setMessage(""); broadcastMutation.mutate(""); }}
+            disabled={!active || broadcastMutation.isPending}
+            variant="outline"
+            className="border-red-500/30 text-red-500 hover:bg-red-500/10 font-sans-app flex items-center gap-2"
+          >
+            <XCircle size={14} /> Clear
+          </Button>
+        </div>
+      </div>
+      {active && (
+        <div className="rounded-xl border border-red-500/25 bg-red-500/5 p-4">
+          <p className="text-xs font-bold text-red-600 font-sans-app uppercase tracking-widest mb-1">Currently broadcasting:</p>
+          <p className="text-sm text-[#1a2744] font-sans-app">{settings?.broadcastMessage}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── SUBMISSIONS TAB ──────────────────────────────────────────────────────────
+type SubmissionStatus = {
+  id: number;
+  teamName: string;
+  flight: string;
+  startingHole: number;
+  isSubmitted: boolean;
+  holesScored: number;
+  holesRemaining: number;
+  player1: string | null;
+  player2: string | null;
+  player3: string | null;
+  player4: string | null;
+};
+
+function lastNames(t: SubmissionStatus): string {
+  return [t.player1, t.player2, t.player3, t.player4]
+    .filter(Boolean)
+    .map(p => p!.trim().split(/\s+/).pop() ?? p!)
+    .join(" · ");
+}
+
+function SubmissionsTab() {
+  const { data: submissions = [], isLoading } = useQuery<SubmissionStatus[]>({
+    queryKey: ["/api/submissions"],
+    refetchInterval: 10000,
+  });
+  const [activeFlight, setActiveFlight] = useState<"morning" | "afternoon">("morning");
+
+  const morning = submissions.filter(s => s.flight === "morning");
+  const afternoon = submissions.filter(s => s.flight === "afternoon");
+  const flightTeams = activeFlight === "morning" ? morning : afternoon;
+
+  const submittedCount = submissions.filter(s => s.isSubmitted).length;
+  const total = submissions.length;
+
+  const submitted  = flightTeams.filter(t => t.isSubmitted).sort((a, b) => a.teamName.localeCompare(b.teamName));
+  const inProgress = flightTeams.filter(t => !t.isSubmitted).sort((a, b) => a.holesRemaining - b.holesRemaining);
+
+  const morningSubmitted  = morning.filter(t => t.isSubmitted).length;
+  const afternoonSubmitted = afternoon.filter(t => t.isSubmitted).length;
+
+  return (
+    <div className="space-y-4">
+      {/* Summary bar */}
+      <div className="flex items-center justify-between bg-white rounded-xl border border-[#1a2744]/10 px-4 py-3">
+        <div className="font-sans-app">
+          <p className="text-[#1a2744] font-bold text-sm">{submittedCount} / {total} submitted</p>
+          <p className="text-[#1a2744]/45 text-xs">{total - submittedCount} teams still on the course</p>
+        </div>
+      </div>
+
+      {/* Morning / Afternoon toggle */}
+      <div className="flex rounded-xl overflow-hidden border border-[#1a2744]/12 bg-[#1a2744]/5">
+        <button
+          onClick={() => setActiveFlight("morning")}
+          className={`flex-1 py-2 text-xs font-bold font-sans-app flex items-center justify-center gap-1.5 transition-colors ${
+            activeFlight === "morning"
+              ? "bg-blue-500/20 text-blue-600 border-r border-[#1a2744]/12"
+              : "text-[#1a2744]/50 hover:bg-[#1a2744]/5 border-r border-[#1a2744]/12"
+          }`}
+        >
+          AM
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+            activeFlight === "morning" ? "bg-blue-500/20 text-blue-600" : "bg-[#1a2744]/10 text-[#1a2744]/50"
+          }`}>{morningSubmitted}/{morning.length}</span>
+        </button>
+        <button
+          onClick={() => setActiveFlight("afternoon")}
+          className={`flex-1 py-2 text-xs font-bold font-sans-app flex items-center justify-center gap-1.5 transition-colors ${
+            activeFlight === "afternoon"
+              ? "bg-amber-500/20 text-[#b06b10]"
+              : "text-[#1a2744]/50 hover:bg-[#1a2744]/5"
+          }`}
+        >
+          PM
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+            activeFlight === "afternoon" ? "bg-amber-500/20 text-[#b06b10]" : "bg-[#1a2744]/10 text-[#1a2744]/50"
+          }`}>{afternoonSubmitted}/{afternoon.length}</span>
+        </button>
+      </div>
+
+      {isLoading ? (
+        <p className="text-center text-[#1a2744]/40 text-sm py-6 font-sans-app">Loading...</p>
+      ) : (
+        <div className="space-y-4">
+          {/* In Progress section */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-bold uppercase tracking-wider font-sans-app text-[#b06b10] px-1">In Progress <span className="text-[#1a2744]/40 font-normal normal-case tracking-normal">({inProgress.length})</span></p>
+            <div className="bg-white rounded-xl border border-[#1a2744]/10 overflow-hidden">
+              <table className="w-full text-xs font-sans-app">
+                <thead>
+                  <tr className="border-b border-[#1a2744]/8 bg-[#1a2744]/3">
+                    <th className="text-left px-3 py-2 text-[#1a2744]/50 font-bold">Team</th>
+                    <th className="text-center px-2 py-2 text-[#1a2744]/50 font-bold">Starting Hole</th>
+                    <th className="text-center px-2 py-2 text-[#1a2744]/50 font-bold">Holes Rem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inProgress.length === 0 ? (
+                    <tr><td colSpan={3} className="px-3 py-4 text-center text-[#1a2744]/35 italic">All teams submitted!</td></tr>
+                  ) : inProgress.map((t, i) => (
+                    <tr key={t.id} className={`border-b border-[#1a2744]/5 ${i % 2 !== 0 ? 'bg-[#1a2744]/2' : ''}`}>
+                      <td className="px-3 py-2">
+                        <div className="text-[#1a2744] font-medium">{t.teamName}</div>
+                        <div className="text-[#1a2744]/45 text-xs">{lastNames(t)}</div>
+                      </td>
+                      <td className="px-2 py-2 text-center text-[#1a2744]/60">{t.startingHole}</td>
+                      <td className="px-2 py-2 text-center">
+                        <span className={`font-bold text-sm ${
+                          t.holesRemaining <= 3 ? 'text-[#b06b10]' : 'text-[#1a2744]'
+                        }`}>{t.holesRemaining}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Submitted section */}
+          <div className="space-y-1.5">
+            <p className="text-xs font-bold uppercase tracking-wider font-sans-app text-emerald-700 px-1">Submitted <span className="text-[#1a2744]/40 font-normal normal-case tracking-normal">({submitted.length})</span></p>
+            <div className="bg-white rounded-xl border border-[#1a2744]/10 overflow-hidden">
+              <table className="w-full text-xs font-sans-app">
+                <thead>
+                  <tr className="border-b border-[#1a2744]/8 bg-[#1a2744]/3">
+                    <th className="text-left px-3 py-2 text-[#1a2744]/50 font-bold">Team</th>
+                    <th className="text-center px-2 py-2 text-[#1a2744]/50 font-bold">Starting Hole</th>
+                    <th className="text-center px-2 py-2 text-[#1a2744]/50 font-bold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {submitted.length === 0 ? (
+                    <tr><td colSpan={3} className="px-3 py-4 text-center text-[#1a2744]/35 italic">No submissions yet</td></tr>
+                  ) : submitted.map((t, i) => (
+                    <tr key={t.id} className={`border-b border-[#1a2744]/5 ${i % 2 !== 0 ? 'bg-[#1a2744]/2' : ''}`}>
+                      <td className="px-3 py-2">
+                        <div className="text-[#1a2744]/60 font-medium">{t.teamName}</div>
+                        <div className="text-[#1a2744]/40 text-xs">{lastNames(t)}</div>
+                      </td>
+                      <td className="px-2 py-2 text-center text-[#1a2744]/40">{t.startingHole}</td>
+                      <td className="px-2 py-2 text-center">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/15 text-green-700 font-bold text-[10px] border border-green-500/25">
+                          <Check size={9} /> Submitted
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SponsorsTab() {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -560,6 +897,7 @@ function SettingsTab() {
   const qc = useQueryClient();
   const { data: settings } = useQuery<TournamentSettings>({ queryKey: ["/api/settings"] });
   const [form, setForm] = useState<any>(null);
+  const [holesExpanded, setHolesExpanded] = useState(false);
 
   useEffect(() => {
     if (settings && !form) setForm({ ...settings });
@@ -589,7 +927,26 @@ function SettingsTab() {
   if (!form) return null;
 
   return (
-    <div className="space-y-6 font-sans-app">
+    <div className="space-y-4 font-sans-app">
+      {/* Hole Settings — collapsible */}
+      <div className="atd-card rounded-xl overflow-hidden">
+        <button
+          onClick={() => setHolesExpanded(v => !v)}
+          className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-[#1a2744]/5 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Flag size={14} className="text-[#b06b10]" />
+            <span className="font-bold text-[#b06b10]">Hole Settings</span>
+          </div>
+          {holesExpanded ? <ChevronUp size={16} className="text-[#1a2744]/50" /> : <ChevronDown size={16} className="text-[#1a2744]/50" />}
+        </button>
+        {holesExpanded && (
+          <div className="border-t border-[#1a2744]/10 px-4 py-4">
+            <HolesTab />
+          </div>
+        )}
+      </div>
+
       <div className="atd-card rounded-xl p-5 space-y-4">
         <h2 className="font-bold text-[#b06b10]">Tournament Settings</h2>
         <div className="grid grid-cols-2 gap-4">
@@ -619,6 +976,34 @@ function SettingsTab() {
             <Input type="password" value={form.scorekeeperPassword ?? ""} onChange={e => setForm((p: any) => ({ ...p, scorekeeperPassword: e.target.value }))}
               className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]" />
           </div>
+          <div className="col-span-2">
+            <Label className="text-[#1a2744]/60 text-xs mb-2 block">Default Leaderboard Flight</Label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setForm((p: any) => ({ ...p, defaultFlight: "morning" }))}
+                className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-colors font-sans-app ${
+                  (form.defaultFlight ?? "morning") === "morning"
+                    ? "bg-blue-500/20 border-blue-500/60 text-blue-700"
+                    : "bg-[#1a2744]/5 border-[#1a2744]/15 text-[#1a2744]/50 hover:border-[#1a2744]/30"
+                }`}
+              >
+                AM Flight
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm((p: any) => ({ ...p, defaultFlight: "afternoon" }))}
+                className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-colors font-sans-app ${
+                  (form.defaultFlight ?? "morning") === "afternoon"
+                    ? "bg-amber-500/20 border-amber-500/60 text-[#b06b10]"
+                    : "bg-[#1a2744]/5 border-[#1a2744]/15 text-[#1a2744]/50 hover:border-[#1a2744]/30"
+                }`}
+              >
+                PM Flight
+              </button>
+            </div>
+            <p className="text-[#1a2744]/40 text-xs mt-1.5">Which flight tab the leaderboard opens on by default.</p>
+          </div>
         </div>
         <Button onClick={() => updateMutation.mutate(form)} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold">
           <Check size={14} className="mr-1.5" /> Save Settings
@@ -629,7 +1014,7 @@ function SettingsTab() {
       <div className="atd-card rounded-xl p-5 space-y-3">
         <h2 className="font-bold text-[#b06b10]">Manage CTP Entries</h2>
         {ctpHoles.length === 0 ? (
-          <p className="text-[#1a2744]/50 text-sm italic">No CTP holes configured. Set up CTP holes in the Holes tab.</p>
+          <p className="text-[#1a2744]/50 text-sm italic">No CTP holes configured. Set up CTP holes in Hole Settings above.</p>
         ) : (
           <div className="space-y-2">
             {ctpHoles.map(hole => {
@@ -661,92 +1046,24 @@ function SettingsTab() {
 }
 
 // ─── SCORES TAB ───────────────────────────────────────────────────────────────
-function ScoresTab() {
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
-  const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
-  const { data: scores = [] } = useQuery<Score[]>({
-    queryKey: ["/api/scores/team", selectedTeam],
-    enabled: !!selectedTeam,
-  });
-  const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
-  const holeMap = new Map(holes.map(h => [h.holeNumber, h]));
-  const scoreMap = new Map(scores.map(s => [s.holeNumber, s]));
-  const [editScore, setEditScore] = useState<Record<number, string>>({});
+// ─── MAIN ADMIN PORTAL ────────────────────────────────────────────────────────
+function LastUpdatedBadge() {
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const { data: scores } = useQuery<any[]>({ queryKey: ["/api/scores"], refetchInterval: 4000 });
 
-  const updateMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/scores", data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["/api/scores/team", selectedTeam] });
-      qc.invalidateQueries({ queryKey: ["/api/leaderboard"] });
-      toast({ title: "Score saved" });
-    },
-  });
+  useEffect(() => {
+    setLastUpdate(new Date());
+  }, [scores]);
 
-  const clearMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/scores/team/${id}`, {}),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["/api/scores/team", selectedTeam] });
-      qc.invalidateQueries({ queryKey: ["/api/leaderboard"] });
-      toast({ title: "Scores cleared" });
-    },
-  });
-
+  if (!lastUpdate) return null;
   return (
-    <div className="space-y-4 font-sans-app">
-      <div className="flex items-center gap-3">
-        <h2 className="font-bold text-[#b06b10]">Score Editor</h2>
-        <Select value={selectedTeam?.toString() ?? ""} onValueChange={v => { setSelectedTeam(parseInt(v)); setEditScore({}); }}>
-          <SelectTrigger className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] w-56">
-            <SelectValue placeholder="Select team..." />
-          </SelectTrigger>
-          <SelectContent className="bg-[#1a2744] border-amber-500/20 text-amber-100 max-h-64">
-            {teams.map(t => <SelectItem key={t.id} value={t.id.toString()}>{t.teamName}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        {selectedTeam && (
-          <Button variant="ghost" size="sm" onClick={() => clearMutation.mutate(selectedTeam)} className="text-red-400/60 hover:text-red-400 border border-red-500/20">
-            <RefreshCw size={13} className="mr-1" /> Clear All
-          </Button>
-        )}
-      </div>
-
-      {selectedTeam && (
-        <div className="atd-card rounded-xl p-4">
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            {Array.from({ length: 18 }, (_, i) => i + 1).map(n => {
-              const s = scoreMap.get(n);
-              const h = holeMap.get(n);
-              const val = editScore[n] !== undefined ? editScore[n] : (s?.strokes?.toString() ?? "");
-              return (
-                <div key={n} className="bg-[#1a2744]/5 rounded-lg p-2 border border-[#1a2744]/12">
-                  <div className="text-[#b06b10]/60 text-xs mb-1">Hole {n} · Par {h?.par ?? 4}</div>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={val}
-                    onChange={e => setEditScore(p => ({ ...p, [n]: e.target.value }))}
-                    onBlur={() => {
-                      const v = parseInt(editScore[n] ?? "");
-                      if (!isNaN(v) && v > 0) updateMutation.mutate({ teamId: selectedTeam, holeNumber: n, strokes: v });
-                    }}
-                    placeholder="—"
-                    className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] text-center font-bold h-8 text-sm"
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <p className="text-[#1a2744]/35 text-xs mt-3">Scores auto-save when you click away from each field.</p>
-        </div>
-      )}
-    </div>
+    <span className="text-[#1a2744]/45 text-xs font-sans-app flex items-center gap-1">
+      <Clock size={11} className="text-[#1a2744]/35" />
+      Last updated: {lastUpdate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+    </span>
   );
 }
 
-// ─── MAIN ADMIN PORTAL ────────────────────────────────────────────────────────
 export default function AdminPortal() {
   const [authed, setAuthed] = useState(() => {
     return false;
@@ -757,35 +1074,36 @@ export default function AdminPortal() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <Shield size={20} className="text-[#b06b10]" />
-        <h1 className="text-lg font-bold text-[#b06b10]">Admin Portal</h1>
-        <button
-          onClick={() => {  setAuthed(false); }}
-          className="ml-auto text-[#1a2744]/50 hover:text-red-400 text-xs font-sans-app flex items-center gap-1 border border-[#1a2744]/12 rounded px-2 py-1 hover:border-red-500/30"
-        >
-          <X size={12} /> Sign Out
-        </button>
+      <div className="space-y-0.5">
+        <div className="flex items-center gap-2">
+          <Shield size={18} className="text-[#b06b10] shrink-0" />
+          <h1 className="text-lg font-bold text-[#b06b10]">Admin Portal</h1>
+          <button
+            onClick={() => { setAuthed(false); }}
+            className="ml-auto text-[#1a2744]/50 hover:text-red-400 text-xs font-sans-app flex items-center gap-1 border border-[#1a2744]/12 rounded px-2 py-1 hover:border-red-500/30 shrink-0"
+          >
+            <X size={12} /> Sign Out
+          </button>
+        </div>
+        <LastUpdatedBadge />
       </div>
 
       <Tabs defaultValue="teams">
-        <TabsList className="bg-[#1a2744]/5 border border-[#1a2744]/12 flex flex-wrap h-auto gap-1">
+        <TabsList className="bg-[#1a2744]/5 border border-[#1a2744]/12 flex flex-nowrap h-auto w-full">
           {[
             { value: "teams", label: "Teams", icon: Users },
-            { value: "holes", label: "Holes", icon: Flag },
-            { value: "scores", label: "Scores", icon: RefreshCw },
-            { value: "sponsors", label: "Sponsors", icon: Star },
+            { value: "submissions", label: "Submitted", icon: ClipboardList },
+            { value: "broadcast", label: "Broadcast", icon: Bell },
             { value: "settings", label: "Settings", icon: Settings },
           ].map(({ value, label, icon: Icon }) => (
-            <TabsTrigger key={value} value={value} className="font-sans-app data-[state=active]:bg-amber-500/25 data-[state=active]:text-[#b06b10] flex items-center gap-1.5 text-xs">
-              <Icon size={13} /> {label}
+            <TabsTrigger key={value} value={value} className="font-sans-app data-[state=active]:bg-amber-500/25 data-[state=active]:text-[#b06b10] flex items-center gap-1 flex-1 justify-center px-1 text-xs whitespace-nowrap min-w-0">
+              <Icon size={12} className="shrink-0" /><span className="truncate">{label}</span>
             </TabsTrigger>
           ))}
         </TabsList>
         <TabsContent value="teams" className="mt-4"><TeamsTab /></TabsContent>
-        <TabsContent value="holes" className="mt-4"><HolesTab /></TabsContent>
-        <TabsContent value="scores" className="mt-4"><ScoresTab /></TabsContent>
-        <TabsContent value="sponsors" className="mt-4"><SponsorsTab /></TabsContent>
+        <TabsContent value="submissions" className="mt-4"><SubmissionsTab /></TabsContent>
+        <TabsContent value="broadcast" className="mt-4"><BroadcastTab /></TabsContent>
         <TabsContent value="settings" className="mt-4"><SettingsTab /></TabsContent>
       </Tabs>
     </div>

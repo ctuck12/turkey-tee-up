@@ -18,7 +18,7 @@ function mapHole(r: any): Hole {
   return { id: r.id, holeNumber: r.hole_number, par: r.par, handicap: r.handicap, yardageBlue: r.yardage_blue, yardageWhite: r.yardage_white, yardageRed: r.yardage_red, isCtpHole: r.is_ctp_hole, ctpLabel: r.ctp_label };
 }
 function mapTeam(r: any): Team {
-  return { id: r.id, teamName: r.team_name, player1: r.player1, player2: r.player2, player3: r.player3, player4: r.player4, flight: r.flight, startingHole: r.starting_hole, teamCode: r.team_code, isActive: r.is_active };
+  return { id: r.id, teamName: r.team_name, player1: r.player1, player2: r.player2, player3: r.player3, player4: r.player4, flight: r.flight, startingHole: r.starting_hole, teamCode: r.team_code, isActive: r.is_active, isSubmitted: r.is_submitted ?? false };
 }
 function mapScore(r: any): Score {
   return { id: r.id, teamId: r.team_id, holeNumber: r.hole_number, strokes: r.strokes, updatedAt: r.updated_at };
@@ -30,7 +30,7 @@ function mapCtp(r: any): ClosestToPin {
   return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, updatedAt: r.updated_at };
 }
 function mapSettings(r: any): TournamentSettings {
-  return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active };
+  return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning" };
 }
 
 export interface IStorage {
@@ -48,6 +48,8 @@ export interface IStorage {
   createTeam(data: InsertTeam): Promise<Team>;
   updateTeam(id: number, data: Partial<InsertTeam>): Promise<Team | undefined>;
   deleteTeam(id: number): Promise<void>;
+  submitTeam(id: number): Promise<void>;
+  isTeamSubmitted(id: number): Promise<boolean>;
 
   getScoresForTeam(teamId: number): Promise<Score[]>;
   getAllScores(): Promise<Score[]>;
@@ -81,6 +83,8 @@ function createStorage(): IStorage {
       if (data.adminPassword !== undefined) snake.admin_password = data.adminPassword;
       if (data.scorekeeperPassword !== undefined) snake.scorekeeper_password = data.scorekeeperPassword;
       if (data.isActive !== undefined) snake.is_active = data.isActive;
+      if (data.broadcastMessage !== undefined) snake.broadcast_message = data.broadcastMessage;
+      if (data.defaultFlight !== undefined) snake.default_flight = data.defaultFlight;
       const { data: row } = await supabase.from("tournament_settings").upsert({ id: 1, ...snake }, { onConflict: "id" }).select().single();
       return mapSettings(row);
     },
@@ -136,6 +140,13 @@ function createStorage(): IStorage {
     },
     async deleteTeam(id) {
       await supabase.from("teams").update({ is_active: false }).eq("id", id);
+    },
+    async submitTeam(id) {
+      await supabase.from("teams").update({ is_submitted: true }).eq("id", id);
+    },
+    async isTeamSubmitted(id) {
+      const { data } = await supabase.from("teams").select("is_submitted").eq("id", id).single();
+      return data?.is_submitted ?? false;
     },
 
     // ── Scores ────────────────────────────────────────────────────────────────
