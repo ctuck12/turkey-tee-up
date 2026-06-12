@@ -151,9 +151,8 @@ export function registerRoutes(app: Express) {
     }
     const settings = await storage.getSettings();
     const mode = settings?.tournamentMode ?? "test";
-    if (mode === "complete") {
-      return res.status(403).json({ success: false, reason: "complete", message: "The tournament is complete — scoring is now closed. Head to the leaderboard for final results." });
-    }
+    // Complete mode: login is allowed so teams can view their scorecard —
+    // the client renders read-only and score/CTP writes are blocked above.
     if (mode === "live" && !flightEnterable(settings, team.flight)) {
       const fl = team.flight === "morning" ? "AM (morning)" : "PM (afternoon)";
       return res.status(403).json({ success: false, reason: "flight_inactive", message: `The ${fl} flight hasn't started yet. You'll be able to enter scores once the tournament admin activates your flight.` });

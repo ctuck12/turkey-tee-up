@@ -50157,9 +50157,6 @@ function registerRoutes(app2) {
     }
     const settings = await storage.getSettings();
     const mode = settings?.tournamentMode ?? "test";
-    if (mode === "complete") {
-      return res.status(403).json({ success: false, reason: "complete", message: "The tournament is complete \u2014 scoring is now closed. Head to the leaderboard for final results." });
-    }
     if (mode === "live" && !flightEnterable(settings, team.flight)) {
       const fl = team.flight === "morning" ? "AM (morning)" : "PM (afternoon)";
       return res.status(403).json({ success: false, reason: "flight_inactive", message: `The ${fl} flight hasn't started yet. You'll be able to enter scores once the tournament admin activates your flight.` });

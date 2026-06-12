@@ -337,6 +337,10 @@ export default function Scorekeeper() {
 
   function handleSaveScore() {
     if (!authedTeam) return;
+    if (settings?.tournamentMode === "complete") {
+      toast({ title: "Tournament complete", description: "Scores can no longer be edited.", variant: "destructive" });
+      return;
+    }
     // Block if previous hole in sequence has no saved score
     const prevH = getPrevHoleInSequence(currentHole, startingHole);
     if (prevH !== null && !scoreMap.has(prevH)) {
@@ -386,6 +390,7 @@ export default function Scorekeeper() {
 
   // Quick score just selects — does NOT save or advance
   function handleQuickScore(n: number) {
+    if (settings?.tournamentMode === "complete") return;
     // Block if previous hole in sequence has no saved score
     const prevH = getPrevHoleInSequence(currentHole, startingHole);
     if (prevH !== null && !scoreMap.has(prevH)) {
@@ -475,13 +480,13 @@ export default function Scorekeeper() {
   }
 
   // ─── FLIGHT / MODE LOCK ──────────────────────────────────────────────────────
-  // For already-logged-in sessions (cached, or auto-login from a /scorekeeper/:id link):
-  // if the tournament is complete, or live with this team's flight not yet activated,
-  // block score entry. This screen updates automatically via SSE when the flight starts.
+  // Live mode + flight not yet activated → block score entry with a lock screen
+  // that auto-unlocks via SSE. Complete mode → scorecard stays viewable but
+  // read-only (banner below, all saves disabled).
   const tMode = settings?.tournamentMode ?? "test";
   const flightActive = authedTeam.flight === "morning" ? !!settings?.amActive : !!settings?.pmActive;
-  const lockReason: "complete" | "inactive" | null =
-    tMode === "complete" ? "complete" : (tMode === "live" && !flightActive ? "inactive" : null);
+  const readOnly = tMode === "complete";
+  const flightLocked = tMode === "live" && !flightActive;
 
   function signOut() {
     try { sessionStorage.removeItem("sk_authed_team"); sessionStorage.removeItem("sk_current_hole"); } catch {}
@@ -489,19 +494,15 @@ export default function Scorekeeper() {
     setTeamCode("");
   }
 
-  if (lockReason) {
+  if (flightLocked) {
     const flLabel = authedTeam.flight === "morning" ? "AM (morning)" : "PM (afternoon)";
     return (
       <div className="max-w-sm mx-auto space-y-5 pt-10">
         <div className="atd-card rounded-xl p-6 text-center space-y-3">
-          <div className="text-4xl">{lockReason === "complete" ? "🏁" : "⛳"}</div>
-          <h1 className="text-lg font-bold text-[#b06b10]">
-            {lockReason === "complete" ? "Tournament Complete" : `${flLabel} Flight Hasn't Started`}
-          </h1>
+          <div className="text-4xl">⛳</div>
+          <h1 className="text-lg font-bold text-[#b06b10]">{flLabel} Flight Hasn't Started</h1>
           <p className="text-[#1a2744]/65 text-sm font-sans-app leading-relaxed">
-            {lockReason === "complete"
-              ? "Scoring is now closed. Head to the leaderboard to see the final results."
-              : "You'll be able to enter scores as soon as the tournament admin activates your flight. This screen will update automatically — no need to refresh."}
+            You'll be able to enter scores as soon as the tournament admin activates your flight. This screen will update automatically — no need to refresh.
           </p>
           <div className="flex flex-col gap-2 pt-1">
             <Button onClick={() => navigate("/")} className="w-full bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold font-sans-app">
@@ -586,6 +587,14 @@ export default function Scorekeeper() {
 
       {/* Score Entry + inline Scorecard */}
       <div className="space-y-4">
+          {/* Tournament complete banner — scorecard is view-only */}
+          {readOnly && (
+            <div className="bg-[#1a2744]/8 border border-[#1a2744]/20 rounded-xl px-4 py-3 flex items-center gap-2 font-sans-app text-sm">
+              <span className="text-[#1a2744] font-bold whitespace-nowrap">🏁 Tournament Complete</span>
+              <span className="text-[#1a2744]/60 text-xs">Scores can no longer be edited.</span>
+            </div>
+          )}
+
           {/* Submitted banner */}
           {isSubmitted && (
             <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-2 font-sans-app text-sm">
@@ -670,7 +679,7 @@ export default function Scorekeeper() {
                 {/* Save button — lights up amber gold when a score is selected */}
                 <button
                   onClick={handleSaveScore}
-                  disabled={scoreMutation.isPending || !localScore || isSubmitted}
+                  disabled={scoreMutation.isPending || !localScore || isSubmitted || readOnly}
                   data-testid="button-save-score"
                   className={`flex items-center justify-center rounded-lg py-2 px-1 border transition-all font-sans-app font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed ${
                     localScore
@@ -684,7 +693,7 @@ export default function Scorekeeper() {
             </div>
 
             {/* CTP quick-entry if this is a CTP hole */}
-            {currentHoleData?.isCtpHole && currentHoleData?.par === 3 && !isSubmitted && (
+            {currentHoleData?.isCtpHole && currentHoleData?.par === 3 && !isSubmitted && !readOnly && (
               <button
                 onClick={() => setCtpModalHole(currentHole)}
                 className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-amber-500/40 border border-amber-500/60 text-amber-900 hover:bg-amber-500/55 transition-all font-sans-app text-sm font-bold"
@@ -694,7 +703,7 @@ export default function Scorekeeper() {
               </button>
             )}
             {/* Long Drive quick-entry if this is an LD hole (par 4/5 with toggle on) */}
-            {(currentHoleData?.isCtpHole && currentHoleData?.par !== 3) && !isSubmitted && (
+            {(currentHoleData?.isCtpHole && currentHoleData?.par !== 3) && !isSubmitted && !readOnly && (
               <button
                 onClick={() => setLdModalHole(currentHole)}
                 className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-600/40 border border-emerald-600/60 text-emerald-900 hover:bg-emerald-600/55 transition-all font-sans-app text-sm font-bold"
