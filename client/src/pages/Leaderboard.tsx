@@ -171,12 +171,19 @@ function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: 
       {historyHole && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4" style={{ background: "rgba(17,27,51,0.6)" }} onClick={() => setHistoryHole(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" style={{ border: "2px solid #b06b10" }} onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a2744]/10">
-              <div className={`flex items-center gap-1.5 font-bold text-sm font-sans-app ${historyHole.isLd ? "text-emerald-600" : "text-[#b06b10]"}`}>
-                {historyHole.isLd ? <Zap size={14} /> : <Target size={14} />}
-                {historyHole.isLd ? "Long Drive" : "Closest to Pin"} — Hole {historyHole.hole.holeNumber}
+            <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#1a2744]/10 min-w-0">
+              {/* One line, sizes down on small screens: type label colored, hole black, prize gray + truncating */}
+              <div className="flex items-center gap-1.5 font-bold font-sans-app flex-nowrap min-w-0 text-[clamp(0.7rem,3.4vw,0.875rem)]">
+                <span className={`flex items-center gap-1.5 shrink-0 whitespace-nowrap ${historyHole.isLd ? "text-emerald-600" : "text-[#b06b10]"}`}>
+                  {historyHole.isLd ? <Zap size={14} /> : <Target size={14} />}
+                  {historyHole.isLd ? "Long Drive" : "Closest to Pin"}
+                </span>
+                <span className="text-[#1a2744] shrink-0 whitespace-nowrap">— Hole {historyHole.hole.holeNumber}</span>
+                {historyHole.hole.ctpLabel && (
+                  <span className="text-[#1a2744]/45 font-normal truncate min-w-0">· {historyHole.hole.ctpLabel}</span>
+                )}
               </div>
-              <button onClick={() => setHistoryHole(null)} className="text-[#1a2744]/40 hover:text-[#1a2744]/70 p-1">
+              <button onClick={() => setHistoryHole(null)} className="text-[#1a2744]/40 hover:text-[#1a2744]/70 p-1 shrink-0">
                 <X size={16} />
               </button>
             </div>
