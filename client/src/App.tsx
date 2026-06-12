@@ -441,17 +441,30 @@ function FlightCompleteModal() {
   const { data: teams = [] } = useQuery<any[]>({ queryKey: ["/api/teams"] });
   const { data: holes = [] } = useQuery<any[]>({ queryKey: ["/api/holes"] });
   const { data: ctp = [] } = useQuery<any[]>({ queryKey: ["/api/ctp"] });
-  const [, force] = useState(0);
 
-  const sess = (k: string) => { try { return sessionStorage.getItem(k); } catch { return null; } };
+  // Re-arm the announcement every time a flight FLIPS into Complete (and on first
+  // load if it's already Complete), so toggling the status re-shows it for everyone.
+  const [dismissed, setDismissed] = useState<{ morning: boolean; afternoon: boolean }>({ morning: false, afternoon: false });
+  const prevStatus = useRef<{ am?: string; pm?: string }>({});
+  useEffect(() => {
+    if (!settings) return;
+    const am = settings.amStatus, pm = settings.pmStatus;
+    setDismissed(d => {
+      let nd = d;
+      if (prevStatus.current.am !== "complete" && am === "complete") nd = { ...nd, morning: false };
+      if (prevStatus.current.pm !== "complete" && pm === "complete") nd = { ...nd, afternoon: false };
+      return nd;
+    });
+    prevStatus.current = { am, pm };
+  }, [settings?.amStatus, settings?.pmStatus]);
+
   const mode = settings?.tournamentMode ?? "test";
 
-  // Pick the flight to announce: only in live/complete, only if its status is
-  // complete and we haven't already shown it this session.
+  // Pick the flight to announce: only in live/complete, status Complete, not yet dismissed
   let flight: "morning" | "afternoon" | null = null;
   if (settings && (mode === "live" || mode === "complete")) {
-    if (settings.amStatus === "complete" && !sess("atd_flight_done_am")) flight = "morning";
-    else if (settings.pmStatus === "complete" && !sess("atd_flight_done_pm")) flight = "afternoon";
+    if (settings.amStatus === "complete" && !dismissed.morning) flight = "morning";
+    else if (settings.pmStatus === "complete" && !dismissed.afternoon) flight = "afternoon";
   }
   if (!flight || !settings) return null;
 
@@ -476,7 +489,8 @@ function FlightCompleteModal() {
 
   const medals = ["🥇", "🥈", "🥉"];
   const fmtToPar = (e: any) => e.holesCompleted === 0 || e.totalToPar === 0 ? "E" : e.totalToPar > 0 ? `+${e.totalToPar}` : `${e.totalToPar}`;
-  const dismiss = () => { try { sessionStorage.setItem(flight === "morning" ? "atd_flight_done_am" : "atd_flight_done_pm", "1"); } catch {} force(x => x + 1); };
+  const shownFlight = flight;
+  const dismiss = () => setDismissed(d => ({ ...d, [shownFlight]: true }));
 
   return (
     <div className="fixed inset-0 z-[280] flex items-center justify-center p-4" style={{ background: "rgba(17,27,51,0.72)", backdropFilter: "blur(4px)" }}>

@@ -1460,6 +1460,14 @@ function SettingsTab() {
                             confirmLabel: "Complete Tournament",
                             onConfirm: () => statusMutation.mutate({ pmStatus: "complete", tournamentMode: "complete" }),
                           });
+                        } else if (key === "amStatus" && v === "complete") {
+                          // Completing AM sends the results announcement to everyone — confirm
+                          setStatusConfirm({
+                            title: "Complete AM Flight?",
+                            description: "This marks the AM flight Complete and sends the AM results announcement to everyone on the app.",
+                            confirmLabel: "Complete AM Flight",
+                            onConfirm: () => statusMutation.mutate({ amStatus: "complete" }),
+                          });
                         } else {
                           statusMutation.mutate({ [key]: v });
                         }
