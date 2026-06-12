@@ -138,6 +138,11 @@ function RoleSelector() {
   const [, setTick] = useState(0); // re-render after sessionStorage writes
   const [step, setStep] = useState<"install" | "role" | "added">("install");
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  // Re-arm the "flight started" question every time a flight FLIPS to In Progress
+  // (and on first load if already In Progress) — so the admin's status change
+  // triggers it for everyone, even if they answered it earlier this session.
+  const [roleArmed, setRoleArmed] = useState<{ am: boolean; pm: boolean }>({ am: false, pm: false });
+  const prevRole = useRef<{ am?: string; pm?: string }>({});
 
   const sess = (k: string) => { try { return sessionStorage.getItem(k); } catch { return null; } };
   const mark = (k: string, v = "1") => { try { sessionStorage.setItem(k, v); } catch {} setTick(t => t + 1); };
@@ -151,6 +156,20 @@ function RoleSelector() {
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
+
+  useEffect(() => {
+    if (!settings) return;
+    const am = settings.amStatus, pm = settings.pmStatus;
+    setRoleArmed(r => {
+      let na = r.am, np = r.pm;
+      if (prevRole.current.am !== "in_progress" && am === "in_progress") na = true;
+      if (am !== "in_progress") na = false;
+      if (prevRole.current.pm !== "in_progress" && pm === "in_progress") np = true;
+      if (pm !== "in_progress") np = false;
+      return na === r.am && np === r.pm ? r : { am: na, pm: np };
+    });
+    prevRole.current = { am, pm };
+  }, [settings?.amStatus, settings?.pmStatus]);
 
   async function handleAndroidInstall() {
     if (!deferredPrompt) return;
@@ -205,8 +224,8 @@ function RoleSelector() {
   if (mode === "test") {
     if (!sess("atd_role")) roleAsk = { key: "atd_role", title: "Welcome" };
   } else if (mode === "live" && !isActiveScorekeeper) {
-    if (pmS === "in_progress" && !sess("atd_role_pm")) roleAsk = { key: "atd_role_pm", title: "PM Flight Has Officially Started!" };
-    else if (amS === "in_progress" && !sess("atd_role_am")) roleAsk = { key: "atd_role_am", title: "AM Flight Has Officially Started!" };
+    if (pmS === "in_progress" && roleArmed.pm) roleAsk = { key: "atd_role_pm", title: "PM Flight Has Officially Started!" };
+    else if (amS === "in_progress" && roleArmed.am) roleAsk = { key: "atd_role_am", title: "AM Flight Has Officially Started!" };
   }
 
   const visible = needInstall || !!roleAsk;
@@ -223,8 +242,11 @@ function RoleSelector() {
   }
 
   function choose(role: "scorekeeper" | "viewer") {
-    if (roleAsk) mark(roleAsk.key, role);
-    mark("atd_role", role);
+    if (mode === "test") mark("atd_role", role);
+    // Disarm the flight popup that's showing so it closes (re-arms on next flip)
+    if (roleAsk?.key === "atd_role_pm") setRoleArmed(r => ({ ...r, pm: false }));
+    else if (roleAsk?.key === "atd_role_am") setRoleArmed(r => ({ ...r, am: false }));
+    else setTick(t => t + 1);
     if (role === "scorekeeper") navigate("/scorekeeper");
   }
 
