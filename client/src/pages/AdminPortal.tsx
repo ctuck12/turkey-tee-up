@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, Flag, Settings, Plus, Trash2, Edit2, Check, X,
-  Copy, RefreshCw, ChevronDown, ChevronUp, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList, Target, Zap, Search
+  Copy, RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList, Target, Zap, Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -264,6 +264,10 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <div className="flex flex-col items-center leading-none px-1.5 shrink-0">
+            <span className="text-[9px] uppercase tracking-wide text-[#1a2744]/35 font-sans-app">Hole</span>
+            <span className="text-sm font-bold text-[#1a2744]/70 font-sans-app">{team.startingHole ?? 1}</span>
+          </div>
           <div className={`flex items-center gap-1 bg-[#1a2744]/8 rounded px-2 py-0.5 text-xs font-sans-app font-bold tracking-wide ${team.flight === "morning" ? "text-blue-600" : "text-[#b06b10]"}`}>
             {team.teamCode}
             <button onClick={() => { navigator.clipboard.writeText(team.teamCode); toast({ title: "Code copied!" }); }} className={`ml-1 ${team.flight === "morning" ? "text-blue-600 hover:text-blue-700" : "text-[#b06b10] hover:text-[#b06b10]/70"}`}>
@@ -326,6 +330,9 @@ function TeamsTab() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [flightFilter, setFlightFilter] = useState<"all" | "morning" | "afternoon">("all");
   const [search, setSearch] = useState("");
+  // When true, sort each flight by starting hole (descending). When false (default),
+  // sort alphanumerically by team name.
+  const [sortByHole, setSortByHole] = useState(false);
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/teams", data),
@@ -374,8 +381,17 @@ function TeamsTab() {
     t.teamName.toLowerCase().includes(q) ||
     [t.player1, t.player2, t.player3, t.player4].filter(Boolean).some(p => p.toLowerCase().includes(q));
 
-  const morning = teams.filter(t => t.flight === "morning" && matchesSearch(t));
-  const afternoon = teams.filter(t => t.flight === "afternoon" && matchesSearch(t));
+  const sortTeams = (list: Team[]) =>
+    [...list].sort((a, b) => {
+      if (sortByHole) {
+        const diff = (b.startingHole ?? 1) - (a.startingHole ?? 1);
+        if (diff !== 0) return diff;
+      }
+      return a.teamName.localeCompare(b.teamName, undefined, { numeric: true });
+    });
+
+  const morning = sortTeams(teams.filter(t => t.flight === "morning" && matchesSearch(t)));
+  const afternoon = sortTeams(teams.filter(t => t.flight === "afternoon" && matchesSearch(t)));
 
   return (
     <div className="space-y-4">
@@ -433,6 +449,20 @@ function TeamsTab() {
           />
         </div>
       )}
+
+      {/* Sort header — toggle sorting by Starting Hole (desc) on/off */}
+      <div className="flex items-center justify-end px-1">
+        <button
+          onClick={() => setSortByHole(v => !v)}
+          className={`flex items-center gap-1 text-[11px] font-bold font-sans-app uppercase tracking-wide rounded px-2 py-1 transition-colors ${
+            sortByHole ? "bg-[#1a2744]/8 text-[#1a2744]" : "text-[#1a2744]/45 hover:text-[#1a2744]/70"
+          }`}
+          title={sortByHole ? "Sorted by starting hole (high → low). Click to sort by team name." : "Click to sort by starting hole (high → low)."}
+        >
+          Starting Hole
+          {sortByHole ? <ChevronDown size={13} /> : <ChevronsUpDown size={13} className="opacity-50" />}
+        </button>
+      </div>
 
       <div className="space-y-2">
         {(flightFilter === "all" || flightFilter === "morning") && morning.length > 0 && (
