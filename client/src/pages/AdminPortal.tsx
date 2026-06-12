@@ -445,8 +445,8 @@ function TeamsTab() {
         Start
         {holeSort === "desc" ? <ChevronDown size={12} /> : holeSort === "asc" ? <ChevronUp size={12} /> : <ChevronsUpDown size={12} className="opacity-50" />}
       </button>
-      {/* spacers matching the Code pill + chevron so "Start" lines up over the Hole column */}
-      <div className="w-16" aria-hidden="true" />
+      {/* "Code" label sits over the code column; spacer keeps the chevron clear */}
+      <span className="w-16 text-center text-[11px] font-bold uppercase tracking-wide text-[#1a2744]/45 font-sans-app">Code</span>
       <div className="w-[22px]" aria-hidden="true" />
     </div>
   );
