@@ -1713,6 +1713,10 @@ function SettingsTab() {
 
 // ─── SCORES TAB ───────────────────────────────────────────────────────────────
 // ─── MAIN ADMIN PORTAL ────────────────────────────────────────────────────────
+// Survives route changes within a session (module memory); resets on page
+// refresh or close, so the admin must re-enter the password then.
+let adminAuthedThisSession = false;
+
 function LastUpdatedBadge() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const { data: scores } = useQuery<any[]>({ queryKey: ["/api/scores"], refetchInterval: 4000 });
@@ -1731,12 +1735,16 @@ function LastUpdatedBadge() {
 }
 
 export default function AdminPortal() {
-  const [authed, setAuthed] = useState(() => {
-    return false;
-    
-  });
+  // Module-memory auth: stays logged in while navigating around the app, but
+  // clears on manual refresh, tab/app close, or Sign Out (memory resets).
+  const [authed, setAuthed] = useState(() => adminAuthedThisSession);
 
-  if (!authed) return <AdminLogin onLogin={() => setAuthed(true)} />;
+  const setAuth = (v: boolean) => {
+    adminAuthedThisSession = v;
+    setAuthed(v);
+  };
+
+  if (!authed) return <AdminLogin onLogin={() => setAuth(true)} />;
 
   return (
     <div className="space-y-4">
@@ -1745,7 +1753,7 @@ export default function AdminPortal() {
           <Shield size={18} className="text-[#b06b10] shrink-0" />
           <h1 className="text-lg font-bold text-[#b06b10]">Admin Portal</h1>
           <button
-            onClick={() => { setAuthed(false); }}
+            onClick={() => { setAuth(false); }}
             className="ml-auto text-[#1a2744]/50 hover:text-red-400 text-xs font-sans-app flex items-center gap-1 border border-[#1a2744]/12 rounded px-2 py-1 hover:border-red-500/30 shrink-0"
           >
             <X size={12} /> Sign Out
