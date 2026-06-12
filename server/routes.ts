@@ -260,7 +260,13 @@ export function registerRoutes(app: Express) {
   });
 
   app.delete("/api/scores/team/:teamId", async (req: Request, res: Response) => {
-    await storage.clearTeamScores(parseInt(req.params.teamId));
+    const teamId = parseInt(req.params.teamId);
+    await storage.clearTeamScores(teamId);
+    // Reset submission so the team can re-enter scores from the start of their round
+    await storage.unsubmitTeam(teamId);
+    // Remove any CTP / Long Drive entries this team currently holds
+    await storage.clearCtpForTeam(teamId);
+    scheduleImmediatePush(); // push cleared scores + un-submitted status to all viewers live
     res.json({ success: true });
   });
 

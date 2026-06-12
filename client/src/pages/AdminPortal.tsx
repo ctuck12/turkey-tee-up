@@ -358,7 +358,10 @@ function TeamsTab() {
     mutationFn: (id: number) => apiRequest("DELETE", `/api/scores/team/${id}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/leaderboard"] });
-      toast({ title: "Scores cleared" });
+      qc.invalidateQueries({ queryKey: ["/api/teams"] });
+      qc.invalidateQueries({ queryKey: ["/api/ctp"] });
+      qc.invalidateQueries({ queryKey: ["/api/submissions"] });
+      toast({ title: "Scores cleared — team reset to start of round" });
     },
   });
 

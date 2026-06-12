@@ -49955,6 +49955,9 @@ function createStorage() {
     async submitTeam(id) {
       await supabase.from("teams").update({ is_submitted: true }).eq("id", id);
     },
+    async unsubmitTeam(id) {
+      await supabase.from("teams").update({ is_submitted: false }).eq("id", id);
+    },
     async isTeamSubmitted(id) {
       const { data } = await supabase.from("teams").select("is_submitted").eq("id", id).single();
       return data?.is_submitted ?? false;
@@ -50023,6 +50026,9 @@ function createStorage() {
     },
     async clearCtp(holeNumber) {
       await supabase.from("closest_to_pin").delete().eq("hole_number", holeNumber);
+    },
+    async clearCtpForTeam(teamId) {
+      await supabase.from("closest_to_pin").delete().eq("team_id", teamId);
     }
   };
 }
@@ -50240,7 +50246,11 @@ function registerRoutes(app2) {
     res.json(score);
   });
   app2.delete("/api/scores/team/:teamId", async (req, res) => {
-    await storage.clearTeamScores(parseInt(req.params.teamId));
+    const teamId = parseInt(req.params.teamId);
+    await storage.clearTeamScores(teamId);
+    await storage.unsubmitTeam(teamId);
+    await storage.clearCtpForTeam(teamId);
+    scheduleImmediatePush();
     res.json({ success: true });
   });
   app2.get("/api/leaderboard", async (_req, res) => {

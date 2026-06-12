@@ -49,6 +49,7 @@ export interface IStorage {
   updateTeam(id: number, data: Partial<InsertTeam>): Promise<Team | undefined>;
   deleteTeam(id: number): Promise<void>;
   submitTeam(id: number): Promise<void>;
+  unsubmitTeam(id: number): Promise<void>;
   isTeamSubmitted(id: number): Promise<boolean>;
 
   getScoresForTeam(teamId: number): Promise<Score[]>;
@@ -65,6 +66,7 @@ export interface IStorage {
   getCtpForHole(holeNumber: number): Promise<ClosestToPin | undefined>;
   upsertCtp(holeNumber: number, teamId: number | null, playerName: string | null, distance: string | null): Promise<ClosestToPin>;
   clearCtp(holeNumber: number): Promise<void>;
+  clearCtpForTeam(teamId: number): Promise<void>;
 }
 
 function createStorage(): IStorage {
@@ -144,6 +146,9 @@ function createStorage(): IStorage {
     async submitTeam(id) {
       await supabase.from("teams").update({ is_submitted: true }).eq("id", id);
     },
+    async unsubmitTeam(id) {
+      await supabase.from("teams").update({ is_submitted: false }).eq("id", id);
+    },
     async isTeamSubmitted(id) {
       const { data } = await supabase.from("teams").select("is_submitted").eq("id", id).single();
       return data?.is_submitted ?? false;
@@ -215,6 +220,9 @@ function createStorage(): IStorage {
     },
     async clearCtp(holeNumber) {
       await supabase.from("closest_to_pin").delete().eq("hole_number", holeNumber);
+    },
+    async clearCtpForTeam(teamId) {
+      await supabase.from("closest_to_pin").delete().eq("team_id", teamId);
     },
   };
 }

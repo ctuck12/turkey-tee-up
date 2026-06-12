@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useParams } from "wouter";
@@ -152,6 +152,19 @@ export default function Scorekeeper() {
     const live = teams.find((t) => t.id === authedTeam.id);
     if (live) setIsSubmitted(!!live.isSubmitted);
   }, [teams, authedTeam]);
+
+  // When an admin clears a submitted team's scores, the live is_submitted flips
+  // back to false. Reset the scorekeeper to the start of their round so they can
+  // re-enter scores from the beginning instead of being stuck on the last hole.
+  const wasSubmittedRef = useRef(isSubmitted);
+  useEffect(() => {
+    if (wasSubmittedRef.current && !isSubmitted) {
+      const start = authedTeam?.startingHole ?? 1;
+      setCurrentHole(start);
+      try { sessionStorage.setItem("sk_current_hole", String(start)); } catch {}
+    }
+    wasSubmittedRef.current = isSubmitted;
+  }, [isSubmitted, authedTeam]);
 
   const { data: ctpEntries = [], refetch: refetchCtp } = useQuery<ClosestToPin[]>({ queryKey: ["/api/ctp"] });
   const { data: sponsors = [] } = useQuery<Sponsor[]>({ queryKey: ["/api/sponsors"] });
