@@ -183,15 +183,31 @@ export function registerRoutes(app: Express) {
 
   app.post("/api/teams", async (req: Request, res: Response) => {
     const body = req.body as InsertTeam;
+    const existing = await storage.getTeams();
+    const codeTaken = (code: string, excludeId?: number) =>
+      existing.find(t => t.id !== excludeId && (t.teamCode ?? "").toUpperCase() === code.toUpperCase());
     if (!body.teamCode) {
-      body.teamCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+      // Auto-generate until unique among current teams
+      do {
+        body.teamCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+      } while (codeTaken(body.teamCode));
+    } else if (codeTaken(body.teamCode)) {
+      return res.status(409).json({ message: `Team code "${body.teamCode.toUpperCase()}" is already used by ${codeTaken(body.teamCode)!.teamName}. Regenerate or choose a different code.` });
     }
     const team = await storage.createTeam(body);
     res.status(201).json(team);
   });
 
   app.put("/api/teams/:id", async (req: Request, res: Response) => {
-    const team = await storage.updateTeam(parseInt(req.params.id), req.body);
+    const id = parseInt(req.params.id);
+    if (req.body.teamCode) {
+      const existing = await storage.getTeams();
+      const dup = existing.find(t => t.id !== id && (t.teamCode ?? "").toUpperCase() === String(req.body.teamCode).toUpperCase());
+      if (dup) {
+        return res.status(409).json({ message: `Team code "${String(req.body.teamCode).toUpperCase()}" is already used by ${dup.teamName}. Regenerate or choose a different code.` });
+      }
+    }
+    const team = await storage.updateTeam(id, req.body);
     if (!team) return res.status(404).json({ message: "Team not found" });
     res.json(team);
   });

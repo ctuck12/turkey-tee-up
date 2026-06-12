@@ -336,6 +336,15 @@ function TeamsTab() {
   // "none" (team name, A→Z) → back to "asc".
   const [holeSort, setHoleSort] = useState<"none" | "desc" | "asc">("asc");
 
+  // Pull the server's message out of an apiRequest error ("409: {json}")
+  const serverErrMessage = (err: unknown, fallback: string) => {
+    try {
+      const text = String((err as Error).message ?? "");
+      const json = JSON.parse(text.slice(text.indexOf("{")));
+      return json.message || fallback;
+    } catch { return fallback; }
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/teams", data),
     onSuccess: () => {
@@ -344,6 +353,7 @@ function TeamsTab() {
       setNewTeam({ teamName: "", player1: "", player2: "", player3: "", player4: "", flight: "morning", startingHole: 1, teamCode: "" });
       toast({ title: "Team created!" });
     },
+    onError: (err) => toast({ title: "Could not create team", description: serverErrMessage(err, "Something went wrong. Try again."), variant: "destructive" }),
   });
 
   const updateMutation = useMutation({
@@ -353,6 +363,7 @@ function TeamsTab() {
       setEditTeam(null);
       toast({ title: "Team updated!" });
     },
+    onError: (err) => toast({ title: "Could not save team", description: serverErrMessage(err, "Something went wrong. Try again."), variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
