@@ -606,6 +606,21 @@ function FlightCompleteModal() {
   );
 }
 
+// Temporary diagnostic — enable by running localStorage.atd_debug=1 then refresh.
+// Build marker "FSM3" confirms the new bundle is loaded.
+function DebugBadge() {
+  const [location] = useLocation();
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 3000 });
+  let on = false;
+  try { on = localStorage.getItem("atd_debug") === "1"; } catch {}
+  if (!on) return null;
+  return (
+    <div style={{ position: "fixed", bottom: 4, left: 4, zIndex: 99999, background: "rgba(0,0,0,0.82)", color: "#5f5", font: "11px/1.4 monospace", padding: "5px 7px", borderRadius: 5, whiteSpace: "pre", pointerEvents: "none" }}>
+      {`build=FSM3  loc=${location}\nmode=${settings?.tournamentMode}\nam=${settings?.amStatus}  pm=${settings?.pmStatus}`}
+    </div>
+  );
+}
+
 function AppShell() {
   // Single SSE connection for the whole app — feeds all shared query caches
   useSSE();
@@ -617,6 +632,7 @@ function AppShell() {
       <FlightStartedModal />
       <BroadcastModal />
       <FlightCompleteModal />
+      <DebugBadge />
       <main className="max-w-7xl mx-auto px-4 py-6" style={{ paddingTop: 'calc(var(--header-h, 130px) + 1.5rem)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}>
         <Switch>
           <Route path="/" component={Leaderboard} />
