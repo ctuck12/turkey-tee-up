@@ -178,7 +178,10 @@ function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: 
                   {historyHole.isLd ? <Zap size={14} /> : <Target size={14} />}
                   {historyHole.isLd ? "Long Drive" : "Closest to Pin"}
                 </span>
-                <span className="text-[#1a2744] shrink-0 whitespace-nowrap">— Hole {historyHole.hole.holeNumber}</span>
+                <span className="text-[#1a2744] shrink-0 whitespace-nowrap flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-[#1a2744]/30 inline-block shrink-0"></span>
+                  Hole {historyHole.hole.holeNumber}
+                </span>
                 {historyHole.hole.ctpLabel && (
                   <span className="text-[#1a2744]/45 font-normal truncate min-w-0">· {historyHole.hole.ctpLabel}</span>
                 )}
