@@ -392,6 +392,32 @@ function TeamsTab() {
   const morning = sortTeams(teams.filter(t => t.flight === "morning" && matchesSearch(t)));
   const afternoon = sortTeams(teams.filter(t => t.flight === "afternoon" && matchesSearch(t)));
 
+  // "Start" sort control — rendered on each flight header line, aligned over the Hole column.
+  // Cycles none → desc → asc → none.
+  const startSortHeader = (
+    <div className="flex items-center gap-1.5">
+      <button
+        onClick={() => setHoleSort(s => (s === "none" ? "desc" : s === "desc" ? "asc" : "none"))}
+        className={`flex items-center justify-center gap-0.5 w-14 text-[11px] font-bold font-sans-app uppercase tracking-wide rounded py-1 transition-colors ${
+          holeSort !== "none" ? "bg-[#1a2744]/8 text-[#1a2744]" : "text-[#1a2744]/45 hover:text-[#1a2744]/70"
+        }`}
+        title={
+          holeSort === "desc"
+            ? "Starting hole: high → low. Click for low → high."
+            : holeSort === "asc"
+            ? "Starting hole: low → high. Click to sort by team name."
+            : "Click to sort by starting hole (high → low)."
+        }
+      >
+        Start
+        {holeSort === "desc" ? <ChevronDown size={12} /> : holeSort === "asc" ? <ChevronUp size={12} /> : <ChevronsUpDown size={12} className="opacity-50" />}
+      </button>
+      {/* spacers matching the Code pill + chevron so "Start" lines up over the Hole column */}
+      <div className="w-16" aria-hidden="true" />
+      <div className="w-[22px]" aria-hidden="true" />
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -449,39 +475,22 @@ function TeamsTab() {
         </div>
       )}
 
-      {/* Sort header — "Start" sits directly over the Hole column; cycles none → desc → asc → none */}
-      <div className="flex items-center justify-end px-3 gap-1.5">
-        <button
-          onClick={() => setHoleSort(s => (s === "none" ? "desc" : s === "desc" ? "asc" : "none"))}
-          className={`flex items-center justify-center gap-0.5 w-14 text-[11px] font-bold font-sans-app uppercase tracking-wide rounded py-1 transition-colors ${
-            holeSort !== "none" ? "bg-[#1a2744]/8 text-[#1a2744]" : "text-[#1a2744]/45 hover:text-[#1a2744]/70"
-          }`}
-          title={
-            holeSort === "desc"
-              ? "Starting hole: high → low. Click for low → high."
-              : holeSort === "asc"
-              ? "Starting hole: low → high. Click to sort by team name."
-              : "Click to sort by starting hole (high → low)."
-          }
-        >
-          Start
-          {holeSort === "desc" ? <ChevronDown size={12} /> : holeSort === "asc" ? <ChevronUp size={12} /> : <ChevronsUpDown size={12} className="opacity-50" />}
-        </button>
-        {/* spacers matching the Code pill + chevron so "Start" lines up over the Hole column */}
-        <div className="w-16" aria-hidden="true" />
-        <div className="w-[22px]" aria-hidden="true" />
-      </div>
-
       <div className="space-y-2">
         {(flightFilter === "all" || flightFilter === "morning") && morning.length > 0 && (
           <>
-            <p className="text-blue-600 text-xs uppercase tracking-wider font-sans-app px-1">AM Flight ({morning.length})</p>
+            <div className="flex items-center justify-between pl-1 pr-3">
+              <p className="text-blue-600 text-xs uppercase tracking-wider font-sans-app">AM Flight ({morning.length})</p>
+              {startSortHeader}
+            </div>
             {morning.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
         )}
         {(flightFilter === "all" || flightFilter === "afternoon") && afternoon.length > 0 && (
           <>
-            <p className="text-[#b06b10] text-xs uppercase tracking-wider font-sans-app px-1 mt-3">PM Flight ({afternoon.length})</p>
+            <div className="flex items-center justify-between pl-1 pr-3 mt-3">
+              <p className="text-[#b06b10] text-xs uppercase tracking-wider font-sans-app">PM Flight ({afternoon.length})</p>
+              {startSortHeader}
+            </div>
             {afternoon.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
         )}
