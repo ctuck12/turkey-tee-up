@@ -320,32 +320,32 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
       </div>
 
     <div className="atd-card rounded-xl overflow-hidden">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-[#1a2744]/15 bg-[#1a2744]/5 flex items-center gap-2">
-        <span className={`font-bold text-xs uppercase tracking-widest font-sans-app ${flight === "morning" ? "text-blue-600" : "text-[#b06b10]"}`}>{label}</span>
+      {/* Header — single line, scales down on mobile, never wraps */}
+      <div className="px-2.5 sm:px-4 py-3 border-b border-[#1a2744]/15 bg-[#1a2744]/5 flex items-center gap-1.5 flex-nowrap text-[clamp(9px,2.6vw,12px)]">
+        <span className={`font-bold uppercase tracking-wide font-sans-app shrink-0 whitespace-nowrap ${flight === "morning" ? "text-blue-600" : "text-[#b06b10]"}`}>{label}</span>
         {flightStatus === "not_started" && (
-          <span className="flex items-center gap-1 text-xs font-bold font-sans-app text-[#1a2744]/45">
+          <span className="flex items-center gap-1 font-bold font-sans-app text-[#1a2744]/45 shrink-0 whitespace-nowrap">
             <span className="text-[#1a2744]/30">—</span>
             Not Started
           </span>
         )}
         {flightStatus === "in_progress" && (
-          <span className="flex items-center gap-1 text-xs font-bold font-sans-app text-green-700">
+          <span className="flex items-center gap-1 font-bold font-sans-app text-green-700 shrink-0 whitespace-nowrap">
             <span className="text-[#1a2744]/30">—</span>
             <span className="live-indicator w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
             In Progress
           </span>
         )}
         {flightStatus === "complete" && (
-          <span className="flex items-center gap-1 text-xs font-bold font-sans-app text-[#1a2744]">
+          <span className="flex items-center gap-1 font-bold font-sans-app text-[#1a2744] shrink-0 whitespace-nowrap">
             <span className="text-[#1a2744]/30">—</span>
             Complete
           </span>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => setShowInProgress(v => !v)}
-            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors font-sans-app ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-full border transition-colors font-sans-app whitespace-nowrap shrink-0 ${
               showInProgress
                 ? "bg-green-600/15 border-green-600/60 text-green-700"
                 : "border-[#1a2744]/20 text-[#1a2744]/50 hover:border-green-600/40 hover:text-green-700/80"
@@ -355,16 +355,16 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
           </button>
           <button
             onClick={() => setShowCtp(v => !v)}
-            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border transition-colors font-sans-app ${
+            className={`flex items-center gap-1 px-2 py-1 rounded-full border transition-colors font-sans-app whitespace-nowrap shrink-0 ${
               showCtp
                 ? "bg-[#b06b10]/15 border-[#b06b10]/60 text-[#b06b10]"
                 : "border-[#1a2744]/20 text-[#1a2744]/50 hover:border-[#b06b10]/40 hover:text-[#b06b10]/80"
             }`}
           >
-            <span className="flex items-center gap-0.5"><Target size={11} />CTP</span>
+            <span className="flex items-center gap-0.5"><Target size={10} />CTP</span>
             &amp;
-            <span className="flex items-center gap-0.5"><Zap size={11} />Long Drive</span>
-            {showCtp ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            <span className="flex items-center gap-0.5"><Zap size={10} />Long Drive</span>
+            {showCtp ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
           </button>
         </div>
       </div>
