@@ -130,7 +130,7 @@ function AppHeader() {
 }
 
 function RoleSelector() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   // Settings drive when the role question shows. Poll + refetch-on-focus as a
   // fallback: SSE can be suspended on backgrounded desktop/iPad tabs, so polling
   // guarantees the In-Progress popup still fires there.
@@ -219,11 +219,13 @@ function RoleSelector() {
   const mode = settings ? (settings.tournamentMode ?? "test") : null; // null until settings load
   const amS = settings?.amStatus ?? "not_started";
   const pmS = settings?.pmStatus ?? "not_started";
-  const isActiveScorekeeper = !!sess("sk_authed_team");
+  // Suppress only while actively on the scorekeeper page (mid-scoring) — NOT just
+  // because a session is cached, so viewers/leaderboard always get the popup.
+  const onScorekeeperPage = location.startsWith("/scorekeeper");
   let roleAsk: { key: string; title: string } | null = null;
   if (mode === "test") {
     if (!sess("atd_role")) roleAsk = { key: "atd_role", title: "Welcome" };
-  } else if (mode === "live" && !isActiveScorekeeper) {
+  } else if (mode === "live" && !onScorekeeperPage) {
     if (pmS === "in_progress" && roleArmed.pm) roleAsk = { key: "atd_role_pm", title: "PM Flight Has Officially Started!" };
     else if (amS === "in_progress" && roleArmed.am) roleAsk = { key: "atd_role_am", title: "AM Flight Has Officially Started!" };
   }
