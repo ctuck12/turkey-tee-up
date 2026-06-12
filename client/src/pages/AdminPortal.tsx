@@ -1102,16 +1102,21 @@ function ScorecardComparison() {
   const [selected, setSelected] = useState<number[]>([]);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [flightFilter, setFlightFilter] = useState<"morning" | "afternoon">("morning");
   // One shared scores query so we can compare hole-by-hole across teams
   const { data: allScores = [] } = useQuery<Score[]>({ queryKey: ["/api/scores"], refetchInterval: open ? 5000 : false });
+
+  // Switching flights clears the current picks — you only compare within one flight
+  const switchFlight = (f: "morning" | "afternoon") => { setFlightFilter(f); setSelected([]); };
 
   const toggle = (id: number) =>
     setSelected(s => s.includes(id) ? s.filter(x => x !== id) : (s.length >= 5 ? s : [...s, id]));
 
   const q = search.trim().toLowerCase();
   const list = teams.filter(t =>
-    !q || t.teamName.toLowerCase().includes(q) ||
-    [t.player1, t.player2, t.player3, t.player4].filter(Boolean).some(p => p.toLowerCase().includes(q))
+    t.flight === flightFilter &&
+    (!q || t.teamName.toLowerCase().includes(q) ||
+    [t.player1, t.player2, t.player3, t.player4].filter(Boolean).some(p => p.toLowerCase().includes(q)))
   );
   const chosen = teams.filter(t => selected.includes(t.id));
 
@@ -1139,6 +1144,18 @@ function ScorecardComparison() {
       <div>
         <h2 className="font-bold text-[#b06b10] flex items-center gap-2"><Scale size={16} /> Scorecard Comparison</h2>
         <p className="text-xs text-[#1a2744]/50 mt-0.5">Select 2–5 teams to view full scorecards together — for breaking ties in a scorecard playoff.</p>
+      </div>
+
+      {/* Flight toggle — only compare within one flight */}
+      <div className="flex bg-[#1a2744]/5 rounded-lg p-0.5 border border-[#1a2744]/10">
+        <button
+          onClick={() => switchFlight("morning")}
+          className={`flex-1 py-1.5 rounded text-xs font-sans-app font-bold transition-colors ${flightFilter === "morning" ? "bg-blue-500/20 text-blue-600 border border-blue-500/30" : "text-[#1a2744]/50 hover:text-[#1a2744]/70"}`}
+        >AM Flight</button>
+        <button
+          onClick={() => switchFlight("afternoon")}
+          className={`flex-1 py-1.5 rounded text-xs font-sans-app font-bold transition-colors ${flightFilter === "afternoon" ? "bg-amber-500/25 text-[#b06b10] border border-amber-500/40" : "text-[#1a2744]/50 hover:text-[#1a2744]/70"}`}
+        >PM Flight</button>
       </div>
 
       <div className="relative">
