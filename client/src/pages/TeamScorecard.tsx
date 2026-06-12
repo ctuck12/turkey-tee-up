@@ -70,6 +70,9 @@ export default function TeamScorecard() {
       <div className="atd-card rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <h1 className="text-lg font-bold text-[#b06b10] leading-tight truncate max-w-[200px]">{team.teamName}</h1>
+          <span className={`text-xs font-sans-app font-bold px-2 py-0.5 rounded-full border ${team.flight === "morning" ? "bg-blue-500/20 text-blue-600 border-blue-500/30" : "bg-amber-500/25 text-[#b06b10] border-amber-500/40"}`}>
+            {team.flight === "morning" ? "AM" : "PM"}
+          </span>
           <span className="text-xs font-sans-app px-2 py-0.5 rounded-full bg-[#1a2744]/8 border border-[#1a2744]/15 text-[#1a2744]/60">
             Starting Hole: {team.startingHole ?? 1}
           </span>

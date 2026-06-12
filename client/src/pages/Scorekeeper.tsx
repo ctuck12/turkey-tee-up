@@ -559,6 +559,9 @@ export default function Scorekeeper() {
               <h2 className="font-bold text-[#b06b10] text-lg leading-tight truncate max-w-[180px]">{authedTeam.teamName}</h2>
               <span className="font-bold text-lg leading-tight" style={{ fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.05em" }}>{totalDisp}</span>
               <div className="flex-1" />
+              <Badge className={`font-sans-app font-bold shrink-0 ${authedTeam.flight === "morning" ? "bg-blue-500/20 text-blue-600 border-blue-500/30" : "bg-amber-500/25 text-[#b06b10] border-amber-500/40"}`}>
+                {authedTeam.flight === "morning" ? "AM" : "PM"}
+              </Badge>
               <Badge className="bg-[#1a2744]/8 text-[#1a2744]/60 border-[#1a2744]/15 font-sans-app shrink-0">
                 Starting Hole: {authedTeam.startingHole ?? 1}
               </Badge>
