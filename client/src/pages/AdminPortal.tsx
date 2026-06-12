@@ -1072,12 +1072,7 @@ function SponsorsTab() {
 }
 
 // ─── SCORECARD COMPARISON (tie / playoff tool) ────────────────────────────────
-function CompareScorecard({ team, holes }: { team: Team; holes: Hole[] }) {
-  const { data: scores = [] } = useQuery<Score[]>({
-    queryKey: ["/api/scores/team", team.id],
-    queryFn: () => apiRequest("GET", `/api/scores/team/${team.id}`).then(r => r.json()),
-    enabled: !!team.id,
-  });
+function CompareScorecard({ team, holes, scores, bestHoles }: { team: Team; holes: Hole[]; scores: Score[]; bestHoles: Set<number> }) {
   const holeMap = new Map(holes.map(h => [h.holeNumber, h]));
   const played = scores.filter(s => s.strokes != null);
   const strokes = played.reduce((sum, s) => sum + (s.strokes ?? 0), 0);
@@ -1096,7 +1091,7 @@ function CompareScorecard({ team, holes }: { team: Team; holes: Hole[] }) {
           <span className="font-bold text-[#1a2744] text-base" style={{ fontFamily: "'Rajdhani', sans-serif" }}>{toParLabel}</span>
         </div>
       </div>
-      <ScorecardTable holes={holes} scores={scores} />
+      <ScorecardTable holes={holes} scores={scores} highlightHoles={bestHoles} />
     </div>
   );
 }
@@ -1107,6 +1102,8 @@ function ScorecardComparison() {
   const [selected, setSelected] = useState<number[]>([]);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
+  // One shared scores query so we can compare hole-by-hole across teams
+  const { data: allScores = [] } = useQuery<Score[]>({ queryKey: ["/api/scores"], refetchInterval: open ? 5000 : false });
 
   const toggle = (id: number) =>
     setSelected(s => s.includes(id) ? s.filter(x => x !== id) : (s.length >= 5 ? s : [...s, id]));
@@ -1117,6 +1114,25 @@ function ScorecardComparison() {
     [t.player1, t.player2, t.player3, t.player4].filter(Boolean).some(p => p.toLowerCase().includes(q))
   );
   const chosen = teams.filter(t => selected.includes(t.id));
+
+  // Per-hole comparison: which chosen team has the OUTRIGHT lowest score on each
+  // hole (ties highlight nothing — only a clear winner gets the green cell).
+  const scoresByTeam = new Map(chosen.map(t => [t.id, allScores.filter(s => s.teamId === t.id)]));
+  const bestTeamByHole = new Map<number, number>();
+  for (const h of holes) {
+    let bestTeam: number | null = null;
+    let bestStrokes = Infinity;
+    let tie = false;
+    for (const t of chosen) {
+      const s = scoresByTeam.get(t.id)?.find(x => x.holeNumber === h.holeNumber);
+      if (s?.strokes == null) continue;
+      if (s.strokes < bestStrokes) { bestStrokes = s.strokes; bestTeam = t.id; tie = false; }
+      else if (s.strokes === bestStrokes) tie = true;
+    }
+    if (bestTeam !== null && !tie) bestTeamByHole.set(h.holeNumber, bestTeam);
+  }
+  const bestHolesFor = (teamId: number) =>
+    new Set(Array.from(bestTeamByHole.entries()).filter(([, tid]) => tid === teamId).map(([holeNum]) => holeNum));
 
   return (
     <div className="atd-card rounded-xl p-5 space-y-3">
@@ -1175,7 +1191,11 @@ function ScorecardComparison() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ background: "#f0ebe1" }}>
-            {chosen.map(t => <CompareScorecard key={t.id} team={t} holes={holes} />)}
+            <div className="flex items-center gap-2 px-1 text-xs font-sans-app text-[#1a2744]/60">
+              <span className="inline-block w-4 h-4 rounded border border-green-600/40" style={{ background: "rgba(34,197,94,0.22)" }}></span>
+              Green cell = outright best score on that hole among these teams (ties not highlighted)
+            </div>
+            {chosen.map(t => <CompareScorecard key={t.id} team={t} holes={holes} scores={scoresByTeam.get(t.id) ?? []} bestHoles={bestHolesFor(t.id)} />)}
             <div className="bg-white rounded-xl border border-[#1a2744]/12">
               <ScorecardLegend />
             </div>

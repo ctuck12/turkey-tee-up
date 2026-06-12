@@ -2,13 +2,16 @@ import React, { useEffect, useRef } from "react";
 import type { Hole, Score } from "@shared/schema";
 
 // ─── ScoreCell ────────────────────────────────────────────────────────────────
-export function ScoreCell({ strokes, par }: { strokes: number | null | undefined; par: number }) {
+// highlight: green-tinted cell — used by the admin comparison view to mark the
+// outright best score on a hole.
+export function ScoreCell({ strokes, par, highlight }: { strokes: number | null | undefined; par: number; highlight?: boolean }) {
+  const hlStyle: React.CSSProperties = highlight ? { background: "rgba(34,197,94,0.22)" } : {};
   if (strokes == null) {
-    return <td className="scorecard-table score-cell text-center border border-[#1a2744]/10 text-[#1a2744]/35" style={{ padding: "6px 2px" }}>-</td>;
+    return <td className="scorecard-table score-cell text-center border border-[#1a2744]/10 text-[#1a2744]/35" style={{ padding: "6px 2px", ...hlStyle }}>-</td>;
   }
   const diff = strokes - par;
 
-  const cellStyle: React.CSSProperties = { padding: "6px 2px", overflow: "visible" };
+  const cellStyle: React.CSSProperties = { padding: "6px 2px", overflow: "visible", ...hlStyle };
 
   if (diff <= -2) {
     return (
@@ -66,10 +69,12 @@ export function ScorecardTable({
   holes,
   scores,
   scrollToHole,
+  highlightHoles,
 }: {
   holes: Hole[];
   scores: Score[];
   scrollToHole?: number;
+  highlightHoles?: Set<number>;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -179,13 +184,13 @@ export function ScorecardTable({
           <tr className="score-row score-data-row">
             <td style={{ textAlign: "left", paddingLeft: "8px" }} className="font-bold text-[#1a2744]">Score</td>
             {front9.map(n => (
-              <ScoreCell key={n} strokes={scoreMap.get(n)?.strokes} par={holeMap.get(n)?.par ?? 4} />
+              <ScoreCell key={n} strokes={scoreMap.get(n)?.strokes} par={holeMap.get(n)?.par ?? 4} highlight={highlightHoles?.has(n)} />
             ))}
             <td className="subtotal-col font-bold">
               {front9.some(n => scoreMap.get(n)?.strokes) ? front9Strokes : "—"}
             </td>
             {back9.map(n => (
-              <ScoreCell key={n} strokes={scoreMap.get(n)?.strokes} par={holeMap.get(n)?.par ?? 4} />
+              <ScoreCell key={n} strokes={scoreMap.get(n)?.strokes} par={holeMap.get(n)?.par ?? 4} highlight={highlightHoles?.has(n)} />
             ))}
             <td className="subtotal-col font-bold">
               {back9.some(n => scoreMap.get(n)?.strokes) ? back9Strokes : "—"}
