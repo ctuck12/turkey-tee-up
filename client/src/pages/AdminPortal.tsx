@@ -330,9 +330,9 @@ function TeamsTab() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [flightFilter, setFlightFilter] = useState<"all" | "morning" | "afternoon">("all");
   const [search, setSearch] = useState("");
-  // When true, sort each flight by starting hole (descending). When false (default),
-  // sort alphanumerically by team name.
-  const [sortByHole, setSortByHole] = useState(false);
+  // Starting-hole sort cycles: "none" (team name, A→Z) → "desc" (high→low) →
+  // "asc" (low→high) → back to "none".
+  const [holeSort, setHoleSort] = useState<"none" | "desc" | "asc">("none");
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/teams", data),
@@ -383,8 +383,10 @@ function TeamsTab() {
 
   const sortTeams = (list: Team[]) =>
     [...list].sort((a, b) => {
-      if (sortByHole) {
-        const diff = (b.startingHole ?? 1) - (a.startingHole ?? 1);
+      if (holeSort !== "none") {
+        const ha = a.startingHole ?? 1;
+        const hb = b.startingHole ?? 1;
+        const diff = holeSort === "desc" ? hb - ha : ha - hb;
         if (diff !== 0) return diff;
       }
       return a.teamName.localeCompare(b.teamName, undefined, { numeric: true });
@@ -450,17 +452,23 @@ function TeamsTab() {
         </div>
       )}
 
-      {/* Sort header — toggle sorting by Starting Hole (desc) on/off */}
+      {/* Sort header — cycle Starting Hole sort: none → desc → asc → none */}
       <div className="flex items-center justify-end px-1">
         <button
-          onClick={() => setSortByHole(v => !v)}
+          onClick={() => setHoleSort(s => (s === "none" ? "desc" : s === "desc" ? "asc" : "none"))}
           className={`flex items-center gap-1 text-[11px] font-bold font-sans-app uppercase tracking-wide rounded px-2 py-1 transition-colors ${
-            sortByHole ? "bg-[#1a2744]/8 text-[#1a2744]" : "text-[#1a2744]/45 hover:text-[#1a2744]/70"
+            holeSort !== "none" ? "bg-[#1a2744]/8 text-[#1a2744]" : "text-[#1a2744]/45 hover:text-[#1a2744]/70"
           }`}
-          title={sortByHole ? "Sorted by starting hole (high → low). Click to sort by team name." : "Click to sort by starting hole (high → low)."}
+          title={
+            holeSort === "desc"
+              ? "Starting hole: high → low. Click for low → high."
+              : holeSort === "asc"
+              ? "Starting hole: low → high. Click to sort by team name."
+              : "Click to sort by starting hole (high → low)."
+          }
         >
           Starting Hole
-          {sortByHole ? <ChevronDown size={13} /> : <ChevronsUpDown size={13} className="opacity-50" />}
+          {holeSort === "desc" ? <ChevronDown size={13} /> : holeSort === "asc" ? <ChevronUp size={13} /> : <ChevronsUpDown size={13} className="opacity-50" />}
         </button>
       </div>
 
