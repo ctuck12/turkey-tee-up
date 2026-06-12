@@ -33,6 +33,8 @@ export function useSSE() {
             queryClient.setQueryData(["/api/leaderboard"], payload.leaderboard);
           if (payload.ctp !== undefined)
             queryClient.setQueryData(["/api/ctp"], payload.ctp);
+          if (payload.ctpHistory !== undefined)
+            queryClient.setQueryData(["/api/ctp/history"], payload.ctpHistory);
           if (payload.teams !== undefined)
             queryClient.setQueryData(["/api/teams"], payload.teams);
           if (payload.settings !== undefined)

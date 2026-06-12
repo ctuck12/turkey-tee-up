@@ -49877,6 +49877,9 @@ function mapSponsor(r) {
 function mapCtp(r) {
   return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, updatedAt: r.updated_at };
 }
+function mapCtpHistory(r) {
+  return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, createdAt: r.created_at };
+}
 function mapSettings(r) {
   return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning", tournamentMode: r.tournament_mode ?? "test", amActive: r.am_active ?? false, pmActive: r.pm_active ?? false };
 }
@@ -50019,19 +50022,41 @@ function createStorage() {
     async upsertCtp(holeNumber, teamId, playerName, distance) {
       const now = (/* @__PURE__ */ new Date()).toISOString();
       const { data: existing } = await supabase.from("closest_to_pin").select("id").eq("hole_number", holeNumber).single();
+      let result;
       if (existing) {
         const { data: row } = await supabase.from("closest_to_pin").update({ team_id: teamId, player_name: playerName, distance, updated_at: now }).eq("hole_number", holeNumber).select().single();
-        return mapCtp(row);
+        result = mapCtp(row);
       } else {
         const { data: row } = await supabase.from("closest_to_pin").insert({ hole_number: holeNumber, team_id: teamId, player_name: playerName, distance, updated_at: now }).select().single();
-        return mapCtp(row);
+        result = mapCtp(row);
       }
+      try {
+        await supabase.from("ctp_history").insert({ hole_number: holeNumber, team_id: teamId, player_name: playerName, distance, created_at: now });
+      } catch {
+      }
+      return result;
     },
     async clearCtp(holeNumber) {
       await supabase.from("closest_to_pin").delete().eq("hole_number", holeNumber);
+      try {
+        await supabase.from("ctp_history").delete().eq("hole_number", holeNumber);
+      } catch {
+      }
     },
     async clearCtpForTeam(teamId) {
       await supabase.from("closest_to_pin").delete().eq("team_id", teamId);
+      try {
+        await supabase.from("ctp_history").delete().eq("team_id", teamId);
+      } catch {
+      }
+    },
+    async getCtpHistory() {
+      try {
+        const { data } = await supabase.from("ctp_history").select("*").order("id", { ascending: false });
+        return (data || []).map(mapCtpHistory);
+      } catch {
+        return [];
+      }
     }
   };
 }
@@ -50043,11 +50068,12 @@ var sseClientId = 0;
 var lastPayload = null;
 var broadcastTimer = null;
 async function buildPayload() {
-  const [teams, scores, holes, ctp, settings, sponsors] = await Promise.all([
+  const [teams, scores, holes, ctp, ctpHistory, settings, sponsors] = await Promise.all([
     storage.getTeams(),
     storage.getAllScores(),
     storage.getHoles(),
     storage.getCtpEntries(),
+    storage.getCtpHistory(),
     storage.getSettings(),
     storage.getSponsors()
   ]);
@@ -50073,7 +50099,7 @@ async function buildPayload() {
     const holesRemaining = isSubmitted ? 0 : Math.max(0, 18 - holesScored);
     return { id: team.id, teamName: team.teamName, flight: team.flight, startingHole: team.startingHole ?? 1, isSubmitted, holesScored, holesRemaining };
   });
-  return { leaderboard, ctp, teams, settings, holes, sponsors, submissions };
+  return { leaderboard, ctp, ctpHistory, teams, settings, holes, sponsors, submissions };
 }
 function broadcast(payload) {
   lastPayload = payload;
@@ -50330,6 +50356,9 @@ function registerRoutes(app2) {
   });
   app2.get("/api/ctp", async (_req, res) => {
     res.json(await storage.getCtpEntries());
+  });
+  app2.get("/api/ctp/history", async (_req, res) => {
+    res.json(await storage.getCtpHistory());
   });
   app2.post("/api/ctp", async (req, res) => {
     const { holeNumber, teamId, playerName, distance, asAdmin } = req.body;

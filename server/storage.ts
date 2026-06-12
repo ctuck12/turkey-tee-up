@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import ws from "ws";
 import type {
-  Hole, Score, Team, Sponsor, ClosestToPin, TournamentSettings,
+  Hole, Score, Team, Sponsor, ClosestToPin, CtpHistory, TournamentSettings,
   InsertHole, InsertScore, InsertTeam, InsertSponsor, InsertCtp, InsertSettings,
 } from "@shared/schema";
 
@@ -28,6 +28,9 @@ function mapSponsor(r: any): Sponsor {
 }
 function mapCtp(r: any): ClosestToPin {
   return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, updatedAt: r.updated_at };
+}
+function mapCtpHistory(r: any): CtpHistory {
+  return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, createdAt: r.created_at };
 }
 function mapSettings(r: any): TournamentSettings {
   return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning", tournamentMode: r.tournament_mode ?? "test", amActive: r.am_active ?? false, pmActive: r.pm_active ?? false };
@@ -67,6 +70,7 @@ export interface IStorage {
   upsertCtp(holeNumber: number, teamId: number | null, playerName: string | null, distance: string | null): Promise<ClosestToPin>;
   clearCtp(holeNumber: number): Promise<void>;
   clearCtpForTeam(teamId: number): Promise<void>;
+  getCtpHistory(): Promise<CtpHistory[]>;
 }
 
 function createStorage(): IStorage {
@@ -213,19 +217,36 @@ function createStorage(): IStorage {
     async upsertCtp(holeNumber, teamId, playerName, distance) {
       const now = new Date().toISOString();
       const { data: existing } = await supabase.from("closest_to_pin").select("id").eq("hole_number", holeNumber).single();
+      let result: ClosestToPin;
       if (existing) {
         const { data: row } = await supabase.from("closest_to_pin").update({ team_id: teamId, player_name: playerName, distance, updated_at: now }).eq("hole_number", holeNumber).select().single();
-        return mapCtp(row);
+        result = mapCtp(row);
       } else {
         const { data: row } = await supabase.from("closest_to_pin").insert({ hole_number: holeNumber, team_id: teamId, player_name: playerName, distance, updated_at: now }).select().single();
-        return mapCtp(row);
+        result = mapCtp(row);
       }
+      // Append-only history log — powers the "who held it" popup on the leaderboard.
+      // Best-effort: don't fail the save if the history table doesn't exist yet.
+      try {
+        await supabase.from("ctp_history").insert({ hole_number: holeNumber, team_id: teamId, player_name: playerName, distance, created_at: now });
+      } catch {}
+      return result;
     },
     async clearCtp(holeNumber) {
       await supabase.from("closest_to_pin").delete().eq("hole_number", holeNumber);
+      // Clearing a hole resets its contest — wipe its history too
+      try { await supabase.from("ctp_history").delete().eq("hole_number", holeNumber); } catch {}
     },
     async clearCtpForTeam(teamId) {
       await supabase.from("closest_to_pin").delete().eq("team_id", teamId);
+      // Their marks are voided along with their round
+      try { await supabase.from("ctp_history").delete().eq("team_id", teamId); } catch {}
+    },
+    async getCtpHistory() {
+      try {
+        const { data } = await supabase.from("ctp_history").select("*").order("id", { ascending: false });
+        return (data || []).map(mapCtpHistory);
+      } catch { return []; }
     },
   };
 }

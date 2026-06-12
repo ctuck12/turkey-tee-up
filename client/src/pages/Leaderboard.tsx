@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Trophy, Target, Search, Users, ChevronDown, ChevronUp, Wifi, Zap, Flag } from "lucide-react";
+import { Trophy, Target, Search, Users, ChevronDown, ChevronUp, Wifi, Zap, Flag, X } from "lucide-react";
 import bigCountryLogo from "@/assets/big-country-title.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { LeaderboardEntry, Hole, ClosestToPin, Team, Sponsor, TournamentSettings } from "@shared/schema";
+import type { LeaderboardEntry, Hole, ClosestToPin, CtpHistory, Team, Sponsor, TournamentSettings } from "@shared/schema";
 
 function toParDisplay(toPar: number, holesCompleted: number): React.ReactNode {
   if (holesCompleted === 0) return <span className="text-[#1a2744]/50 text-sm">—</span>;
@@ -56,12 +56,21 @@ function formatCtpDistance(raw: string | null | undefined): string {
 
 function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: ClosestToPin[]; ctpHoles: Hole[]; ldHole?: Hole; teams: Team[]; flight: "morning" | "afternoon" }) {
   const flightTeamIds = new Set(teams.filter(t => t.flight === flight).map(t => t.id));
+  const { data: history = [] } = useQuery<CtpHistory[]>({ queryKey: ["/api/ctp/history"] });
+  const [historyHole, setHistoryHole] = useState<{ hole: Hole; isLd: boolean } | null>(null);
 
   // Combine CTP holes + LD hole for rendering
   const allHoles: Array<{ hole: Hole; isLd: boolean }> = [
     ...ctpHoles.map(h => ({ hole: h, isLd: false })),
     ...(ldHole ? [{ hole: ldHole, isLd: true }] : []),
   ];
+
+  // History rows for the popup: this hole, this flight's teams, newest first
+  const popupRows = historyHole
+    ? history
+        .filter(h => h.holeNumber === historyHole.hole.holeNumber && h.teamId != null && flightTeamIds.has(h.teamId))
+        .sort((a, b) => b.id - a.id)
+    : [];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -70,9 +79,10 @@ function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: 
         const entry = ctpEntries.find(c => c.holeNumber === hole.holeNumber && c.teamId != null && flightTeamIds.has(c.teamId!));
         const team = entry?.teamId ? teams.find(t => t.id === entry.teamId) : null;
         return (
-          <div
+          <button
             key={hole.id}
-            className={`bg-white rounded-lg p-3 shadow-sm ${
+            onClick={() => setHistoryHole({ hole, isLd })}
+            className={`bg-white rounded-lg p-3 shadow-sm text-left transition-shadow hover:shadow-md ${
               isLd ? "border border-emerald-600/25" : "border border-[#1a2744]/20"
             }`}
           >
@@ -96,9 +106,57 @@ function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: 
             ) : (
               <div className="text-[#1a2744]/40 text-sm italic font-sans-app">No entry yet</div>
             )}
-          </div>
+          </button>
         );
       })}
+
+      {/* History popup — full lineage of marks for this hole, current leader first */}
+      {historyHole && (
+        <div className="fixed inset-0 z-[250] flex items-center justify-center p-4" style={{ background: "rgba(17,27,51,0.6)" }} onClick={() => setHistoryHole(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" style={{ border: "2px solid #b06b10" }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a2744]/10">
+              <div className={`flex items-center gap-1.5 font-bold text-sm font-sans-app ${historyHole.isLd ? "text-emerald-600" : "text-[#b06b10]"}`}>
+                {historyHole.isLd ? <Zap size={14} /> : <Target size={14} />}
+                {historyHole.isLd ? "Long Drive" : "Closest to Pin"} — Hole {historyHole.hole.holeNumber}
+              </div>
+              <button onClick={() => setHistoryHole(null)} className="text-[#1a2744]/40 hover:text-[#1a2744]/70 p-1">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {popupRows.length === 0 ? (
+                <div className="px-4 py-6 text-center text-[#1a2744]/40 text-sm italic font-sans-app">No entries marked yet</div>
+              ) : (
+                popupRows.map((row, idx) => {
+                  const team = row.teamId ? teams.find(t => t.id === row.teamId) : null;
+                  return (
+                    <div key={row.id} className={`px-4 py-2.5 flex items-center justify-between gap-2 ${idx === 0 ? "bg-amber-500/10" : idx % 2 !== 0 ? "bg-[#1a2744]/3" : ""} ${idx !== popupRows.length - 1 ? "border-b border-[#1a2744]/8" : ""}`}>
+                      <div className="min-w-0">
+                        <div className={`text-sm truncate ${idx === 0 ? "font-bold text-[#1a2744]" : "text-[#1a2744]/70"}`} style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
+                          {row.playerName || team?.teamName || "—"}
+                        </div>
+                        {team && <div className="text-[#1a2744]/45 text-xs truncate font-sans-app">{team.teamName}</div>}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {row.distance && (
+                          <span className={`text-xs font-bold font-sans-app ${historyHole.isLd ? "text-emerald-700" : "text-green-700"}`}>
+                            {historyHole.isLd ? `${row.distance} yds` : formatCtpDistance(row.distance)}
+                          </span>
+                        )}
+                        {idx === 0 && (
+                          <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-amber-500/25 text-[#b06b10] border border-amber-500/40 font-sans-app whitespace-nowrap">
+                            Leader
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

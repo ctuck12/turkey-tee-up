@@ -19,6 +19,7 @@ let sseClientId = 0;
 interface SsePayload {
   leaderboard: any[];
   ctp: any[];
+  ctpHistory: any[];
   teams: any[];
   settings: any;
   holes: any[];
@@ -29,11 +30,12 @@ let lastPayload: SsePayload | null = null;
 let broadcastTimer: ReturnType<typeof setInterval> | null = null;
 
 async function buildPayload(): Promise<SsePayload> {
-  const [teams, scores, holes, ctp, settings, sponsors] = await Promise.all([
+  const [teams, scores, holes, ctp, ctpHistory, settings, sponsors] = await Promise.all([
     storage.getTeams(),
     storage.getAllScores(),
     storage.getHoles(),
     storage.getCtpEntries(),
+    storage.getCtpHistory(),
     storage.getSettings(),
     storage.getSponsors(),
   ]);
@@ -62,7 +64,7 @@ async function buildPayload(): Promise<SsePayload> {
     return { id: team.id, teamName: team.teamName, flight: team.flight, startingHole: team.startingHole ?? 1, isSubmitted, holesScored, holesRemaining };
   });
 
-  return { leaderboard, ctp, teams, settings, holes, sponsors, submissions };
+  return { leaderboard, ctp, ctpHistory, teams, settings, holes, sponsors, submissions };
 }
 
 function broadcast(payload: SsePayload) {
@@ -365,6 +367,10 @@ export function registerRoutes(app: Express) {
   // ─── CLOSEST TO PIN ───────────────────────────────────────────────────────
   app.get("/api/ctp", async (_req, res) => {
     res.json(await storage.getCtpEntries());
+  });
+
+  app.get("/api/ctp/history", async (_req, res) => {
+    res.json(await storage.getCtpHistory());
   });
 
   app.post("/api/ctp", async (req: Request, res: Response) => {

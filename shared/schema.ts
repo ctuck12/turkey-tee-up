@@ -79,6 +79,18 @@ export const closestToPin = sqliteTable("closest_to_pin", {
   updatedAt: text("updated_at").notNull().default(new Date().toISOString()),
 });
 
+// ─── CTP / LD HISTORY ─────────────────────────────────────────────────────────
+// Append-only log: one row every time a CTP/LD entry is marked, so the
+// leaderboard can show the full lineage of leaders for each hole.
+export const ctpHistory = sqliteTable("ctp_history", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  holeNumber: integer("hole_number").notNull(),
+  teamId: integer("team_id").references(() => teams.id),
+  playerName: text("player_name"),
+  distance: text("distance"),
+  createdAt: text("created_at").notNull().default(new Date().toISOString()),
+});
+
 // ─── INSERT SCHEMAS ───────────────────────────────────────────────────────────
 export const insertHoleSchema = createInsertSchema(holes).omit({ id: true });
 export const insertSponsorSchema = createInsertSchema(sponsors).omit({ id: true });
@@ -93,6 +105,7 @@ export type Sponsor = typeof sponsors.$inferSelect;
 export type Team = typeof teams.$inferSelect;
 export type Score = typeof scores.$inferSelect;
 export type ClosestToPin = typeof closestToPin.$inferSelect;
+export type CtpHistory = typeof ctpHistory.$inferSelect;
 export type TournamentSettings = typeof tournamentSettings.$inferSelect;
 
 export type InsertHole = z.infer<typeof insertHoleSchema>;
