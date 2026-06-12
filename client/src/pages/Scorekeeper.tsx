@@ -554,8 +554,8 @@ export default function Scorekeeper() {
           const totalDisp = isUnder
             ? <span style={{ color: "#c0323e" }}>(<span>{rawScore}</span>)</span>
             : <span style={{ color: "#1a2744" }}>(<span>{rawScore}</span>)</span>;
+          // Single line, never wraps: name flexes + truncates, score & badges stay fixed
           return (
-            {/* Single line, never wraps: name flexes + truncates, score & badges stay fixed */}
             <div className="flex items-center gap-1.5 mb-2 flex-nowrap min-w-0 w-full">
               <h2 className="font-bold text-[#b06b10] text-lg leading-tight truncate min-w-0 shrink">{authedTeam.teamName}</h2>
               <span className="font-bold text-lg leading-tight shrink-0" style={{ fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.05em" }}>{totalDisp}</span>
