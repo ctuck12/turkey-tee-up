@@ -324,21 +324,18 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
       <div className="px-2.5 sm:px-4 py-3 border-b border-[#1a2744]/15 bg-[#1a2744]/5 flex items-center gap-1.5 flex-nowrap text-[clamp(11px,3.2vw,13px)]">
         <span className={`font-bold uppercase tracking-wide font-sans-app shrink-0 whitespace-nowrap ${flight === "morning" ? "text-blue-600" : "text-[#b06b10]"}`}>{label}</span>
         {flightStatus === "not_started" && (
-          <span className="flex items-center gap-1 font-bold font-sans-app text-[#1a2744]/45 shrink-0 whitespace-nowrap">
-            <span className="text-[#1a2744]/30">—</span>
+          <span className="flex items-center font-bold font-sans-app text-[#1a2744]/55 bg-[#1a2744]/8 border border-[#1a2744]/15 rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap">
             Not Started
           </span>
         )}
         {flightStatus === "in_progress" && (
-          <span className="flex items-center gap-1 font-bold font-sans-app text-green-700 shrink-0 whitespace-nowrap">
-            <span className="text-[#1a2744]/30">—</span>
+          <span className="flex items-center gap-1 font-bold font-sans-app text-green-700 bg-green-600/12 border border-green-600/35 rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap">
             <span className="live-indicator w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
             In Progress
           </span>
         )}
         {flightStatus === "complete" && (
-          <span className="flex items-center gap-1 font-bold font-sans-app text-[#1a2744] shrink-0 whitespace-nowrap">
-            <span className="text-[#1a2744]/30">—</span>
+          <span className="flex items-center font-bold font-sans-app text-[#1a2744] bg-[#1a2744]/10 border border-[#1a2744]/20 rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap">
             Complete
           </span>
         )}
