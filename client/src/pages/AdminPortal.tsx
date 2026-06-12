@@ -243,13 +243,14 @@ function TeamScoreEditor({ teamId }: { teamId: number }) {
   );
 }
 
-function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutation, setConfirmDelete }: {
+function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutation, setConfirmDelete, codeConflict }: {
   team: Team;
   editTeam: Team | null;
   setEditTeam: (t: Team | null) => void;
   updateMutation: any;
   clearScoresMutation: any;
   setConfirmDelete: (id: number | null) => void;
+  codeConflict: (code: string, excludeId?: number) => string | null;
 }) {
   const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
@@ -283,7 +284,11 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
               <TeamForm
                 data={editTeam}
                 onChange={setEditTeam}
-                onSubmit={() => updateMutation.mutate({ id: team.id, data: editTeam })}
+                onSubmit={() => {
+                  const err = codeConflict(editTeam?.teamCode ?? "", team.id);
+                  if (err) { toast({ title: "Duplicate team code", description: err, variant: "destructive" }); return; }
+                  updateMutation.mutate({ id: team.id, data: editTeam });
+                }}
                 onCancel={() => setEditTeam(null)}
                 submitLabel="Save Changes"
               />
@@ -389,6 +394,21 @@ function TeamsTab() {
       return a.teamName.localeCompare(b.teamName, undefined, { numeric: true });
     });
 
+  // Returns an error message if the code is empty or already used by another team
+  // (excludeId lets a team keep its own code while editing), otherwise null.
+  const codeConflict = (code: string, excludeId?: number): string | null => {
+    const c = code.trim().toUpperCase();
+    if (!c) return "Enter a team code or hit the regenerate button.";
+    const dup = teams.find(t => t.id !== excludeId && (t.teamCode ?? "").toUpperCase() === c);
+    return dup ? `Code "${c}" is already used by ${dup.teamName}. Regenerate or choose a different code.` : null;
+  };
+
+  const handleCreate = () => {
+    const err = codeConflict(newTeam.teamCode);
+    if (err) { toast({ title: "Duplicate team code", description: err, variant: "destructive" }); return; }
+    createMutation.mutate(newTeam);
+  };
+
   const morning = sortTeams(teams.filter(t => t.flight === "morning" && matchesSearch(t)));
   const afternoon = sortTeams(teams.filter(t => t.flight === "afternoon" && matchesSearch(t)));
 
@@ -469,7 +489,7 @@ function TeamsTab() {
           <TeamForm
             data={newTeam}
             onChange={setNewTeam}
-            onSubmit={() => createMutation.mutate(newTeam)}
+            onSubmit={handleCreate}
             onCancel={() => setShowAdd(false)}
             submitLabel="Create Team"
           />
@@ -483,7 +503,7 @@ function TeamsTab() {
               <p className="text-blue-600 text-xs uppercase tracking-wider font-sans-app">AM Flight ({morning.length})</p>
               {renderStartSortHeader()}
             </div>
-            {morning.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
+            {morning.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} codeConflict={codeConflict} />)}
           </>
         )}
         {(flightFilter === "all" || flightFilter === "afternoon") && afternoon.length > 0 && (
@@ -492,7 +512,7 @@ function TeamsTab() {
               <p className="text-[#b06b10] text-xs uppercase tracking-wider font-sans-app">PM Flight ({afternoon.length})</p>
               {renderStartSortHeader()}
             </div>
-            {afternoon.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
+            {afternoon.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} codeConflict={codeConflict} />)}
           </>
         )}
         {teams.length === 0 && (
