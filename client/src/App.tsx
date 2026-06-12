@@ -130,19 +130,13 @@ function AppHeader() {
 }
 
 function RoleSelector() {
-  const [location, navigate] = useLocation();
-  // Settings drive when the role question shows. Poll + refetch-on-focus as a
-  // fallback: SSE can be suspended on backgrounded desktop/iPad tabs, so polling
-  // guarantees the In-Progress popup still fires there.
+  const [, navigate] = useLocation();
+  // Drives only the install instructions + test-mode welcome. The live
+  // "flight started" question is handled separately by FlightStartedModal.
   const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 5000, refetchOnWindowFocus: true });
   const [, setTick] = useState(0); // re-render after sessionStorage writes
   const [step, setStep] = useState<"install" | "role" | "added">("install");
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  // Re-arm the "flight started" question every time a flight FLIPS to In Progress
-  // (and on first load if already In Progress) — so the admin's status change
-  // triggers it for everyone, even if they answered it earlier this session.
-  const [roleArmed, setRoleArmed] = useState<{ am: boolean; pm: boolean }>({ am: false, pm: false });
-  const prevRole = useRef<{ am?: string; pm?: string }>({});
 
   const sess = (k: string) => { try { return sessionStorage.getItem(k); } catch { return null; } };
   const mark = (k: string, v = "1") => { try { sessionStorage.setItem(k, v); } catch {} setTick(t => t + 1); };
@@ -156,20 +150,6 @@ function RoleSelector() {
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
-
-  useEffect(() => {
-    if (!settings) return;
-    const am = settings.amStatus, pm = settings.pmStatus;
-    setRoleArmed(r => {
-      let na = r.am, np = r.pm;
-      if (prevRole.current.am !== "in_progress" && am === "in_progress") na = true;
-      if (am !== "in_progress") na = false;
-      if (prevRole.current.pm !== "in_progress" && pm === "in_progress") np = true;
-      if (pm !== "in_progress") np = false;
-      return na === r.am && np === r.pm ? r : { am: na, pm: np };
-    });
-    prevRole.current = { am, pm };
-  }, [settings?.amStatus, settings?.pmStatus]);
 
   async function handleAndroidInstall() {
     if (!deferredPrompt) return;
@@ -209,26 +189,11 @@ function RoleSelector() {
   // browser this session, regardless of tournament mode or flight status.
   const needInstall = showInstallPrompt && !sess("atd_install_seen");
 
-  // Role question ("How are you using the app today?") — gated:
-  //  · test mode → classic welcome, once per session
-  //  · live mode → suppressed while both flights are Not Started (everyone is a
-  //    viewer by default); appears for everyone the moment a flight flips to
-  //    In Progress (and for fresh visitors after that), once per flight start.
-  //    Skipped for already-logged-in scorekeepers so it never interrupts scoring.
-  //  · complete mode → never
+  // Role question here is just the TEST-mode welcome (once per session). The live
+  // "flight started" question lives in FlightStartedModal.
   const mode = settings ? (settings.tournamentMode ?? "test") : null; // null until settings load
-  const amS = settings?.amStatus ?? "not_started";
-  const pmS = settings?.pmStatus ?? "not_started";
-  // Suppress only while actively on the scorekeeper page (mid-scoring) — NOT just
-  // because a session is cached, so viewers/leaderboard always get the popup.
-  const onScorekeeperPage = location.startsWith("/scorekeeper");
   let roleAsk: { key: string; title: string } | null = null;
-  if (mode === "test") {
-    if (!sess("atd_role")) roleAsk = { key: "atd_role", title: "Welcome" };
-  } else if (mode === "live" && !onScorekeeperPage) {
-    if (pmS === "in_progress" && roleArmed.pm) roleAsk = { key: "atd_role_pm", title: "PM Flight Has Officially Started!" };
-    else if (amS === "in_progress" && roleArmed.am) roleAsk = { key: "atd_role_am", title: "AM Flight Has Officially Started!" };
-  }
+  if (mode === "test" && !sess("atd_role")) roleAsk = { key: "atd_role", title: "Welcome" };
 
   const visible = needInstall || !!roleAsk;
 
@@ -244,11 +209,7 @@ function RoleSelector() {
   }
 
   function choose(role: "scorekeeper" | "viewer") {
-    if (mode === "test") mark("atd_role", role);
-    // Disarm the flight popup that's showing so it closes (re-arms on next flip)
-    if (roleAsk?.key === "atd_role_pm") setRoleArmed(r => ({ ...r, pm: false }));
-    else if (roleAsk?.key === "atd_role_am") setRoleArmed(r => ({ ...r, am: false }));
-    else setTick(t => t + 1);
+    mark("atd_role", role);
     if (role === "scorekeeper") navigate("/scorekeeper");
   }
 
@@ -456,6 +417,75 @@ function BroadcastModal() {
   );
 }
 
+// ─── FLIGHT STARTED — "How are you using the app?" ────────────────────────────
+// Standalone (independent of the install/welcome flow). Re-arms every time a
+// flight FLIPS to In Progress, so it fires for everyone the instant the admin
+// starts a flight. Suppressed only while actively on the scorekeeper page.
+function FlightStartedModal() {
+  const [location, navigate] = useLocation();
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 5000, refetchOnWindowFocus: true });
+  const [armed, setArmed] = useState<{ morning: boolean; afternoon: boolean }>({ morning: false, afternoon: false });
+  const prev = useRef<{ am?: string; pm?: string }>({});
+
+  useEffect(() => {
+    if (!settings) return;
+    const am = settings.amStatus, pm = settings.pmStatus;
+    setArmed(a => {
+      let m = a.morning, n = a.afternoon;
+      if (prev.current.am !== "in_progress" && am === "in_progress") m = true;
+      if (am !== "in_progress") m = false;
+      if (prev.current.pm !== "in_progress" && pm === "in_progress") n = true;
+      if (pm !== "in_progress") n = false;
+      return m === a.morning && n === a.afternoon ? a : { morning: m, afternoon: n };
+    });
+    prev.current = { am, pm };
+  }, [settings?.amStatus, settings?.pmStatus]);
+
+  const mode = settings?.tournamentMode ?? "test";
+  const onScorekeeperPage = location.startsWith("/scorekeeper");
+  if (!settings || mode !== "live" || onScorekeeperPage) return null;
+
+  let flight: "morning" | "afternoon" | null = null;
+  if (settings.pmStatus === "in_progress" && armed.afternoon) flight = "afternoon";
+  else if (settings.amStatus === "in_progress" && armed.morning) flight = "morning";
+  if (!flight) return null;
+
+  const shown = flight;
+  const label = flight === "morning" ? "AM" : "PM";
+  const choose = (role: "scorekeeper" | "viewer") => {
+    setArmed(a => ({ ...a, [shown]: false }));
+    if (role === "scorekeeper") navigate("/scorekeeper");
+  };
+
+  return (
+    <div className="fixed inset-0 z-[290] flex items-center justify-center p-6" style={{ background: "rgba(17,27,51,0.72)", backdropFilter: "blur(4px)" }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 flex flex-col items-center gap-3" style={{ border: "2px solid #b06b10" }}>
+        <img src={atdLogoWelcome} alt="ATD" className="w-32 h-32 object-contain" />
+        <div className="text-center">
+          <h2 className="font-bold text-[#1a2744] text-lg mb-1 leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>{label} Flight Has Officially Started!</h2>
+          <p className="text-[#1a2744]/55 text-sm font-sans-app">How are you using the app today?</p>
+        </div>
+        <div className="flex flex-col gap-3 w-full">
+          <button
+            onClick={() => choose("scorekeeper")}
+            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-bold text-white font-sans-app text-base transition-all"
+            style={{ background: "linear-gradient(135deg, #1a2744, #243461)", border: "1.5px solid rgba(176,107,16,0.4)" }}
+          >
+            <ClipboardEdit size={18} /> Scorekeeper
+          </button>
+          <button
+            onClick={() => choose("viewer")}
+            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl font-bold font-sans-app text-base transition-all"
+            style={{ background: "rgba(176,107,16,0.12)", border: "1.5px solid #b06b10", color: "#8a5008" }}
+          >
+            <Users size={18} /> Viewer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── FLIGHT COMPLETE ANNOUNCEMENT ─────────────────────────────────────────────
 // When a flight's status flips to Complete, everyone on the app gets a one-time
 // announcement: final podium, CTP/LD winners, collect-winnings note, thank-you,
@@ -584,6 +614,7 @@ function AppShell() {
     <div className="min-h-[100dvh]" style={{ background: "#f0ebe1" }}>
       <AppHeader />
       <RoleSelector />
+      <FlightStartedModal />
       <BroadcastModal />
       <FlightCompleteModal />
       <main className="max-w-7xl mx-auto px-4 py-6" style={{ paddingTop: 'calc(var(--header-h, 130px) + 1.5rem)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}>
