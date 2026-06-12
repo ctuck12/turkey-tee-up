@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -1103,11 +1103,22 @@ function ScorecardComparison() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [flightFilter, setFlightFilter] = useState<"morning" | "afternoon">("morning");
+  const { data: settings } = useQuery<TournamentSettings>({ queryKey: ["/api/settings"] });
   // One shared scores query so we can compare hole-by-hole across teams
   const { data: allScores = [] } = useQuery<Score[]>({ queryKey: ["/api/scores"], refetchInterval: open ? 5000 : false });
 
+  // When Live, default the toggle to the in-progress flight (PM if active, else AM)
+  // until the admin manually picks one.
+  const userSetFlightRef = useRef(false);
+  useEffect(() => {
+    if (userSetFlightRef.current) return;
+    if ((settings?.tournamentMode ?? "test") !== "live") return;
+    if (settings?.pmActive) setFlightFilter("afternoon");
+    else if (settings?.amActive) setFlightFilter("morning");
+  }, [settings]);
+
   // Switching flights clears the current picks — you only compare within one flight
-  const switchFlight = (f: "morning" | "afternoon") => { setFlightFilter(f); setSelected([]); };
+  const switchFlight = (f: "morning" | "afternoon") => { userSetFlightRef.current = true; setFlightFilter(f); setSelected([]); };
 
   const toggle = (id: number) =>
     setSelected(s => s.includes(id) ? s.filter(x => x !== id) : (s.length >= 5 ? s : [...s, id]));
