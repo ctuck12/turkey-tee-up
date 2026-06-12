@@ -1133,6 +1133,21 @@ function SettingsTab() {
 
   if (!form) return null;
 
+  // Flight winners (1st/2nd/3rd per flight) — medals show on the leaderboard
+  const setPlace = async (flight: "morning" | "afternoon", place: number, teamIdStr: string) => {
+    try {
+      const id = teamIdStr === "none" ? null : parseInt(teamIdStr);
+      const current = teams.find(t => t.flight === flight && t.finishPlace === place);
+      if (current && current.id !== id) await apiRequest("PUT", `/api/teams/${current.id}`, { finishPlace: null });
+      if (id) await apiRequest("PUT", `/api/teams/${id}`, { finishPlace: place });
+      qc.invalidateQueries({ queryKey: ["/api/teams"] });
+      toast({ title: id ? "Winner saved!" : "Place cleared" });
+    } catch {
+      toast({ title: "Could not save winner", description: "If you just added this feature, run the Supabase migration first.", variant: "destructive" });
+    }
+  };
+  const medals: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+
   const modeMeta: Record<string, { label: string; active: string; help: string }> = {
     test: { label: "Test", active: "bg-blue-500/20 border-blue-500/60 text-blue-700", help: "Everything is open — any flight can log in and enter scores. Use this to test every part of the site." },
     live: { label: "Live", active: "bg-green-600/20 border-green-600/60 text-green-700", help: "Tournament day. Teams can only enter scores once you activate their flight below. Still fully testable." },
@@ -1184,6 +1199,42 @@ function SettingsTab() {
             <p className="text-[#1a2744]/40 text-xs">Until a flight is activated, those teams can't log in or enter scores, and the leaderboard opens to the active flight.</p>
           </div>
         )}
+      </div>
+
+      {/* Flight Winners — 1st/2nd/3rd per flight, medals show on leaderboard */}
+      <div className="atd-card rounded-xl p-5 space-y-4">
+        <div>
+          <h2 className="font-bold text-[#b06b10]">Flight Winners</h2>
+          <p className="text-[#1a2744]/50 text-xs mt-0.5">Mark 1st, 2nd and 3rd for each flight — a medal appears next to the team's name on the leaderboard.</p>
+        </div>
+        {([
+          { flight: "morning" as const, label: "AM Flight", cls: "text-blue-600" },
+          { flight: "afternoon" as const, label: "PM Flight", cls: "text-[#b06b10]" },
+        ]).map(({ flight, label, cls }) => {
+          const flightTeams = teams.filter(t => t.flight === flight);
+          return (
+            <div key={flight} className="space-y-1.5">
+              <p className={`text-xs font-bold uppercase tracking-wider ${cls}`}>{label}</p>
+              {[1, 2, 3].map(place => {
+                const holder = flightTeams.find(t => t.finishPlace === place);
+                return (
+                  <div key={place} className="flex items-center gap-2">
+                    <span className="text-lg w-7 text-center shrink-0">{medals[place]}</span>
+                    <Select value={holder ? String(holder.id) : "none"} onValueChange={v => setPlace(flight, place, v)}>
+                      <SelectTrigger className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] h-9 text-sm">
+                        <SelectValue placeholder="— None —" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-[#1a2744] border-amber-500/20 text-amber-100 max-h-56">
+                        <SelectItem value="none">— None —</SelectItem>
+                        {flightTeams.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.teamName}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
 
       {/* Hole Settings — collapsible */}

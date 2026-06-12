@@ -18,7 +18,7 @@ function mapHole(r: any): Hole {
   return { id: r.id, holeNumber: r.hole_number, par: r.par, handicap: r.handicap, yardageBlue: r.yardage_blue, yardageWhite: r.yardage_white, yardageRed: r.yardage_red, isCtpHole: r.is_ctp_hole, ctpLabel: r.ctp_label };
 }
 function mapTeam(r: any): Team {
-  return { id: r.id, teamName: r.team_name, player1: r.player1, player2: r.player2, player3: r.player3, player4: r.player4, flight: r.flight, startingHole: r.starting_hole, teamCode: r.team_code, isActive: r.is_active, isSubmitted: r.is_submitted ?? false };
+  return { id: r.id, teamName: r.team_name, player1: r.player1, player2: r.player2, player3: r.player3, player4: r.player4, flight: r.flight, startingHole: r.starting_hole, teamCode: r.team_code, isActive: r.is_active, isSubmitted: r.is_submitted ?? false, finishPlace: r.finish_place ?? null };
 }
 function mapScore(r: any): Score {
   return { id: r.id, teamId: r.team_id, holeNumber: r.hole_number, strokes: r.strokes, updatedAt: r.updated_at };
@@ -136,7 +136,7 @@ function createStorage(): IStorage {
       return mapTeam(row);
     },
     async updateTeam(id, data) {
-      const map: Record<string, string> = { teamName: "team_name", player1: "player1", player2: "player2", player3: "player3", player4: "player4", flight: "flight", startingHole: "starting_hole", teamCode: "team_code", isActive: "is_active" };
+      const map: Record<string, string> = { teamName: "team_name", player1: "player1", player2: "player2", player3: "player3", player4: "player4", flight: "flight", startingHole: "starting_hole", teamCode: "team_code", isActive: "is_active", finishPlace: "finish_place" };
       const snake: any = {};
       for (const [k, v] of Object.entries(data)) if (map[k]) snake[map[k]] = v;
       if (!Object.keys(snake).length) return this.getTeam(id);

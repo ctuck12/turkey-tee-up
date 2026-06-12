@@ -57,6 +57,7 @@ export const teams = sqliteTable("teams", {
   teamCode: text("team_code").notNull(), // unique 4-digit code for scorekeeper access
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   isSubmitted: integer("is_submitted", { mode: "boolean" }).notNull().default(false),
+  finishPlace: integer("finish_place"), // 1 | 2 | 3 within their flight, null = unplaced
 });
 
 // ─── SCORES ───────────────────────────────────────────────────────────────────

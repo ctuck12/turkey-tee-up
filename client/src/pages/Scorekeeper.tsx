@@ -993,10 +993,10 @@ export default function Scorekeeper() {
                             )}
                           </div>
                           <p className={`text-[10px] font-bold font-sans-app ml-0.5 ${
-                            stillLeading ? "text-[#b06b10]" : "text-[#1a2744]/40"
+                            stillLeading ? (isSubmitted || readOnly ? "text-green-700" : "text-[#b06b10]") : "text-[#1a2744]/40"
                           }`}>
                             {stillLeading
-                              ? "(STILL LEADING!)"
+                              ? (isSubmitted || readOnly ? "(WINNER!)" : "(STILL LEADING!)")
                               : isLd ? "(No longer longest drive)" : "(No longer closest to pin)"}
                           </p>
                         </div>
@@ -1025,7 +1025,9 @@ export default function Scorekeeper() {
                             </span>
                             {distFmt && <span className={isLd ? "text-emerald-700 font-bold text-xs" : "text-green-700 font-bold text-xs"}>{distFmt}</span>}
                           </div>
-                          <p className="text-[10px] font-bold font-sans-app ml-0.5 text-[#b06b10]">(STILL LEADING!)</p>
+                          <p className={`text-[10px] font-bold font-sans-app ml-0.5 ${isSubmitted || readOnly ? "text-green-700" : "text-[#b06b10]"}`}>
+                            {isSubmitted || readOnly ? "(WINNER!)" : "(STILL LEADING!)"}
+                          </p>
                         </div>
                       );
                     })}

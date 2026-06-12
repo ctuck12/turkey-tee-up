@@ -261,7 +261,12 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
                   {idx + 1}
                 </td>
                 <td className="px-3 py-3">
-                  <div className="font-bold text-[#1a2744] truncate max-w-[180px]" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{entry.team.teamName}</div>
+                  <div className="flex items-center gap-1 max-w-[200px]">
+                    <span className="font-bold text-[#1a2744] truncate" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{entry.team.teamName}</span>
+                    {entry.team.finishPlace != null && entry.team.finishPlace >= 1 && entry.team.finishPlace <= 3 && (
+                      <span className="text-base shrink-0">{["", "🥇", "🥈", "🥉"][entry.team.finishPlace]}</span>
+                    )}
+                  </div>
                   <div className="text-[#1a2744]/50 text-xs mt-0.5 truncate max-w-[180px]" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
                     {[entry.team.player1, entry.team.player2, entry.team.player3, entry.team.player4]
                       .filter(Boolean)
