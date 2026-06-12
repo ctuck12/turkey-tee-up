@@ -613,7 +613,8 @@ function DebugBadge() {
   const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 3000 });
   let on = false;
   try { on = localStorage.getItem("atd_debug") === "1"; } catch {}
-  if (!on) return null;
+  const href = (typeof window !== "undefined" ? window.location.href : "").toLowerCase();
+  if (!on && !href.includes("debug")) return null;
   return (
     <div style={{ position: "fixed", bottom: 4, left: 4, zIndex: 99999, background: "rgba(0,0,0,0.82)", color: "#5f5", font: "11px/1.4 monospace", padding: "5px 7px", borderRadius: 5, whiteSpace: "pre", pointerEvents: "none" }}>
       {`build=FSM3  loc=${location}\nmode=${settings?.tournamentMode}\nam=${settings?.amStatus}  pm=${settings?.pmStatus}`}
