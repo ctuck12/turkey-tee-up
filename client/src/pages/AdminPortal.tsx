@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ScorecardTable, ScorecardLegend } from "@/components/ScorecardTable";
+import { ScorecardTable } from "@/components/ScorecardTable";
 import type { Team, Hole, Sponsor, TournamentSettings, Score, ClosestToPin } from "@shared/schema";
 
 // ─── ADMIN AUTH ───────────────────────────────────────────────────────────────
@@ -1196,9 +1196,6 @@ function ScorecardComparison() {
               Green cell = outright best score on that hole among these teams (ties not highlighted)
             </div>
             {chosen.map(t => <CompareScorecard key={t.id} team={t} holes={holes} scores={scoresByTeam.get(t.id) ?? []} bestHoles={bestHolesFor(t.id)} />)}
-            <div className="bg-white rounded-xl border border-[#1a2744]/12">
-              <ScorecardLegend />
-            </div>
           </div>
         </div>
       )}
