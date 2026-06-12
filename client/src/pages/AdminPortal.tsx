@@ -393,8 +393,9 @@ function TeamsTab() {
   const afternoon = sortTeams(teams.filter(t => t.flight === "afternoon" && matchesSearch(t)));
 
   // "Start" sort control — rendered on each flight header line, aligned over the Hole column.
-  // Cycles none → desc → asc → none.
-  const startSortHeader = (
+  // Cycles none → desc → asc → none. Defined as a function so each call site gets a
+  // distinct element (avoids React reconciliation issues from reusing one element twice).
+  const renderStartSortHeader = () => (
     <div className="flex items-center gap-1.5">
       <button
         onClick={() => setHoleSort(s => (s === "none" ? "desc" : s === "desc" ? "asc" : "none"))}
@@ -480,7 +481,7 @@ function TeamsTab() {
           <>
             <div className="flex items-center justify-between pl-1 pr-3">
               <p className="text-blue-600 text-xs uppercase tracking-wider font-sans-app">AM Flight ({morning.length})</p>
-              {startSortHeader}
+              {renderStartSortHeader()}
             </div>
             {morning.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
@@ -489,7 +490,7 @@ function TeamsTab() {
           <>
             <div className="flex items-center justify-between pl-1 pr-3 mt-3">
               <p className="text-[#b06b10] text-xs uppercase tracking-wider font-sans-app">PM Flight ({afternoon.length})</p>
-              {startSortHeader}
+              {renderStartSortHeader()}
             </div>
             {afternoon.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
