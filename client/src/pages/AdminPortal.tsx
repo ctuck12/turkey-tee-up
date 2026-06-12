@@ -398,16 +398,16 @@ function TeamsTab() {
   const renderStartSortHeader = () => (
     <div className="flex items-center gap-1.5">
       <button
-        onClick={() => setHoleSort(s => (s === "none" ? "desc" : s === "desc" ? "asc" : "none"))}
+        onClick={() => setHoleSort(s => (s === "none" ? "asc" : s === "asc" ? "desc" : "none"))}
         className={`flex items-center justify-center gap-0.5 w-14 text-[11px] font-bold font-sans-app uppercase tracking-wide rounded py-1 transition-colors ${
           holeSort !== "none" ? "bg-[#1a2744]/8 text-[#1a2744]" : "text-[#1a2744]/45 hover:text-[#1a2744]/70"
         }`}
         title={
-          holeSort === "desc"
-            ? "Starting hole: high → low. Click for low → high."
-            : holeSort === "asc"
-            ? "Starting hole: low → high. Click to sort by team name."
-            : "Click to sort by starting hole (high → low)."
+          holeSort === "asc"
+            ? "Starting hole: low → high. Click for high → low."
+            : holeSort === "desc"
+            ? "Starting hole: high → low. Click to sort by team name."
+            : "Click to sort by starting hole (low → high)."
         }
       >
         Start
