@@ -327,9 +327,9 @@ function TeamsTab() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [flightFilter, setFlightFilter] = useState<"all" | "morning" | "afternoon">("all");
   const [search, setSearch] = useState("");
-  // Starting-hole sort cycles: "none" (team name, A→Z) → "desc" (high→low) →
-  // "asc" (low→high) → back to "none".
-  const [holeSort, setHoleSort] = useState<"none" | "desc" | "asc">("none");
+  // Starting-hole sort cycles: "asc" (low→high, default) → "desc" (high→low) →
+  // "none" (team name, A→Z) → back to "asc".
+  const [holeSort, setHoleSort] = useState<"none" | "desc" | "asc">("asc");
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/teams", data),
