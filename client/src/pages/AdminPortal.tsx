@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, Flag, Settings, Plus, Trash2, Edit2, Check, X,
-  Copy, RefreshCw, ChevronDown, ChevronUp, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList, Target, Zap
+  Copy, RefreshCw, ChevronDown, ChevronUp, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList, Target, Zap, Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -325,6 +325,7 @@ function TeamsTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [flightFilter, setFlightFilter] = useState<"all" | "morning" | "afternoon">("all");
+  const [search, setSearch] = useState("");
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/teams", data),
@@ -365,8 +366,16 @@ function TeamsTab() {
     },
   });
 
-  const morning = teams.filter(t => t.flight === "morning");
-  const afternoon = teams.filter(t => t.flight === "afternoon");
+  // Match by team name or any player name (contains, case-insensitive) —
+  // matching against full player names means last-name searches work too.
+  const q = search.trim().toLowerCase();
+  const matchesSearch = (t: Team) =>
+    !q ||
+    t.teamName.toLowerCase().includes(q) ||
+    [t.player1, t.player2, t.player3, t.player4].filter(Boolean).some(p => p.toLowerCase().includes(q));
+
+  const morning = teams.filter(t => t.flight === "morning" && matchesSearch(t));
+  const afternoon = teams.filter(t => t.flight === "afternoon" && matchesSearch(t));
 
   return (
     <div className="space-y-4">
@@ -391,6 +400,25 @@ function TeamsTab() {
             <Plus size={14} className="mr-1.5" /> Add Team
           </Button>
         </div>
+      </div>
+
+      {/* Search by team name or player name */}
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1a2744]/40 pointer-events-none" />
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search team or player name..."
+          className="bg-white border-[#1a2744]/12 text-[#1a2744] pl-9 pr-8 font-sans-app text-sm"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch("")}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#1a2744]/40 hover:text-[#1a2744]/70 p-0.5"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {showAdd && (
@@ -423,6 +451,12 @@ function TeamsTab() {
           <div className="atd-card rounded-xl p-8 text-center">
             <Users size={36} className="text-[#1a2744]/25 mx-auto mb-3" />
             <p className="text-[#1a2744]/50 font-sans-app">No teams yet — add the first one above</p>
+          </div>
+        )}
+        {teams.length > 0 && q && morning.length === 0 && afternoon.length === 0 && (
+          <div className="atd-card rounded-xl p-8 text-center">
+            <Search size={36} className="text-[#1a2744]/25 mx-auto mb-3" />
+            <p className="text-[#1a2744]/50 font-sans-app">No teams or players match "{search.trim()}"</p>
           </div>
         )}
       </div>
