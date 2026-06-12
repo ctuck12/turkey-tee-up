@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, Flag, Settings, Plus, Trash2, Edit2, Check, X,
-  Copy, RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList, Target, Zap, Search
+  Copy, RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList, Target, Zap, Search, Scale
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScorecardTable, ScorecardLegend } from "@/components/ScorecardTable";
 import type { Team, Hole, Sponsor, TournamentSettings, Score, ClosestToPin } from "@shared/schema";
 
 // ─── ADMIN AUTH ───────────────────────────────────────────────────────────────
@@ -1070,6 +1071,121 @@ function SponsorsTab() {
   );
 }
 
+// ─── SCORECARD COMPARISON (tie / playoff tool) ────────────────────────────────
+function CompareScorecard({ team, holes }: { team: Team; holes: Hole[] }) {
+  const { data: scores = [] } = useQuery<Score[]>({
+    queryKey: ["/api/scores/team", team.id],
+    queryFn: () => apiRequest("GET", `/api/scores/team/${team.id}`).then(r => r.json()),
+    enabled: !!team.id,
+  });
+  const holeMap = new Map(holes.map(h => [h.holeNumber, h]));
+  const played = scores.filter(s => s.strokes != null);
+  const strokes = played.reduce((sum, s) => sum + (s.strokes ?? 0), 0);
+  const par = played.reduce((sum, s) => sum + (holeMap.get(s.holeNumber)?.par ?? 4), 0);
+  const toPar = strokes - par;
+  const toParLabel = played.length === 0 ? "—" : toPar === 0 ? "E" : toPar > 0 ? `+${toPar}` : `${toPar}`;
+  return (
+    <div className="bg-white rounded-xl border border-[#1a2744]/12 p-3">
+      <div className="flex items-center justify-between mb-2 px-1 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${team.flight === "morning" ? "bg-blue-500/15 text-blue-600" : "bg-amber-500/20 text-[#b06b10]"}`}>{team.flight === "morning" ? "AM" : "PM"}</span>
+          <span className="font-bold text-[#1a2744] truncate" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{team.teamName}</span>
+        </div>
+        <div className="flex items-center gap-3 shrink-0 font-sans-app">
+          <span className="text-[#1a2744]/45 text-xs">Thru {played.length}</span>
+          <span className="font-bold text-[#1a2744] text-base" style={{ fontFamily: "'Rajdhani', sans-serif" }}>{toParLabel}</span>
+        </div>
+      </div>
+      <ScorecardTable holes={holes} scores={scores} />
+    </div>
+  );
+}
+
+function ScorecardComparison() {
+  const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
+  const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
+  const [selected, setSelected] = useState<number[]>([]);
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const toggle = (id: number) =>
+    setSelected(s => s.includes(id) ? s.filter(x => x !== id) : (s.length >= 5 ? s : [...s, id]));
+
+  const q = search.trim().toLowerCase();
+  const list = teams.filter(t =>
+    !q || t.teamName.toLowerCase().includes(q) ||
+    [t.player1, t.player2, t.player3, t.player4].filter(Boolean).some(p => p.toLowerCase().includes(q))
+  );
+  const chosen = teams.filter(t => selected.includes(t.id));
+
+  return (
+    <div className="atd-card rounded-xl p-5 space-y-3">
+      <div>
+        <h2 className="font-bold text-[#b06b10] flex items-center gap-2"><Scale size={16} /> Scorecard Comparison</h2>
+        <p className="text-xs text-[#1a2744]/50 mt-0.5">Select 2–5 teams to view full scorecards together — for breaking ties in a scorecard playoff.</p>
+      </div>
+
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1a2744]/40 pointer-events-none" />
+        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search team or player..." className="bg-white border-[#1a2744]/12 text-[#1a2744] pl-9 text-sm" />
+      </div>
+
+      <div className="max-h-56 overflow-y-auto rounded-lg border border-[#1a2744]/10 divide-y divide-[#1a2744]/8">
+        {list.map(t => {
+          const isSel = selected.includes(t.id);
+          const disabled = !isSel && selected.length >= 5;
+          return (
+            <button
+              key={t.id}
+              onClick={() => toggle(t.id)}
+              disabled={disabled}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                isSel ? "bg-amber-500/10" : disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-[#1a2744]/5"
+              }`}
+            >
+              <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${isSel ? "bg-[#b06b10] border-[#b06b10] text-white" : "border-[#1a2744]/30"}`}>
+                {isSel && <Check size={11} />}
+              </span>
+              <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${t.flight === "morning" ? "bg-blue-500/15 text-blue-600" : "bg-amber-500/20 text-[#b06b10]"}`}>{t.flight === "morning" ? "AM" : "PM"}</span>
+              <span className="font-bold text-[#1a2744] truncate">{t.teamName}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-[#1a2744]/50 font-sans-app">{selected.length} selected · 2–5</span>
+        <div className="flex gap-2">
+          {selected.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => setSelected([])} className="text-[#1a2744]/55 font-sans-app">Clear</Button>
+          )}
+          <Button size="sm" disabled={selected.length < 2} onClick={() => setOpen(true)}
+            className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 disabled:opacity-40 font-bold font-sans-app">
+            <Scale size={14} className="mr-1.5" /> Compare ({selected.length})
+          </Button>
+        </div>
+      </div>
+
+      {open && (
+        <div className="fixed inset-0 z-[300] flex flex-col" style={{ background: "rgba(17,27,51,0.75)" }}>
+          <div className="flex items-center justify-between px-4 py-3 bg-[#1a2744] shrink-0">
+            <span className="text-amber-100 font-bold font-sans-app flex items-center gap-2"><Scale size={16} /> Scorecard Comparison ({chosen.length})</span>
+            <button onClick={() => setOpen(false)} className="text-amber-100/70 hover:text-amber-100 flex items-center gap-1 text-sm font-sans-app border border-amber-500/30 rounded px-2 py-1">
+              <X size={14} /> Close
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ background: "#f0ebe1" }}>
+            {chosen.map(t => <CompareScorecard key={t.id} team={t} holes={holes} />)}
+            <div className="bg-white rounded-xl border border-[#1a2744]/12">
+              <ScorecardLegend />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── SETTINGS TAB ─────────────────────────────────────────────────────────────
 function SettingsTab() {
   const { toast } = useToast();
@@ -1236,6 +1352,9 @@ function SettingsTab() {
           );
         })}
       </div>
+
+      {/* Scorecard Comparison — tie / playoff tool */}
+      <ScorecardComparison />
 
       {/* Hole Settings — collapsible */}
       <div className="atd-card rounded-xl overflow-hidden">
