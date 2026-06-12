@@ -6,6 +6,63 @@ import bigCountryLogo from "@/assets/big-country-title.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { LeaderboardEntry, Hole, ClosestToPin, CtpHistory, Team, Sponsor, TournamentSettings } from "@shared/schema";
 
+// ─── TIEBREAKER / STANDINGS ───────────────────────────────────────────────────
+type TieInfo = {
+  decidingHole: number;
+  vsTeamName: string;
+  rows: { hole: number; mine: number | null; theirs: number | null; decided: boolean }[];
+};
+
+function holeScore(entry: LeaderboardEntry, hole: number): number | null {
+  return entry.scores.find(s => s.holeNumber === hole)?.strokes ?? null;
+}
+
+// Compare two tied-on-total entries across the ranked tiebreaker holes.
+// Returns <0 if a is better, the deciding hole, or 0 if still tied.
+function tiebreak(a: LeaderboardEntry, b: LeaderboardEntry, tbHoles: number[]): { cmp: number; hole: number | null } {
+  for (const h of tbHoles) {
+    const as = holeScore(a, h), bs = holeScore(b, h);
+    if (as != null && bs != null && as !== bs) return { cmp: as - bs, hole: h };
+  }
+  return { cmp: 0, hole: null };
+}
+
+// Per-flight standings. Medals (place 1-3) are only assigned once the WHOLE flight
+// is final: every team thru 18 and officially submitted.
+function computeStandings(entries: LeaderboardEntry[], tbHoles: number[]) {
+  const sorted = [...entries].sort((a, b) => {
+    if (b.holesCompleted !== a.holesCompleted) return b.holesCompleted - a.holesCompleted;
+    if (a.totalToPar !== b.totalToPar) return a.totalToPar - b.totalToPar;
+    const tb = tiebreak(a, b, tbHoles);
+    if (tb.cmp !== 0) return tb.cmp;
+    return a.team.teamName.localeCompare(b.team.teamName);
+  });
+
+  const flightFinal = entries.length > 0 && entries.every(e => e.holesCompleted === 18 && e.team.isSubmitted);
+  const placeMap = new Map<number, number>();
+  const tieMap = new Map<number, TieInfo>();
+  if (!flightFinal) return { sorted, placeMap, tieMap };
+
+  sorted.forEach((e, i) => { if (i < 3) placeMap.set(e.team.id, i + 1); });
+
+  // Asterisk: a team that placed in the top 3 by beating a tied team (same total) via tiebreaker
+  for (let i = 0; i < Math.min(3, sorted.length); i++) {
+    const a = sorted[i], b = sorted[i + 1];
+    if (!b) continue;
+    if (a.totalToPar !== b.totalToPar) continue; // not a tie — placed on merit
+    const tb = tiebreak(a, b, tbHoles);
+    if (tb.cmp < 0 && tb.hole != null) {
+      const rows: TieInfo["rows"] = [];
+      for (const h of tbHoles) {
+        rows.push({ hole: h, mine: holeScore(a, h), theirs: holeScore(b, h), decided: h === tb.hole });
+        if (h === tb.hole) break;
+      }
+      tieMap.set(a.team.id, { decidingHole: tb.hole, vsTeamName: b.team.teamName, rows });
+    }
+  }
+  return { sorted, placeMap, tieMap };
+}
+
 function toParDisplay(toPar: number, holesCompleted: number): React.ReactNode {
   if (holesCompleted === 0) return <span className="text-[#1a2744]/50 text-sm">—</span>;
   if (toPar === 0) return <span className="to-par-even font-bold">E</span>;
@@ -196,7 +253,7 @@ function CtpPanel({ ctpEntries, holes, teams }: { ctpEntries: ClosestToPin[]; ho
   );
 }
 
-function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole, teams, inProgress }: {
+function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole, teams, inProgress, placeMap, tieMap }: {
   entries: LeaderboardEntry[];
   label: string;
   flight: "morning" | "afternoon";
@@ -205,11 +262,14 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
   ldHole?: Hole;
   teams: Team[];
   inProgress?: boolean;
+  placeMap: Map<number, number>;
+  tieMap: Map<number, TieInfo>;
 }) {
   const [, navigate] = useLocation();
   const [showCtp, setShowCtp] = useState(false);
   const [showInProgress, setShowInProgress] = useState(false);
   const [search, setSearch] = useState("");
+  const [tiePopup, setTiePopup] = useState<TieInfo | null>(null);
 
   const q = search.trim().toLowerCase();
   const filtered = entries.filter(e => {
@@ -321,8 +381,15 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-1 max-w-[200px]">
                     <span className="font-bold text-[#1a2744] truncate" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{entry.team.teamName}</span>
-                    {entry.team.finishPlace != null && entry.team.finishPlace >= 1 && entry.team.finishPlace <= 3 && (
-                      <span className="text-base shrink-0">{["", "🥇", "🥈", "🥉"][entry.team.finishPlace]}</span>
+                    {placeMap.get(entry.team.id) != null && (
+                      <span className="text-base shrink-0">{["", "🥇", "🥈", "🥉"][placeMap.get(entry.team.id)!]}</span>
+                    )}
+                    {tieMap.has(entry.team.id) && (
+                      <button
+                        onClick={e => { e.stopPropagation(); setTiePopup(tieMap.get(entry.team.id)!); }}
+                        className="shrink-0 text-[#b06b10] font-bold text-lg leading-none px-0.5 hover:text-[#8a5008]"
+                        title="Won on a tiebreaker — tap for details"
+                      >*</button>
                     )}
                   </div>
                   <div className="text-[#1a2744]/50 text-xs mt-0.5 truncate max-w-[180px]" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
@@ -344,6 +411,37 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
         </table>
       </div>
     </div>
+
+    {/* Tiebreaker explanation popup */}
+    {tiePopup && (
+      <div className="fixed inset-0 z-[250] flex items-center justify-center p-4" style={{ background: "rgba(17,27,51,0.6)" }} onClick={() => setTiePopup(null)}>
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" style={{ border: "2px solid #b06b10" }} onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a2744]/10">
+            <span className="font-bold text-sm text-[#b06b10] font-sans-app">Tiebreaker</span>
+            <button onClick={() => setTiePopup(null)} className="text-[#1a2744]/40 hover:text-[#1a2744]/70 p-1"><X size={16} /></button>
+          </div>
+          <div className="px-4 py-3 space-y-3 font-sans-app">
+            <p className="text-sm text-[#1a2744]/75">
+              Tied on total with <span className="font-bold text-[#1a2744]">{tiePopup.vsTeamName}</span> — won on
+              <span className="font-bold text-[#b06b10]"> Hole {tiePopup.decidingHole}</span>.
+            </p>
+            <div className="rounded-lg border border-[#1a2744]/12 overflow-hidden">
+              <div className="grid grid-cols-3 text-[10px] font-bold uppercase tracking-wide text-[#1a2744]/45 bg-[#1a2744]/5 px-3 py-1.5">
+                <span>Hole</span><span className="text-center">This team</span><span className="text-center">{tiePopup.vsTeamName.length > 12 ? "Other" : tiePopup.vsTeamName}</span>
+              </div>
+              {tiePopup.rows.map(r => (
+                <div key={r.hole} className={`grid grid-cols-3 px-3 py-1.5 text-sm border-t border-[#1a2744]/8 ${r.decided ? "bg-green-500/10" : ""}`}>
+                  <span className="text-[#1a2744]/70">Hole {r.hole}</span>
+                  <span className={`text-center font-bold ${r.decided ? "text-green-700" : "text-[#1a2744]"}`}>{r.mine ?? "—"}</span>
+                  <span className="text-center text-[#1a2744]/60">{r.theirs ?? "—"}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-[#1a2744]/45">Holes are compared in the tiebreaker order set by the admin; the green row is where the tie was broken.</p>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }
@@ -364,6 +462,10 @@ export default function Leaderboard() {
 
   const morningTeams = leaderboard.filter(e => e.team.flight === "morning");
   const afternoonTeams = leaderboard.filter(e => e.team.flight === "afternoon");
+
+  const tbHoles = (settings?.tiebreakerHoles ?? "").split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  const amStandings = computeStandings(morningTeams, tbHoles);
+  const pmStandings = computeStandings(afternoonTeams, tbHoles);
 
   const mode = settings?.tournamentMode ?? "test";
   const indicator = {
@@ -440,7 +542,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={morningTeams} label="AM Flight" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} inProgress={amInProgress} />
+              <LeaderboardTable entries={amStandings.sorted} label="AM Flight" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} inProgress={amInProgress} placeMap={amStandings.placeMap} tieMap={amStandings.tieMap} />
             )}
           </TabsContent>
           <TabsContent value="afternoon">
@@ -451,7 +553,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={afternoonTeams} label="PM Flight" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} inProgress={pmInProgress} />
+              <LeaderboardTable entries={pmStandings.sorted} label="PM Flight" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} inProgress={pmInProgress} placeMap={pmStandings.placeMap} tieMap={pmStandings.tieMap} />
             )}
           </TabsContent>
         </Tabs>

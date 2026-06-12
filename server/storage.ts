@@ -33,7 +33,7 @@ function mapCtpHistory(r: any): CtpHistory {
   return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, createdAt: r.created_at };
 }
 function mapSettings(r: any): TournamentSettings {
-  return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning", tournamentMode: r.tournament_mode ?? "test", amActive: r.am_active ?? false, pmActive: r.pm_active ?? false };
+  return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning", tournamentMode: r.tournament_mode ?? "test", amActive: r.am_active ?? false, pmActive: r.pm_active ?? false, tiebreakerHoles: r.tiebreaker_holes ?? null };
 }
 
 export interface IStorage {
@@ -94,6 +94,7 @@ function createStorage(): IStorage {
       if (data.tournamentMode !== undefined) snake.tournament_mode = data.tournamentMode;
       if (data.amActive !== undefined) snake.am_active = data.amActive;
       if (data.pmActive !== undefined) snake.pm_active = data.pmActive;
+      if (data.tiebreakerHoles !== undefined) snake.tiebreaker_holes = data.tiebreakerHoles;
       const { data: row } = await supabase.from("tournament_settings").upsert({ id: 1, ...snake }, { onConflict: "id" }).select().single();
       return mapSettings(row);
     },

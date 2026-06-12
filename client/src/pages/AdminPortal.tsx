@@ -1372,20 +1372,20 @@ function SettingsTab() {
 
   if (!form) return null;
 
-  // Flight winners (1st/2nd/3rd per flight) — medals show on the leaderboard
-  const setPlace = async (flight: "morning" | "afternoon", place: number, teamIdStr: string) => {
-    try {
-      const id = teamIdStr === "none" ? null : parseInt(teamIdStr);
-      const current = teams.find(t => t.flight === flight && t.finishPlace === place);
-      if (current && current.id !== id) await apiRequest("PUT", `/api/teams/${current.id}`, { finishPlace: null });
-      if (id) await apiRequest("PUT", `/api/teams/${id}`, { finishPlace: place });
-      qc.invalidateQueries({ queryKey: ["/api/teams"] });
-      toast({ title: id ? "Winner saved!" : "Place cleared" });
-    } catch {
-      toast({ title: "Could not save winner", description: "If you just added this feature, run the Supabase migration first.", variant: "destructive" });
-    }
+  // Tiebreaker holes — ordered list used to decide 1st/2nd/3rd ties in each flight.
+  // Stored on settings as a comma-separated string of hole numbers, in priority order.
+  const tbHoles: number[] = (settings?.tiebreakerHoles ?? "")
+    .split(",").map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  const tbSlots: (number | null)[] = Array.from({ length: 9 }, (_, i) => tbHoles[i] ?? null);
+  const setTiebreaker = (index: number, holeStr: string) => {
+    const hole = holeStr === "none" ? null : parseInt(holeStr);
+    const arr = [...tbSlots];
+    if (hole !== null) arr.forEach((h, i) => { if (h === hole) arr[i] = null; }); // no duplicate hole
+    arr[index] = hole;
+    const compact = arr.filter((h): h is number => h !== null); // ordered, no gaps
+    statusMutation.mutate({ tiebreakerHoles: compact.join(",") });
   };
-  const medals: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
+  const ordinals = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"];
 
   const modeMeta: Record<string, { label: string; active: string; help: string }> = {
     test: { label: "Test", active: "bg-blue-500/20 border-blue-500/60 text-blue-700", help: "Everything is open — any flight can log in and enter scores. Use this to test every part of the site." },
@@ -1440,40 +1440,43 @@ function SettingsTab() {
         )}
       </div>
 
-      {/* Flight Winners — 1st/2nd/3rd per flight, medals show on leaderboard */}
+      {/* Tiebreaker Holes — ordered holes used to auto-break 1st/2nd/3rd ties */}
       <div className="atd-card rounded-xl p-5 space-y-4">
         <div>
-          <h2 className="font-bold text-[#b06b10]">Flight Winners</h2>
-          <p className="text-[#1a2744]/50 text-xs mt-0.5">Mark 1st, 2nd and 3rd for each flight — a medal appears next to the team's name on the leaderboard.</p>
+          <h2 className="font-bold text-[#b06b10]">Tiebreaker Hole(s)</h2>
+          <p className="text-[#1a2744]/50 text-xs mt-0.5">
+            Rank the holes used to break ties for 1st, 2nd and 3rd in each flight. The app compares tied teams'
+            scores on the 1st hole listed; if still tied it moves to the 2nd, and so on. Medals (🥇🥈🥉) are assigned
+            automatically once every team in a flight has finished (thru F) and submitted.
+          </p>
         </div>
-        {([
-          { flight: "morning" as const, label: "AM Flight", cls: "text-blue-600" },
-          { flight: "afternoon" as const, label: "PM Flight", cls: "text-[#b06b10]" },
-        ]).map(({ flight, label, cls }) => {
-          const flightTeams = teams.filter(t => t.flight === flight);
-          return (
-            <div key={flight} className="space-y-1.5">
-              <p className={`text-xs font-bold uppercase tracking-wider ${cls}`}>{label}</p>
-              {[1, 2, 3].map(place => {
-                const holder = flightTeams.find(t => t.finishPlace === place);
-                return (
-                  <div key={place} className="flex items-center gap-2">
-                    <span className="text-lg w-7 text-center shrink-0">{medals[place]}</span>
-                    <Select value={holder ? String(holder.id) : "none"} onValueChange={v => setPlace(flight, place, v)}>
-                      <SelectTrigger className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] h-9 text-sm">
-                        <SelectValue placeholder="— None —" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-[#1a2744] border-amber-500/20 text-amber-100 max-h-56">
-                        <SelectItem value="none">— None —</SelectItem>
-                        {flightTeams.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.teamName}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
+        <div className="space-y-1.5">
+          {tbSlots.map((val, i) => {
+            // Only show a slot if it's filled or it's the next empty one (keeps the list tidy)
+            const filledCount = tbHoles.length;
+            if (i > filledCount) return null;
+            const usedElsewhere = new Set(tbSlots.filter((_, j) => j !== i).filter(h => h !== null) as number[]);
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#1a2744]/45 font-sans-app w-8 shrink-0">{ordinals[i]}</span>
+                <Select value={val ? String(val) : "none"} onValueChange={v => setTiebreaker(i, v)}>
+                  <SelectTrigger className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] h-9 text-sm">
+                    <SelectValue placeholder="— Select hole —" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a2744] border-amber-500/20 text-amber-100 max-h-56">
+                    <SelectItem value="none">— None —</SelectItem>
+                    {Array.from({ length: 18 }, (_, n) => n + 1)
+                      .filter(h => !usedElsewhere.has(h))
+                      .map(h => <SelectItem key={h} value={String(h)}>Hole {h}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            );
+          })}
+        </div>
+        {tbHoles.length === 0 && (
+          <p className="text-[#1a2744]/40 text-xs italic">No tiebreaker holes set — tied teams will be ordered alphabetically until you add at least one.</p>
+        )}
       </div>
 
       {/* Scorecard Comparison — tie / playoff tool */}

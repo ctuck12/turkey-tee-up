@@ -18,6 +18,8 @@ export const tournamentSettings = sqliteTable("tournament_settings", {
   tournamentMode: text("tournament_mode").notNull().default("test"),
   amActive: integer("am_active", { mode: "boolean" }).notNull().default(false),
   pmActive: integer("pm_active", { mode: "boolean" }).notNull().default(false),
+  // Ordered, comma-separated hole numbers used to break ties (1st listed = compared first)
+  tiebreakerHoles: text("tiebreaker_holes"),
 });
 
 // ─── HOLES ────────────────────────────────────────────────────────────────────
