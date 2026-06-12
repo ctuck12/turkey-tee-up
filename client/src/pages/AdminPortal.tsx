@@ -1317,6 +1317,8 @@ function SettingsTab() {
   const [form, setForm] = useState<any>(null);
   const [holesExpanded, setHolesExpanded] = useState(false);
   const [confirmClearCtp, setConfirmClearCtp] = useState<number | null>(null);
+  const [showAdminPw, setShowAdminPw] = useState(false);
+  const [showScorePw, setShowScorePw] = useState(false);
 
   useEffect(() => {
     if (settings && !form) setForm({ ...settings });
@@ -1522,41 +1524,23 @@ function SettingsTab() {
           </div>
           <div>
             <Label className="text-[#1a2744]/60 text-xs mb-1 block">Admin Password</Label>
-            <Input type="password" value={form.adminPassword ?? ""} onChange={e => setForm((p: any) => ({ ...p, adminPassword: e.target.value }))}
-              className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]" />
+            <div className="relative">
+              <Input type={showAdminPw ? "text" : "password"} value={form.adminPassword ?? ""} onChange={e => setForm((p: any) => ({ ...p, adminPassword: e.target.value }))}
+                className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] pr-10" />
+              <button type="button" onClick={() => setShowAdminPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1a2744]/45 hover:text-[#1a2744]/70">
+                {showAdminPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
           <div>
             <Label className="text-[#1a2744]/60 text-xs mb-1 block">Scorekeeper Password (fallback)</Label>
-            <Input type="password" value={form.scorekeeperPassword ?? ""} onChange={e => setForm((p: any) => ({ ...p, scorekeeperPassword: e.target.value }))}
-              className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]" />
-          </div>
-          <div className="col-span-2">
-            <Label className="text-[#1a2744]/60 text-xs mb-2 block">Default Leaderboard Flight</Label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setForm((p: any) => ({ ...p, defaultFlight: "morning" }))}
-                className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-colors font-sans-app ${
-                  (form.defaultFlight ?? "morning") === "morning"
-                    ? "bg-blue-500/20 border-blue-500/60 text-blue-700"
-                    : "bg-[#1a2744]/5 border-[#1a2744]/15 text-[#1a2744]/50 hover:border-[#1a2744]/30"
-                }`}
-              >
-                AM Flight
-              </button>
-              <button
-                type="button"
-                onClick={() => setForm((p: any) => ({ ...p, defaultFlight: "afternoon" }))}
-                className={`flex-1 py-2 rounded-lg border text-sm font-bold transition-colors font-sans-app ${
-                  (form.defaultFlight ?? "morning") === "afternoon"
-                    ? "bg-amber-500/20 border-amber-500/60 text-[#b06b10]"
-                    : "bg-[#1a2744]/5 border-[#1a2744]/15 text-[#1a2744]/50 hover:border-[#1a2744]/30"
-                }`}
-              >
-                PM Flight
+            <div className="relative">
+              <Input type={showScorePw ? "text" : "password"} value={form.scorekeeperPassword ?? ""} onChange={e => setForm((p: any) => ({ ...p, scorekeeperPassword: e.target.value }))}
+                className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] pr-10" />
+              <button type="button" onClick={() => setShowScorePw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1a2744]/45 hover:text-[#1a2744]/70">
+                {showScorePw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <p className="text-[#1a2744]/40 text-xs mt-1.5">Which flight tab the leaderboard opens on by default.</p>
           </div>
         </div>
         <Button onClick={() => updateMutation.mutate(form)} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold">

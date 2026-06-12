@@ -485,10 +485,8 @@ export default function Leaderboard() {
   const amInProgress = mode === "live" && !!settings?.amActive;
   const pmInProgress = mode === "live" && !!settings?.pmActive;
 
-  // Default tab: in live mode follow flight activation (latest = PM if on), else admin's setting
-  const defaultTab = mode === "live"
-    ? (settings?.pmActive ? "afternoon" : settings?.amActive ? "morning" : (settings?.defaultFlight ?? "morning"))
-    : (settings?.defaultFlight ?? "morning");
+  // Default tab follows the in-progress flight: PM if it's active, otherwise AM
+  const defaultTab = settings?.pmActive ? "afternoon" : "morning";
 
   return (
     <div className="space-y-6">
