@@ -443,12 +443,23 @@ function FlightStartedModal() {
 
   const mode = settings?.tournamentMode ?? "test";
   const onScorekeeperPage = location.startsWith("/scorekeeper");
-  if (!settings || mode !== "live" || onScorekeeperPage) return null;
+  const blocked = !settings || mode !== "live" || onScorekeeperPage;
 
   let flight: "morning" | "afternoon" | null = null;
-  if (settings.pmStatus === "in_progress" && armed.afternoon) flight = "afternoon";
-  else if (settings.amStatus === "in_progress" && armed.morning) flight = "morning";
-  if (!flight) return null;
+  if (settings?.pmStatus === "in_progress" && armed.afternoon) flight = "afternoon";
+  else if (settings?.amStatus === "in_progress" && armed.morning) flight = "morning";
+
+  const debugOn = (typeof window !== "undefined" ? window.location.href : "").toLowerCase().includes("debug");
+
+  if (blocked || !flight) {
+    if (!debugOn) return null;
+    // Diagnostic: show the modal's internal state so we can see why it's not firing
+    return (
+      <div style={{ position: "fixed", top: 4, left: 4, zIndex: 99999, background: "rgba(120,0,0,0.85)", color: "#ffd", font: "11px/1.4 monospace", padding: "5px 7px", borderRadius: 5, whiteSpace: "pre", pointerEvents: "none" }}>
+        {`FSM4 armed.am=${armed.morning} armed.pm=${armed.afternoon}\nflight=${flight} blocked=${blocked}\nmode=${mode} onSK=${onScorekeeperPage}`}
+      </div>
+    );
+  }
 
   const shown = flight;
   const label = flight === "morning" ? "AM" : "PM";
