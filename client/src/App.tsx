@@ -424,39 +424,33 @@ function BroadcastModal() {
 function FlightStartedModal() {
   const [location, navigate] = useLocation();
   const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 5000, refetchOnWindowFocus: true });
-  const [armed, setArmed] = useState<{ morning: boolean; afternoon: boolean }>({ morning: false, afternoon: false });
-  const prev = useRef<{ am?: string; pm?: string }>({});
+  // Dismissal per flight. Shows whenever the flight is In Progress and not yet
+  // dismissed; resets to "not dismissed" whenever the flight leaves In Progress,
+  // so it re-shows the next time the admin starts it. No transition tracking.
+  const [dismissed, setDismissed] = useState<{ morning: boolean; afternoon: boolean }>({ morning: false, afternoon: false });
 
   useEffect(() => {
-    if (!settings) return;
-    const am = settings.amStatus, pm = settings.pmStatus;
-    setArmed(a => {
-      let m = a.morning, n = a.afternoon;
-      if (prev.current.am !== "in_progress" && am === "in_progress") m = true;
-      if (am !== "in_progress") m = false;
-      if (prev.current.pm !== "in_progress" && pm === "in_progress") n = true;
-      if (pm !== "in_progress") n = false;
-      return m === a.morning && n === a.afternoon ? a : { morning: m, afternoon: n };
-    });
-    prev.current = { am, pm };
-  }, [settings?.amStatus, settings?.pmStatus]);
+    if (settings && settings.amStatus !== "in_progress") setDismissed(d => d.morning ? { ...d, morning: false } : d);
+  }, [settings?.amStatus]);
+  useEffect(() => {
+    if (settings && settings.pmStatus !== "in_progress") setDismissed(d => d.afternoon ? { ...d, afternoon: false } : d);
+  }, [settings?.pmStatus]);
 
   const mode = settings?.tournamentMode ?? "test";
   const onScorekeeperPage = location.startsWith("/scorekeeper");
   const blocked = !settings || mode !== "live" || onScorekeeperPage;
 
   let flight: "morning" | "afternoon" | null = null;
-  if (settings?.pmStatus === "in_progress" && armed.afternoon) flight = "afternoon";
-  else if (settings?.amStatus === "in_progress" && armed.morning) flight = "morning";
+  if (settings?.pmStatus === "in_progress" && !dismissed.afternoon) flight = "afternoon";
+  else if (settings?.amStatus === "in_progress" && !dismissed.morning) flight = "morning";
 
   const debugOn = (typeof window !== "undefined" ? window.location.href : "").toLowerCase().includes("debug");
 
   if (blocked || !flight) {
     if (!debugOn) return null;
-    // Diagnostic: show the modal's internal state so we can see why it's not firing
     return (
       <div style={{ position: "fixed", top: 4, left: 4, zIndex: 99999, background: "rgba(120,0,0,0.85)", color: "#ffd", font: "11px/1.4 monospace", padding: "5px 7px", borderRadius: 5, whiteSpace: "pre", pointerEvents: "none" }}>
-        {`FSM4 armed.am=${armed.morning} armed.pm=${armed.afternoon}\nflight=${flight} blocked=${blocked}\nmode=${mode} onSK=${onScorekeeperPage}`}
+        {`FSM5 dAm=${dismissed.morning} dPm=${dismissed.afternoon}\nflight=${flight} blocked=${blocked}\nmode=${mode} onSK=${onScorekeeperPage}`}
       </div>
     );
   }
@@ -464,7 +458,7 @@ function FlightStartedModal() {
   const shown = flight;
   const label = flight === "morning" ? "AM" : "PM";
   const choose = (role: "scorekeeper" | "viewer") => {
-    setArmed(a => ({ ...a, [shown]: false }));
+    setDismissed(d => ({ ...d, [shown]: true }));
     if (role === "scorekeeper") navigate("/scorekeeper");
   };
 
