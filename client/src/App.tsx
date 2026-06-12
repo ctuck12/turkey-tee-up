@@ -131,8 +131,10 @@ function AppHeader() {
 
 function RoleSelector() {
   const [, navigate] = useLocation();
-  // Settings arrive via SSE + initial fetch — drives when the role question shows
-  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
+  // Settings drive when the role question shows. Poll + refetch-on-focus as a
+  // fallback: SSE can be suspended on backgrounded desktop/iPad tabs, so polling
+  // guarantees the In-Progress popup still fires there.
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 5000, refetchOnWindowFocus: true });
   const [, setTick] = useState(0); // re-render after sessionStorage writes
   const [step, setStep] = useState<"install" | "role" | "added">("install");
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -436,11 +438,13 @@ function BroadcastModal() {
 // and Make Donation / View Leaderboard buttons.
 function FlightCompleteModal() {
   const [, navigate] = useLocation();
-  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
-  const { data: leaderboard = [] } = useQuery<any[]>({ queryKey: ["/api/leaderboard"] });
+  // Poll + refetch-on-focus fallback so the Complete announcement still fires on
+  // desktop/iPad tabs whose SSE connection was suspended in the background.
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 5000, refetchOnWindowFocus: true });
+  const { data: leaderboard = [] } = useQuery<any[]>({ queryKey: ["/api/leaderboard"], refetchInterval: 5000, refetchOnWindowFocus: true });
   const { data: teams = [] } = useQuery<any[]>({ queryKey: ["/api/teams"] });
   const { data: holes = [] } = useQuery<any[]>({ queryKey: ["/api/holes"] });
-  const { data: ctp = [] } = useQuery<any[]>({ queryKey: ["/api/ctp"] });
+  const { data: ctp = [] } = useQuery<any[]>({ queryKey: ["/api/ctp"], refetchInterval: 5000, refetchOnWindowFocus: true });
 
   // Re-arm the announcement every time a flight FLIPS into Complete (and on first
   // load if it's already Complete), so toggling the status re-shows it for everyone.
