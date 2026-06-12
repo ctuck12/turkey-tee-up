@@ -332,3 +332,14 @@ body {
     margin-right: 0;
   }
 }
+
+/* Hide the browser's built-in password reveal/clear icons — the app renders its
+   own eye toggle on every password field, so the native one is a duplicate. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+input[type="password"]::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  pointer-events: none;
+}
