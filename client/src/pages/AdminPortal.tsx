@@ -264,15 +264,12 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="flex flex-col items-center leading-none px-1.5 shrink-0">
+          <div className="flex flex-col items-center leading-none w-14 shrink-0">
             <span className="text-[9px] uppercase tracking-wide text-[#1a2744]/35 font-sans-app">Hole</span>
             <span className="text-sm font-bold text-[#1a2744]/70 font-sans-app">{team.startingHole ?? 1}</span>
           </div>
-          <div className={`flex items-center gap-1 bg-[#1a2744]/8 rounded px-2 py-0.5 text-xs font-sans-app font-bold tracking-wide ${team.flight === "morning" ? "text-blue-600" : "text-[#b06b10]"}`}>
+          <div className={`flex items-center justify-center bg-[#1a2744]/8 rounded px-2 py-0.5 w-16 text-xs font-sans-app font-bold tracking-wide ${team.flight === "morning" ? "text-blue-600" : "text-[#b06b10]"}`}>
             {team.teamCode}
-            <button onClick={() => { navigator.clipboard.writeText(team.teamCode); toast({ title: "Code copied!" }); }} className={`ml-1 ${team.flight === "morning" ? "text-blue-600 hover:text-blue-700" : "text-[#b06b10] hover:text-[#b06b10]/70"}`}>
-              <Copy size={10} />
-            </button>
           </div>
           <button onClick={() => setExpanded(!expanded)} className="text-[#1a2744]/50 hover:text-[#1a2744]/70 p-1">
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -452,11 +449,11 @@ function TeamsTab() {
         </div>
       )}
 
-      {/* Sort header — cycle Starting Hole sort: none → desc → asc → none */}
-      <div className="flex items-center justify-end px-1">
+      {/* Sort header — "Start" sits directly over the Hole column; cycles none → desc → asc → none */}
+      <div className="flex items-center justify-end px-3 gap-1.5">
         <button
           onClick={() => setHoleSort(s => (s === "none" ? "desc" : s === "desc" ? "asc" : "none"))}
-          className={`flex items-center gap-1 text-[11px] font-bold font-sans-app uppercase tracking-wide rounded px-2 py-1 transition-colors ${
+          className={`flex items-center justify-center gap-0.5 w-14 text-[11px] font-bold font-sans-app uppercase tracking-wide rounded py-1 transition-colors ${
             holeSort !== "none" ? "bg-[#1a2744]/8 text-[#1a2744]" : "text-[#1a2744]/45 hover:text-[#1a2744]/70"
           }`}
           title={
@@ -467,9 +464,12 @@ function TeamsTab() {
               : "Click to sort by starting hole (high → low)."
           }
         >
-          Starting Hole
-          {holeSort === "desc" ? <ChevronDown size={13} /> : holeSort === "asc" ? <ChevronUp size={13} /> : <ChevronsUpDown size={13} className="opacity-50" />}
+          Start
+          {holeSort === "desc" ? <ChevronDown size={12} /> : holeSort === "asc" ? <ChevronUp size={12} /> : <ChevronsUpDown size={12} className="opacity-50" />}
         </button>
+        {/* spacers matching the Code pill + chevron so "Start" lines up over the Hole column */}
+        <div className="w-16" aria-hidden="true" />
+        <div className="w-[22px]" aria-hidden="true" />
       </div>
 
       <div className="space-y-2">
