@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Team, Hole, Score, ClosestToPin, Sponsor, TournamentSettings } from "@shared/schema";
 import bigCountryLogo from "@/assets/big-country-title.png";
+import atdLogoWelcome from "@/assets/atd-logo-welcome.jpeg";
 import { ScorecardTable } from "@/components/ScorecardTable";
 
 // CTP / Long Drive Entry Modal
@@ -121,6 +122,7 @@ export default function Scorekeeper() {
     } catch { return null; }
   });
   const [authError, setAuthError] = useState("");
+  const [notStartedMsg, setNotStartedMsg] = useState<string | null>(null);
   const [currentHole, setCurrentHole] = useState<number>(() => {
     try {
       const saved = sessionStorage.getItem("sk_current_hole");
@@ -316,12 +318,20 @@ export default function Scorekeeper() {
     } catch (err) {
       // Surface the server's message (e.g. flight not started, tournament complete)
       let msg = "Invalid team code. Check with your admin.";
+      let reason = "";
       try {
         const text = String((err as Error)?.message ?? "");
         const json = JSON.parse(text.slice(text.indexOf("{")));
         if (json.message) msg = json.message;
+        if (json.reason) reason = json.reason;
       } catch {}
-      setAuthError(msg);
+      // Flight-not-started → friendly logo popup; everything else → inline red text
+      if (reason === "flight_inactive") {
+        setNotStartedMsg(msg);
+        setAuthError("");
+      } else {
+        setAuthError(msg);
+      }
     }
   }
 
@@ -474,6 +484,26 @@ export default function Scorekeeper() {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Flight-not-started popup — styled like the welcome/role modal, with logo */}
+        {notStartedMsg && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-6" style={{ background: "rgba(17,27,51,0.72)", backdropFilter: "blur(4px)" }}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 flex flex-col items-center gap-3" style={{ border: "2px solid #b06b10" }}>
+              <img src={atdLogoWelcome} alt="ATD" className="w-44 h-44 object-contain" />
+              <div className="text-center">
+                <h2 className="font-bold text-[#1a2744] text-xl mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>Hold Tight</h2>
+                <p className="text-[#1a2744]/65 text-sm font-sans-app leading-relaxed">{notStartedMsg}</p>
+              </div>
+              <button
+                onClick={() => setNotStartedMsg(null)}
+                className="w-full py-3 rounded-xl font-bold text-white font-sans-app text-sm transition-all"
+                style={{ background: "linear-gradient(135deg, #1a2744, #243461)", border: "1.5px solid rgba(176,107,16,0.4)" }}
+              >
+                Got It
+              </button>
             </div>
           </div>
         )}
