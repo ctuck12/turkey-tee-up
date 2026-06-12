@@ -258,14 +258,14 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
   const [confirmClearScores, setConfirmClearScores] = useState(false);
   return (
     <div className="bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-2.5">
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="font-bold text-[#1a2744] text-sm truncate max-w-[160px]">{team.teamName}</div>
-            <div className="text-[#1a2744]/50 text-xs">{[team.player1, team.player2, team.player3, team.player4].filter(Boolean).map(n => n.split(' ').pop()).join(" · ")}</div>
+      <div className="flex items-center justify-between gap-2 px-3 py-2.5">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="min-w-0">
+            <div className="font-bold text-[#1a2744] text-sm truncate">{team.teamName}</div>
+            <div className="text-[#1a2744]/50 text-xs truncate">{[team.player1, team.player2, team.player3, team.player4].filter(Boolean).map(n => n.split(' ').pop()).join(" · ")}</div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           <div className="flex flex-col items-center leading-none w-14 shrink-0">
             <span className="text-[9px] uppercase tracking-wide text-[#1a2744]/35 font-sans-app">Hole</span>
             <span className="text-sm font-bold text-[#1a2744]/70 font-sans-app">{team.startingHole ?? 1}</span>
