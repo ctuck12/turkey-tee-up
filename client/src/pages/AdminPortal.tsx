@@ -467,13 +467,13 @@ function TeamsTab() {
       <div className="space-y-2">
         {(flightFilter === "all" || flightFilter === "morning") && morning.length > 0 && (
           <>
-            <p className="text-blue-600 text-xs uppercase tracking-wider font-sans-app px-1">AM Flight</p>
+            <p className="text-blue-600 text-xs uppercase tracking-wider font-sans-app px-1">AM Flight ({morning.length})</p>
             {morning.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
         )}
         {(flightFilter === "all" || flightFilter === "afternoon") && afternoon.length > 0 && (
           <>
-            <p className="text-[#b06b10] text-xs uppercase tracking-wider font-sans-app px-1 mt-3">PM Flight</p>
+            <p className="text-[#b06b10] text-xs uppercase tracking-wider font-sans-app px-1 mt-3">PM Flight ({afternoon.length})</p>
             {afternoon.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} />)}
           </>
         )}
