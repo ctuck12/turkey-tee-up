@@ -29,7 +29,7 @@ function tiebreak(a: LeaderboardEntry, b: LeaderboardEntry, tbHoles: number[]): 
 
 // Per-flight standings. Medals (place 1-3) are only assigned once the WHOLE flight
 // is final: every team thru 18 and officially submitted.
-function computeStandings(entries: LeaderboardEntry[], tbHoles: number[]) {
+export function computeStandings(entries: LeaderboardEntry[], tbHoles: number[]) {
   const sorted = [...entries].sort((a, b) => {
     if (b.holesCompleted !== a.holesCompleted) return b.holesCompleted - a.holesCompleted;
     if (a.totalToPar !== b.totalToPar) return a.totalToPar - b.totalToPar;

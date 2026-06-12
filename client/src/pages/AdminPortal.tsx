@@ -1319,6 +1319,7 @@ function SettingsTab() {
   const [confirmClearCtp, setConfirmClearCtp] = useState<number | null>(null);
   const [showAdminPw, setShowAdminPw] = useState(false);
   const [showScorePw, setShowScorePw] = useState(false);
+  const [statusConfirm, setStatusConfirm] = useState<{ title: string; description: string; confirmLabel: string; onConfirm: () => void } | null>(null);
 
   useEffect(() => {
     if (settings && !form) setForm({ ...settings });
@@ -1407,20 +1408,29 @@ function SettingsTab() {
           </span>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {(["test", "live", "complete"] as const).map(m => (
-            <button
-              key={m}
-              onClick={() => statusMutation.mutate(
-                // Entering Live resets both flights to Not Started
-                m === "live" ? { tournamentMode: m, amStatus: "not_started", pmStatus: "not_started" } : { tournamentMode: m }
-              )}
-              className={`py-2 rounded-lg border text-sm font-bold transition-colors font-sans-app ${
-                mode === m ? modeMeta[m].active : "bg-[#1a2744]/5 border-[#1a2744]/15 text-[#1a2744]/50 hover:border-[#1a2744]/30"
-              }`}
-            >
-              {modeMeta[m].label}
-            </button>
-          ))}
+          {(["test", "live", "complete"] as const).map(m => {
+            const desc: Record<string, string> = {
+              test: "Opens everything for testing — any flight can log in and enter scores.",
+              live: "Starts tournament day and resets BOTH flights to Not Started.",
+              complete: "Locks the whole tournament — players become view-only and only you can edit.",
+            };
+            return (
+              <button
+                key={m}
+                onClick={() => setStatusConfirm({
+                  title: `Switch to ${modeMeta[m].label} mode?`,
+                  description: desc[m],
+                  confirmLabel: `Set ${modeMeta[m].label}`,
+                  onConfirm: () => statusMutation.mutate(m === "live" ? { tournamentMode: m, amStatus: "not_started", pmStatus: "not_started" } : { tournamentMode: m }),
+                })}
+                className={`py-2 rounded-lg border text-sm font-bold transition-colors font-sans-app ${
+                  mode === m ? modeMeta[m].active : "bg-[#1a2744]/5 border-[#1a2744]/15 text-[#1a2744]/50 hover:border-[#1a2744]/30"
+                }`}
+              >
+                {modeMeta[m].label}
+              </button>
+            );
+          })}
         </div>
         <p className="text-[#1a2744]/55 text-xs">{modeMeta[mode].help}</p>
 
@@ -1441,7 +1451,19 @@ function SettingsTab() {
                   ]).map(({ v, text, on }) => (
                     <button
                       key={v}
-                      onClick={() => statusMutation.mutate({ [key]: v })}
+                      onClick={() => {
+                        if (key === "pmStatus" && v === "complete") {
+                          // Completing PM ends the tournament — confirm + auto-set overall Complete
+                          setStatusConfirm({
+                            title: "Complete PM Flight & end tournament?",
+                            description: "This marks the PM flight Complete, sets the overall Tournament Status to Complete, and sends the PM results announcement to everyone on the app.",
+                            confirmLabel: "Complete Tournament",
+                            onConfirm: () => statusMutation.mutate({ pmStatus: "complete", tournamentMode: "complete" }),
+                          });
+                        } else {
+                          statusMutation.mutate({ [key]: v });
+                        }
+                      }}
                       className={`py-1.5 rounded-md border text-[11px] font-bold transition-colors font-sans-app whitespace-nowrap ${
                         value === v ? on : "bg-white border-[#1a2744]/12 text-[#1a2744]/45 hover:border-[#1a2744]/30"
                       }`}
@@ -1456,6 +1478,16 @@ function SettingsTab() {
           </div>
         )}
       </div>
+
+      {/* Confirmation for any Tournament Status change (+ PM-complete) */}
+      <ConfirmDialog
+        open={statusConfirm !== null}
+        onOpenChange={open => { if (!open) setStatusConfirm(null); }}
+        title={statusConfirm?.title ?? ""}
+        description={statusConfirm?.description ?? ""}
+        confirmLabel={statusConfirm?.confirmLabel ?? "Confirm"}
+        onConfirm={() => statusConfirm?.onConfirm()}
+      />
 
       {/* Tiebreaker Holes — ordered holes used to auto-break 1st/2nd/3rd ties */}
       <div className="atd-card rounded-xl p-5 space-y-4">

@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { Bell, X as XIcon, Trophy, ClipboardList, Shield, Heart, Menu, X, Users, ClipboardEdit } from "lucide-react";
 import { useSSE } from "@/hooks/use-sse";
-import Leaderboard from "@/pages/Leaderboard";
+import Leaderboard, { computeStandings } from "@/pages/Leaderboard";
 import Scorekeeper from "@/pages/Scorekeeper";
 import AdminPortal from "@/pages/AdminPortal";
 import Donate from "@/pages/Donate";
@@ -430,6 +430,110 @@ function BroadcastModal() {
   );
 }
 
+// ─── FLIGHT COMPLETE ANNOUNCEMENT ─────────────────────────────────────────────
+// When a flight's status flips to Complete, everyone on the app gets a one-time
+// announcement: final podium, CTP/LD winners, collect-winnings note, thank-you,
+// and Make Donation / View Leaderboard buttons.
+function FlightCompleteModal() {
+  const [, navigate] = useLocation();
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
+  const { data: leaderboard = [] } = useQuery<any[]>({ queryKey: ["/api/leaderboard"] });
+  const { data: teams = [] } = useQuery<any[]>({ queryKey: ["/api/teams"] });
+  const { data: holes = [] } = useQuery<any[]>({ queryKey: ["/api/holes"] });
+  const { data: ctp = [] } = useQuery<any[]>({ queryKey: ["/api/ctp"] });
+  const [, force] = useState(0);
+
+  const sess = (k: string) => { try { return sessionStorage.getItem(k); } catch { return null; } };
+  const mode = settings?.tournamentMode ?? "test";
+
+  // Pick the flight to announce: only in live/complete, only if its status is
+  // complete and we haven't already shown it this session.
+  let flight: "morning" | "afternoon" | null = null;
+  if (settings && (mode === "live" || mode === "complete")) {
+    if (settings.amStatus === "complete" && !sess("atd_flight_done_am")) flight = "morning";
+    else if (settings.pmStatus === "complete" && !sess("atd_flight_done_pm")) flight = "afternoon";
+  }
+  if (!flight || !settings) return null;
+
+  const flightLabel = flight === "morning" ? "AM" : "PM";
+  const tbHoles: number[] = (settings.tiebreakerHoles ?? "").split(",").map((s: string) => parseInt(s.trim())).filter((n: number) => !isNaN(n));
+  const entries = leaderboard.filter((e: any) => e.team.flight === flight);
+  const { sorted } = computeStandings(entries as any, tbHoles);
+  const top3 = sorted.slice(0, 3);
+
+  const flightTeamIds = new Set(teams.filter((t: any) => t.flight === flight).map((t: any) => t.id));
+  const ctpHoles = holes.filter((h: any) => h.isCtpHole && h.par === 3).sort((a: any, b: any) => a.holeNumber - b.holeNumber);
+  const ldHole = holes.find((h: any) => h.isCtpHole && h.par !== 3);
+  const winnerFor = (hole: any) => {
+    const entry = ctp.find((c: any) => c.holeNumber === hole.holeNumber && c.teamId != null && flightTeamIds.has(c.teamId));
+    if (!entry) return null;
+    const team = teams.find((t: any) => t.id === entry.teamId);
+    return { name: entry.playerName || team?.teamName || "—", team: team?.teamName as string | undefined };
+  };
+  const ctpWinners = ctpHoles.map((h: any) => ({ hole: h, w: winnerFor(h) }));
+  const ldWin = ldHole ? winnerFor(ldHole) : null;
+  const hasContests = ctpWinners.some(c => c.w) || ldWin;
+
+  const medals = ["🥇", "🥈", "🥉"];
+  const fmtToPar = (e: any) => e.holesCompleted === 0 || e.totalToPar === 0 ? "E" : e.totalToPar > 0 ? `+${e.totalToPar}` : `${e.totalToPar}`;
+  const dismiss = () => { try { sessionStorage.setItem(flight === "morning" ? "atd_flight_done_am" : "atd_flight_done_pm", "1"); } catch {} force(x => x + 1); };
+
+  return (
+    <div className="fixed inset-0 z-[280] flex items-center justify-center p-4" style={{ background: "rgba(17,27,51,0.72)", backdropFilter: "blur(4px)" }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[88vh]" style={{ border: "2px solid #b06b10" }}>
+        <div className="overflow-y-auto p-5 flex flex-col items-center gap-3">
+          <img src={atdLogoWelcome} alt="ATD" className="w-24 h-24 object-contain" />
+          <h2 className="font-bold text-[#1a2744] text-xl text-center leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>{flightLabel} Flight is Complete!</h2>
+
+          {/* Podium */}
+          <div className="w-full bg-[#f0ebe1] rounded-xl p-3 space-y-1.5">
+            <p className="text-[#b06b10] text-[11px] font-bold uppercase tracking-widest text-center mb-1 font-sans-app">Final Standings</p>
+            {top3.length === 0 ? (
+              <p className="text-center text-sm text-[#1a2744]/50 italic font-sans-app">No teams</p>
+            ) : top3.map((e: any, i: number) => (
+              <div key={e.team.id} className="flex items-center gap-2 text-sm">
+                <span className="text-lg shrink-0">{medals[i]}</span>
+                <span className="font-bold text-[#1a2744] truncate flex-1" style={{ fontFamily: "'Playfair Display', serif" }}>{e.team.teamName}</span>
+                <span className="font-bold text-[#1a2744] shrink-0" style={{ fontFamily: "'Rajdhani', sans-serif" }}>{fmtToPar(e)}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTP / LD winners */}
+          {hasContests && (
+            <div className="w-full bg-white border border-amber-500/20 rounded-xl p-3 space-y-1">
+              <p className="text-[#b06b10] text-[11px] font-bold uppercase tracking-widest text-center mb-1 font-sans-app">Closest to Pin &amp; Long Drive</p>
+              {ctpWinners.map(({ hole, w }) => w && (
+                <div key={hole.id} className="flex items-center justify-between gap-2 text-sm font-sans-app">
+                  <span className="text-[#1a2744]/60 shrink-0">Hole {hole.holeNumber} CTP</span>
+                  <span className="font-bold text-[#1a2744] truncate text-right">{w.name}</span>
+                </div>
+              ))}
+              {ldWin && (
+                <div className="flex items-center justify-between gap-2 text-sm font-sans-app">
+                  <span className="text-emerald-700 font-bold shrink-0">Long Drive</span>
+                  <span className="font-bold text-[#1a2744] truncate text-right">{ldWin.name}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <p className="text-[#1a2744]/75 text-sm text-center font-sans-app leading-relaxed">🏆 Winners, please come collect your winnings at the registration desk / pro shop.</p>
+          <p className="text-[#1a2744]/65 text-sm text-center font-sans-app leading-relaxed">Thank you so much for your support of the Abilene Turkey Drive — we'll see you again next year!</p>
+        </div>
+        <div className="flex gap-2 p-4 border-t border-[#1a2744]/10">
+          <button onClick={() => { dismiss(); navigate("/donate"); }} className="flex-1 py-2.5 rounded-xl font-bold text-white text-sm font-sans-app flex items-center justify-center gap-1.5" style={{ background: "linear-gradient(135deg, #b06b10, #8a5008)" }}>
+            <Heart size={14} /> Make Donation
+          </button>
+          <button onClick={() => { dismiss(); navigate("/"); }} className="flex-1 py-2.5 rounded-xl font-bold text-sm font-sans-app bg-[#1a2744] text-white hover:bg-[#243461] transition-colors">
+            View Leaderboard
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AppShell() {
   // Single SSE connection for the whole app — feeds all shared query caches
   useSSE();
@@ -439,6 +543,7 @@ function AppShell() {
       <AppHeader />
       <RoleSelector />
       <BroadcastModal />
+      <FlightCompleteModal />
       <main className="max-w-7xl mx-auto px-4 py-6" style={{ paddingTop: 'calc(var(--header-h, 130px) + 1.5rem)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}>
         <Switch>
           <Route path="/" component={Leaderboard} />
