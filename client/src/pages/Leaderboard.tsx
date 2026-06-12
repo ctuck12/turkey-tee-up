@@ -344,16 +344,6 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
         )}
         <div className="ml-auto flex items-center gap-1.5 shrink-0">
           <button
-            onClick={() => setShowInProgress(v => !v)}
-            className={`flex items-center gap-1 px-2 py-1 rounded-full border transition-colors font-sans-app whitespace-nowrap shrink-0 ${
-              showInProgress
-                ? "bg-green-600/15 border-green-600/60 text-green-700"
-                : "border-[#1a2744]/20 text-[#1a2744]/50 hover:border-green-600/40 hover:text-green-700/80"
-            }`}
-          >
-            <span className="flex items-center gap-1">⛳ Still Playing</span>
-          </button>
-          <button
             onClick={() => setShowCtp(v => !v)}
             className={`flex items-center gap-1 px-2 py-1 rounded-full border transition-colors font-sans-app whitespace-nowrap shrink-0 ${
               showCtp
