@@ -182,7 +182,7 @@ function TeamScoreEditor({ teamId }: { teamId: number }) {
   const [editScore, setEditScore] = useState<Record<number, string>>({});
 
   const saveMutation = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/scores", data),
+    mutationFn: (data: any) => apiRequest("POST", "/api/scores", { ...data, asAdmin: true }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/scores/team", teamId] });
       qc.invalidateQueries({ queryKey: ["/api/leaderboard"] });
@@ -1091,6 +1091,19 @@ function SettingsTab() {
     },
   });
 
+  // Tournament status (mode + per-flight activation) — saves immediately on toggle
+  const statusMutation = useMutation({
+    mutationFn: (patch: any) => apiRequest("PUT", "/api/settings", patch),
+    onSuccess: (_res, patch: any) => {
+      qc.invalidateQueries({ queryKey: ["/api/settings"] });
+      if (patch.tournamentMode) toast({ title: `Tournament set to ${patch.tournamentMode.toUpperCase()} mode` });
+      else if (patch.amActive !== undefined) toast({ title: patch.amActive ? "AM flight is now In Progress" : "AM flight deactivated" });
+      else if (patch.pmActive !== undefined) toast({ title: patch.pmActive ? "PM flight is now In Progress" : "PM flight deactivated" });
+    },
+    onError: () => toast({ title: "Could not update status", description: "If you just added the feature, run the Supabase migration first.", variant: "destructive" }),
+  });
+  const mode = settings?.tournamentMode ?? "test";
+
   // CTP management
   const { data: ctpEntries = [] } = useQuery<ClosestToPin[]>({ queryKey: ["/api/ctp"] });
   const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
@@ -1102,7 +1115,7 @@ function SettingsTab() {
 
   const upsertCtpMutation = useMutation({
     mutationFn: (data: { holeNumber: number; playerName: string; teamId: number | null; distance: string }) =>
-      apiRequest("POST", "/api/ctp", data),
+      apiRequest("POST", "/api/ctp", { ...data, asAdmin: true }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/ctp"] });
       setEditCtp(null);
@@ -1120,8 +1133,59 @@ function SettingsTab() {
 
   if (!form) return null;
 
+  const modeMeta: Record<string, { label: string; active: string; help: string }> = {
+    test: { label: "Test", active: "bg-blue-500/20 border-blue-500/60 text-blue-700", help: "Everything is open — any flight can log in and enter scores. Use this to test every part of the site." },
+    live: { label: "Live", active: "bg-green-600/20 border-green-600/60 text-green-700", help: "Tournament day. Teams can only enter scores once you activate their flight below. Still fully testable." },
+    complete: { label: "Complete", active: "bg-[#1a2744]/15 border-[#1a2744]/50 text-[#1a2744]", help: "Tournament is over. Players are locked out — only you (admin) can edit teams, scores, CTP and Long Drive." },
+  };
+
   return (
     <div className="space-y-4 font-sans-app">
+      {/* Tournament Status — mode + flight activation */}
+      <div className="atd-card rounded-xl p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <h2 className="font-bold text-[#b06b10]">Tournament Status</h2>
+          <span className={`ml-auto text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border font-sans-app ${modeMeta[mode].active}`}>
+            {modeMeta[mode].label}
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {(["test", "live", "complete"] as const).map(m => (
+            <button
+              key={m}
+              onClick={() => statusMutation.mutate({ tournamentMode: m })}
+              className={`py-2 rounded-lg border text-sm font-bold transition-colors font-sans-app ${
+                mode === m ? modeMeta[m].active : "bg-[#1a2744]/5 border-[#1a2744]/15 text-[#1a2744]/50 hover:border-[#1a2744]/30"
+              }`}
+            >
+              {modeMeta[m].label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[#1a2744]/55 text-xs">{modeMeta[mode].help}</p>
+
+        {mode === "live" && (
+          <div className="space-y-2 border-t border-[#1a2744]/10 pt-3">
+            <p className="text-[#1a2744]/60 text-xs font-bold uppercase tracking-wider">Flight Activation</p>
+            {([
+              { key: "amActive" as const, label: "AM Flight", on: !!settings?.amActive },
+              { key: "pmActive" as const, label: "PM Flight", on: !!settings?.pmActive },
+            ]).map(({ key, label, on }) => (
+              <div key={key} className="flex items-center justify-between bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2">
+                <span className="font-bold text-[#1a2744] text-sm">{label}</span>
+                <div className="flex items-center gap-2.5">
+                  <span className={`text-xs font-bold font-sans-app ${on ? "text-green-700" : "text-[#1a2744]/40"}`}>
+                    {on ? "In Progress" : "Not started"}
+                  </span>
+                  <Switch checked={on} onCheckedChange={v => statusMutation.mutate({ [key]: v })} />
+                </div>
+              </div>
+            ))}
+            <p className="text-[#1a2744]/40 text-xs">Until a flight is activated, those teams can't log in or enter scores, and the leaderboard opens to the active flight.</p>
+          </div>
+        )}
+      </div>
+
       {/* Hole Settings — collapsible */}
       <div className="atd-card rounded-xl overflow-hidden">
         <button

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { Team, Hole, Score, ClosestToPin, Sponsor } from "@shared/schema";
+import type { Team, Hole, Score, ClosestToPin, Sponsor, TournamentSettings } from "@shared/schema";
 import bigCountryLogo from "@/assets/big-country-title.png";
 import { ScorecardTable } from "@/components/ScorecardTable";
 
@@ -142,8 +142,10 @@ export default function Scorekeeper() {
 
 
 
+  const [, navigate] = useLocation();
   const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
   const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
+  const { data: settings } = useQuery<TournamentSettings>({ queryKey: ["/api/settings"] });
 
   // Sync isSubmitted from live teams query so the persisted Supabase value is
   // picked up even when the sessionStorage-cached team predates the is_submitted column.
@@ -311,8 +313,15 @@ export default function Scorekeeper() {
       // Don't set currentHole here — the seek effect will set it once scores load
       sessionStorage.setItem("sk_authed_team", JSON.stringify(data.team));
       setAuthError("");
-    } catch {
-      setAuthError("Invalid team code. Check with your admin.");
+    } catch (err) {
+      // Surface the server's message (e.g. flight not started, tournament complete)
+      let msg = "Invalid team code. Check with your admin.";
+      try {
+        const text = String((err as Error)?.message ?? "");
+        const json = JSON.parse(text.slice(text.indexOf("{")));
+        if (json.message) msg = json.message;
+      } catch {}
+      setAuthError(msg);
     }
   }
 
@@ -461,6 +470,48 @@ export default function Scorekeeper() {
             </div>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // ─── FLIGHT / MODE LOCK ──────────────────────────────────────────────────────
+  // For already-logged-in sessions (cached, or auto-login from a /scorekeeper/:id link):
+  // if the tournament is complete, or live with this team's flight not yet activated,
+  // block score entry. This screen updates automatically via SSE when the flight starts.
+  const tMode = settings?.tournamentMode ?? "test";
+  const flightActive = authedTeam.flight === "morning" ? !!settings?.amActive : !!settings?.pmActive;
+  const lockReason: "complete" | "inactive" | null =
+    tMode === "complete" ? "complete" : (tMode === "live" && !flightActive ? "inactive" : null);
+
+  function signOut() {
+    try { sessionStorage.removeItem("sk_authed_team"); sessionStorage.removeItem("sk_current_hole"); } catch {}
+    setAuthedTeam(null);
+    setTeamCode("");
+  }
+
+  if (lockReason) {
+    const flLabel = authedTeam.flight === "morning" ? "AM (morning)" : "PM (afternoon)";
+    return (
+      <div className="max-w-sm mx-auto space-y-5 pt-10">
+        <div className="atd-card rounded-xl p-6 text-center space-y-3">
+          <div className="text-4xl">{lockReason === "complete" ? "🏁" : "⛳"}</div>
+          <h1 className="text-lg font-bold text-[#b06b10]">
+            {lockReason === "complete" ? "Tournament Complete" : `${flLabel} Flight Hasn't Started`}
+          </h1>
+          <p className="text-[#1a2744]/65 text-sm font-sans-app leading-relaxed">
+            {lockReason === "complete"
+              ? "Scoring is now closed. Head to the leaderboard to see the final results."
+              : "You'll be able to enter scores as soon as the tournament admin activates your flight. This screen will update automatically — no need to refresh."}
+          </p>
+          <div className="flex flex-col gap-2 pt-1">
+            <Button onClick={() => navigate("/")} className="w-full bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold font-sans-app">
+              View Leaderboard
+            </Button>
+            <Button variant="ghost" onClick={signOut} className="w-full text-[#1a2744]/55 font-sans-app">
+              Sign Out
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }

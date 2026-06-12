@@ -90,6 +90,17 @@ function scheduleImmediatePush() {
   setTimeout(tick, 150);
 }
 
+// Can a scorekeeper for the given flight enter scores/CTP right now?
+//   test     → always (full testing)
+//   complete → never (locked, admin-only)
+//   live     → only if that flight has been activated by the admin
+function flightEnterable(settings: any, flight: string): boolean {
+  const mode = settings?.tournamentMode ?? "test";
+  if (mode === "test") return true;
+  if (mode === "complete") return false;
+  return flight === "morning" ? !!settings?.amActive : !!settings?.pmActive;
+}
+
 export function registerRoutes(app: Express) {
   const httpServer = createServer(app);
 
@@ -135,11 +146,19 @@ export function registerRoutes(app: Express) {
   app.post("/api/auth/scorekeeper", async (req: Request, res: Response) => {
     const { teamCode } = req.body;
     const team = await storage.getTeamByCode(teamCode);
-    if (team) {
-      res.json({ success: true, team });
-    } else {
-      res.status(401).json({ success: false, message: "Invalid team code" });
+    if (!team) {
+      return res.status(401).json({ success: false, message: "Invalid team code" });
     }
+    const settings = await storage.getSettings();
+    const mode = settings?.tournamentMode ?? "test";
+    if (mode === "complete") {
+      return res.status(403).json({ success: false, reason: "complete", message: "The tournament is complete — scoring is now closed. Head to the leaderboard for final results." });
+    }
+    if (mode === "live" && !flightEnterable(settings, team.flight)) {
+      const fl = team.flight === "morning" ? "AM (morning)" : "PM (afternoon)";
+      return res.status(403).json({ success: false, reason: "flight_inactive", message: `The ${fl} flight hasn't started yet. You'll be able to enter scores once the tournament admin activates your flight.` });
+    }
+    res.json({ success: true, team });
   });
 
   // ─── SETTINGS ─────────────────────────────────────────────────────────────
@@ -268,8 +287,17 @@ export function registerRoutes(app: Express) {
   });
 
   app.post("/api/scores", async (req: Request, res: Response) => {
-    const { teamId, holeNumber, strokes } = req.body;
+    const { teamId, holeNumber, strokes, asAdmin } = req.body;
     if (!teamId || !holeNumber) return res.status(400).json({ message: "teamId and holeNumber required" });
+    // Admin (asAdmin) can always write; scorekeepers are gated by tournament mode + flight
+    if (!asAdmin) {
+      const settings = await storage.getSettings();
+      const team = await storage.getTeam(teamId);
+      if (!team || !flightEnterable(settings, team.flight)) {
+        const mode = settings?.tournamentMode ?? "test";
+        return res.status(403).json({ message: mode === "complete" ? "The tournament is complete — scoring is closed." : "Scoring isn't open for this flight yet." });
+      }
+    }
     const score = await storage.upsertScore(teamId, holeNumber, strokes);
     scheduleImmediatePush(); // push new score to all leaderboard viewers immediately
     res.json(score);
@@ -341,8 +369,22 @@ export function registerRoutes(app: Express) {
   });
 
   app.post("/api/ctp", async (req: Request, res: Response) => {
-    const { holeNumber, teamId, playerName, distance } = req.body;
+    const { holeNumber, teamId, playerName, distance, asAdmin } = req.body;
     if (!holeNumber) return res.status(400).json({ message: "holeNumber required" });
+    // Admin (asAdmin) can always write; scorekeepers are gated by tournament mode + flight
+    if (!asAdmin) {
+      const settings = await storage.getSettings();
+      const mode = settings?.tournamentMode ?? "test";
+      if (mode === "complete") {
+        return res.status(403).json({ message: "The tournament is complete — entries are closed." });
+      }
+      if (mode === "live" && teamId) {
+        const team = await storage.getTeam(teamId);
+        if (team && !flightEnterable(settings, team.flight)) {
+          return res.status(403).json({ message: "Scoring isn't open for this flight yet." });
+        }
+      }
+    }
     const entry = await storage.upsertCtp(holeNumber, teamId ?? null, playerName ?? null, distance ?? null);
     scheduleImmediatePush(); // push CTP update live
     res.json(entry);

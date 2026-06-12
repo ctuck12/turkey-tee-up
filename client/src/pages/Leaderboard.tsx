@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Trophy, Target, Search, Users, ChevronDown, ChevronUp, Wifi, Zap } from "lucide-react";
+import { Trophy, Target, Search, Users, ChevronDown, ChevronUp, Wifi, Zap, Flag } from "lucide-react";
 import bigCountryLogo from "@/assets/big-country-title.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { LeaderboardEntry, Hole, ClosestToPin, Team, Sponsor, TournamentSettings } from "@shared/schema";
@@ -138,7 +138,7 @@ function CtpPanel({ ctpEntries, holes, teams }: { ctpEntries: ClosestToPin[]; ho
   );
 }
 
-function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole, teams }: {
+function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole, teams, inProgress }: {
   entries: LeaderboardEntry[];
   label: string;
   flight: "morning" | "afternoon";
@@ -146,6 +146,7 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
   ctpHoles: Hole[];
   ldHole?: Hole;
   teams: Team[];
+  inProgress?: boolean;
 }) {
   const [, navigate] = useLocation();
   const [showCtp, setShowCtp] = useState(false);
@@ -197,6 +198,13 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
       {/* Header */}
       <div className="px-4 py-3 border-b border-[#1a2744]/15 bg-[#1a2744]/5 flex items-center gap-2">
         <span className={`font-bold text-xs uppercase tracking-widest font-sans-app ${flight === "morning" ? "text-blue-600" : "text-[#b06b10]"}`}>{label}</span>
+        {inProgress && (
+          <span className="flex items-center gap-1 text-xs font-bold font-sans-app text-green-700">
+            <span className="text-[#1a2744]/30">—</span>
+            <span className="live-indicator w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+            In Progress
+          </span>
+        )}
         <div className="ml-auto flex items-center gap-2">
           <button
             onClick={() => setShowInProgress(v => !v)}
@@ -206,7 +214,7 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
                 : "border-[#1a2744]/20 text-[#1a2744]/50 hover:border-green-600/40 hover:text-green-700/80"
             }`}
           >
-            <span className="flex items-center gap-1">⛳ In Progress</span>
+            <span className="flex items-center gap-1">⛳ Still Playing</span>
           </button>
           <button
             onClick={() => setShowCtp(v => !v)}
@@ -294,15 +302,31 @@ export default function Leaderboard() {
   const morningTeams = leaderboard.filter(e => e.team.flight === "morning");
   const afternoonTeams = leaderboard.filter(e => e.team.flight === "afternoon");
 
+  const mode = settings?.tournamentMode ?? "test";
+  const indicator = {
+    test: { label: "Test", cls: "border-blue-600/40 text-blue-700 bg-blue-500/10", pulse: true },
+    live: { label: "Live", cls: "border-green-600/40 text-green-700 bg-green-500/10", pulse: true },
+    complete: { label: "Complete", cls: "border-[#1a2744]/30 text-[#1a2744]/70 bg-[#1a2744]/8", pulse: false },
+  }[mode] ?? { label: "Live", cls: "border-green-600/40 text-green-700 bg-green-500/10", pulse: true };
+
+  // Which flight is "In Progress" (live mode + that flight activated)
+  const amInProgress = mode === "live" && !!settings?.amActive;
+  const pmInProgress = mode === "live" && !!settings?.pmActive;
+
+  // Default tab: in live mode follow flight activation (latest = PM if on), else admin's setting
+  const defaultTab = mode === "live"
+    ? (settings?.pmActive ? "afternoon" : settings?.amActive ? "morning" : (settings?.defaultFlight ?? "morning"))
+    : (settings?.defaultFlight ?? "morning");
+
   return (
     <div className="space-y-6">
       {/* Hero header — logo floats right without affecting layout height */}
       <div className="relative">
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 text-xs font-sans-app px-3 py-1.5 rounded-full border border-green-600/40 text-green-700 bg-green-500/10">
-              <Wifi size={12} className="live-indicator" />
-              Live
+            <div className={`flex items-center gap-1.5 text-xs font-sans-app px-3 py-1.5 rounded-full border ${indicator.cls}`}>
+              {mode === "complete" ? <Flag size={12} /> : <Wifi size={12} className={indicator.pulse ? "live-indicator" : ""} />}
+              {indicator.label}
             </div>
             {lastUpdate && (
               <span className="text-[#1a2744]/35 text-xs font-sans-app">
@@ -330,13 +354,13 @@ export default function Leaderboard() {
       {/* Sponsor banner */}
       <SponsorBanner sponsors={sponsors} placement="leaderboard" />
 
-      {loadingLb ? (
+      {loadingLb || !settings ? (
         <div className="atd-card rounded-xl p-12 text-center">
           <Trophy size={40} className="text-[#b06b10]/30 mx-auto mb-3 animate-pulse" />
           <p className="text-[#1a2744]/50 font-sans-app">Loading leaderboard...</p>
         </div>
       ) : (
-        <Tabs defaultValue={settings?.defaultFlight ?? "morning"}>
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="bg-white border border-[#1a2744]/20 mb-4 shadow-sm">
             <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-600">
               AM ({morningTeams.length})
@@ -353,7 +377,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={morningTeams} label="AM Flight" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} />
+              <LeaderboardTable entries={morningTeams} label="AM Flight" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} inProgress={amInProgress} />
             )}
           </TabsContent>
           <TabsContent value="afternoon">
@@ -364,7 +388,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={afternoonTeams} label="PM Flight" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} />
+              <LeaderboardTable entries={afternoonTeams} label="PM Flight" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} inProgress={pmInProgress} />
             )}
           </TabsContent>
         </Tabs>

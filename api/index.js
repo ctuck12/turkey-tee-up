@@ -49878,7 +49878,7 @@ function mapCtp(r) {
   return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, updatedAt: r.updated_at };
 }
 function mapSettings(r) {
-  return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning" };
+  return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning", tournamentMode: r.tournament_mode ?? "test", amActive: r.am_active ?? false, pmActive: r.pm_active ?? false };
 }
 function createStorage() {
   return {
@@ -49898,6 +49898,9 @@ function createStorage() {
       if (data.isActive !== void 0) snake.is_active = data.isActive;
       if (data.broadcastMessage !== void 0) snake.broadcast_message = data.broadcastMessage;
       if (data.defaultFlight !== void 0) snake.default_flight = data.defaultFlight;
+      if (data.tournamentMode !== void 0) snake.tournament_mode = data.tournamentMode;
+      if (data.amActive !== void 0) snake.am_active = data.amActive;
+      if (data.pmActive !== void 0) snake.pm_active = data.pmActive;
       const { data: row } = await supabase.from("tournament_settings").upsert({ id: 1, ...snake }, { onConflict: "id" }).select().single();
       return mapSettings(row);
     },
@@ -50100,6 +50103,12 @@ function ensureTimer() {
 function scheduleImmediatePush() {
   setTimeout(tick, 150);
 }
+function flightEnterable(settings, flight) {
+  const mode = settings?.tournamentMode ?? "test";
+  if (mode === "test") return true;
+  if (mode === "complete") return false;
+  return flight === "morning" ? !!settings?.amActive : !!settings?.pmActive;
+}
 function registerRoutes(app2) {
   const httpServer = (0, import_http.createServer)(app2);
   app2.get("/api/stream", (req, res) => {
@@ -50143,11 +50152,19 @@ function registerRoutes(app2) {
   app2.post("/api/auth/scorekeeper", async (req, res) => {
     const { teamCode } = req.body;
     const team = await storage.getTeamByCode(teamCode);
-    if (team) {
-      res.json({ success: true, team });
-    } else {
-      res.status(401).json({ success: false, message: "Invalid team code" });
+    if (!team) {
+      return res.status(401).json({ success: false, message: "Invalid team code" });
     }
+    const settings = await storage.getSettings();
+    const mode = settings?.tournamentMode ?? "test";
+    if (mode === "complete") {
+      return res.status(403).json({ success: false, reason: "complete", message: "The tournament is complete \u2014 scoring is now closed. Head to the leaderboard for final results." });
+    }
+    if (mode === "live" && !flightEnterable(settings, team.flight)) {
+      const fl = team.flight === "morning" ? "AM (morning)" : "PM (afternoon)";
+      return res.status(403).json({ success: false, reason: "flight_inactive", message: `The ${fl} flight hasn't started yet. You'll be able to enter scores once the tournament admin activates your flight.` });
+    }
+    res.json({ success: true, team });
   });
   app2.get("/api/settings", async (_req, res) => {
     res.json(await storage.getSettings());
@@ -50253,8 +50270,16 @@ function registerRoutes(app2) {
     res.json(await storage.getScoresForTeam(parseInt(req.params.teamId)));
   });
   app2.post("/api/scores", async (req, res) => {
-    const { teamId, holeNumber, strokes } = req.body;
+    const { teamId, holeNumber, strokes, asAdmin } = req.body;
     if (!teamId || !holeNumber) return res.status(400).json({ message: "teamId and holeNumber required" });
+    if (!asAdmin) {
+      const settings = await storage.getSettings();
+      const team = await storage.getTeam(teamId);
+      if (!team || !flightEnterable(settings, team.flight)) {
+        const mode = settings?.tournamentMode ?? "test";
+        return res.status(403).json({ message: mode === "complete" ? "The tournament is complete \u2014 scoring is closed." : "Scoring isn't open for this flight yet." });
+      }
+    }
     const score = await storage.upsertScore(teamId, holeNumber, strokes);
     scheduleImmediatePush();
     res.json(score);
@@ -50310,8 +50335,21 @@ function registerRoutes(app2) {
     res.json(await storage.getCtpEntries());
   });
   app2.post("/api/ctp", async (req, res) => {
-    const { holeNumber, teamId, playerName, distance } = req.body;
+    const { holeNumber, teamId, playerName, distance, asAdmin } = req.body;
     if (!holeNumber) return res.status(400).json({ message: "holeNumber required" });
+    if (!asAdmin) {
+      const settings = await storage.getSettings();
+      const mode = settings?.tournamentMode ?? "test";
+      if (mode === "complete") {
+        return res.status(403).json({ message: "The tournament is complete \u2014 entries are closed." });
+      }
+      if (mode === "live" && teamId) {
+        const team = await storage.getTeam(teamId);
+        if (team && !flightEnterable(settings, team.flight)) {
+          return res.status(403).json({ message: "Scoring isn't open for this flight yet." });
+        }
+      }
+    }
     const entry = await storage.upsertCtp(holeNumber, teamId ?? null, playerName ?? null, distance ?? null);
     scheduleImmediatePush();
     res.json(entry);

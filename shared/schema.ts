@@ -14,6 +14,10 @@ export const tournamentSettings = sqliteTable("tournament_settings", {
   isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
   broadcastMessage: text("broadcast_message"),
   defaultFlight: text("default_flight").notNull().default("morning"),
+  // Tournament lifecycle: 'test' (open, full testing) | 'live' (flight-gated) | 'complete' (locked)
+  tournamentMode: text("tournament_mode").notNull().default("test"),
+  amActive: integer("am_active", { mode: "boolean" }).notNull().default(false),
+  pmActive: integer("pm_active", { mode: "boolean" }).notNull().default(false),
 });
 
 // ─── HOLES ────────────────────────────────────────────────────────────────────
