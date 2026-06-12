@@ -110,7 +110,7 @@ function TeamForm({ data, onChange, onSubmit, onCancel, submitLabel }: any) {
           </Select>
         </div>
         <div>
-          <Label className="text-[#1a2744]/60 text-xs mb-1 block">Starting Hole</Label>
+          <Label className="text-[#1a2744]/60 text-xs mb-1 block">Start Hole</Label>
           <Select value={String(data.startingHole ?? 1)} onValueChange={v => onChange({ ...data, startingHole: parseInt(v) })}>
             <SelectTrigger className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744]">
               <SelectValue placeholder="Hole" />
@@ -892,7 +892,7 @@ function SubmissionsTab() {
                 <thead>
                   <tr className="border-b border-[#1a2744]/8 bg-[#1a2744]/3">
                     <th className="text-left px-3 py-2 text-[#1a2744]/50 font-bold">Team</th>
-                    <th className="text-center px-2 py-2 text-[#1a2744]/50 font-bold">Starting Hole</th>
+                    <th className="text-center px-2 py-2 text-[#1a2744]/50 font-bold">Start Hole</th>
                     <th className="text-center px-2 py-2 text-[#1a2744]/50 font-bold">Holes Rem</th>
                   </tr>
                 </thead>
@@ -926,7 +926,7 @@ function SubmissionsTab() {
                 <thead>
                   <tr className="border-b border-[#1a2744]/8 bg-[#1a2744]/3">
                     <th className="text-left px-3 py-2 text-[#1a2744]/50 font-bold">Team</th>
-                    <th className="text-center px-2 py-2 text-[#1a2744]/50 font-bold">Starting Hole</th>
+                    <th className="text-center px-2 py-2 text-[#1a2744]/50 font-bold">Start Hole</th>
                     <th className="text-center px-2 py-2 text-[#1a2744]/50 font-bold">Status</th>
                   </tr>
                 </thead>
