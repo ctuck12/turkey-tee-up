@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, Flag, Settings, Plus, Trash2, Edit2, Check, X,
-  Copy, RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList, Target, Zap, Search, Scale
+  Copy, RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList, Target, Zap, Search, Scale, Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1186,8 +1186,8 @@ function ScorecardComparison() {
   useEffect(() => {
     if (userSetFlightRef.current) return;
     if ((settings?.tournamentMode ?? "test") !== "live") return;
-    if (settings?.pmActive) setFlightFilter("afternoon");
-    else if (settings?.amActive) setFlightFilter("morning");
+    if (settings?.pmStatus === "in_progress") setFlightFilter("afternoon");
+    else if (settings?.amStatus === "in_progress") setFlightFilter("morning");
   }, [settings]);
 
   // Switching flights clears the current picks — you only compare within one flight
@@ -1337,9 +1337,10 @@ function SettingsTab() {
     mutationFn: (patch: any) => apiRequest("PUT", "/api/settings", patch),
     onSuccess: (_res, patch: any) => {
       qc.invalidateQueries({ queryKey: ["/api/settings"] });
+      const statusLabel: Record<string, string> = { not_started: "Not Started", in_progress: "In Progress", complete: "Complete" };
       if (patch.tournamentMode) toast({ title: `Tournament set to ${patch.tournamentMode.toUpperCase()} mode` });
-      else if (patch.amActive !== undefined) toast({ title: patch.amActive ? "AM flight is now In Progress" : "AM flight deactivated" });
-      else if (patch.pmActive !== undefined) toast({ title: patch.pmActive ? "PM flight is now In Progress" : "PM flight deactivated" });
+      else if (patch.amStatus !== undefined) toast({ title: `AM flight: ${statusLabel[patch.amStatus] ?? patch.amStatus}` });
+      else if (patch.pmStatus !== undefined) toast({ title: `PM flight: ${statusLabel[patch.pmStatus] ?? patch.pmStatus}` });
     },
     onError: () => toast({ title: "Could not update status", description: "If you just added the feature, run the Supabase migration first.", variant: "destructive" }),
   });
@@ -1409,7 +1410,10 @@ function SettingsTab() {
           {(["test", "live", "complete"] as const).map(m => (
             <button
               key={m}
-              onClick={() => statusMutation.mutate({ tournamentMode: m })}
+              onClick={() => statusMutation.mutate(
+                // Entering Live resets both flights to Not Started
+                m === "live" ? { tournamentMode: m, amStatus: "not_started", pmStatus: "not_started" } : { tournamentMode: m }
+              )}
               className={`py-2 rounded-lg border text-sm font-bold transition-colors font-sans-app ${
                 mode === m ? modeMeta[m].active : "bg-[#1a2744]/5 border-[#1a2744]/15 text-[#1a2744]/50 hover:border-[#1a2744]/30"
               }`}
@@ -1422,22 +1426,33 @@ function SettingsTab() {
 
         {mode === "live" && (
           <div className="space-y-2 border-t border-[#1a2744]/10 pt-3">
-            <p className="text-[#1a2744]/60 text-xs font-bold uppercase tracking-wider">Flight Activation</p>
+            <p className="text-[#1a2744]/60 text-xs font-bold uppercase tracking-wider">Flight Status</p>
             {([
-              { key: "amActive" as const, label: "AM Flight", on: !!settings?.amActive },
-              { key: "pmActive" as const, label: "PM Flight", on: !!settings?.pmActive },
-            ]).map(({ key, label, on }) => (
-              <div key={key} className="flex items-center justify-between bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2">
+              { key: "amStatus" as const, label: "AM Flight", value: settings?.amStatus ?? "not_started" },
+              { key: "pmStatus" as const, label: "PM Flight", value: settings?.pmStatus ?? "not_started" },
+            ]).map(({ key, label, value }) => (
+              <div key={key} className="bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5 space-y-1.5">
                 <span className="font-bold text-[#1a2744] text-sm">{label}</span>
-                <div className="flex items-center gap-2.5">
-                  <span className={`text-xs font-bold font-sans-app ${on ? "text-green-700" : "text-[#1a2744]/40"}`}>
-                    {on ? "In Progress" : "Not started"}
-                  </span>
-                  <Switch checked={on} onCheckedChange={v => statusMutation.mutate({ [key]: v })} />
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    { v: "not_started", text: "Not Started", on: "bg-[#1a2744]/15 border-[#1a2744]/40 text-[#1a2744]" },
+                    { v: "in_progress", text: "In Progress", on: "bg-green-600/20 border-green-600/60 text-green-700" },
+                    { v: "complete", text: "Complete", on: "bg-amber-500/25 border-amber-500/60 text-[#b06b10]" },
+                  ]).map(({ v, text, on }) => (
+                    <button
+                      key={v}
+                      onClick={() => statusMutation.mutate({ [key]: v })}
+                      className={`py-1.5 rounded-md border text-[11px] font-bold transition-colors font-sans-app whitespace-nowrap ${
+                        value === v ? on : "bg-white border-[#1a2744]/12 text-[#1a2744]/45 hover:border-[#1a2744]/30"
+                      }`}
+                    >
+                      {text}
+                    </button>
+                  ))}
                 </div>
               </div>
             ))}
-            <p className="text-[#1a2744]/40 text-xs">Until a flight is activated, those teams can't log in or enter scores, and the leaderboard opens to the active flight.</p>
+            <p className="text-[#1a2744]/40 text-xs">Not Started: teams can't log in. In Progress: scoring open, viewers get the flight-started popup, leaderboard defaults to this flight. Complete: that flight's scorecards lock to view-only.</p>
           </div>
         )}
       </div>

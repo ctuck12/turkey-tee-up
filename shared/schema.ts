@@ -16,8 +16,9 @@ export const tournamentSettings = sqliteTable("tournament_settings", {
   defaultFlight: text("default_flight").notNull().default("morning"),
   // Tournament lifecycle: 'test' (open, full testing) | 'live' (flight-gated) | 'complete' (locked)
   tournamentMode: text("tournament_mode").notNull().default("test"),
-  amActive: integer("am_active", { mode: "boolean" }).notNull().default(false),
-  pmActive: integer("pm_active", { mode: "boolean" }).notNull().default(false),
+  // Per-flight round status in live mode: 'not_started' | 'in_progress' | 'complete'
+  amStatus: text("am_status").notNull().default("not_started"),
+  pmStatus: text("pm_status").notNull().default("not_started"),
   // Ordered, comma-separated hole numbers used to break ties (1st listed = compared first)
   tiebreakerHoles: text("tiebreaker_holes"),
 });

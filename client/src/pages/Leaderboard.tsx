@@ -260,7 +260,7 @@ function CtpPanel({ ctpEntries, holes, teams }: { ctpEntries: ClosestToPin[]; ho
   );
 }
 
-function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole, teams, inProgress, placeMap, tieMap }: {
+function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole, teams, flightStatus, placeMap, tieMap }: {
   entries: LeaderboardEntry[];
   label: string;
   flight: "morning" | "afternoon";
@@ -268,7 +268,7 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
   ctpHoles: Hole[];
   ldHole?: Hole;
   teams: Team[];
-  inProgress?: boolean;
+  flightStatus?: string | null;
   placeMap: Map<number, number>;
   tieMap: Map<number, TieInfo>;
 }) {
@@ -323,11 +323,23 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
       {/* Header */}
       <div className="px-4 py-3 border-b border-[#1a2744]/15 bg-[#1a2744]/5 flex items-center gap-2">
         <span className={`font-bold text-xs uppercase tracking-widest font-sans-app ${flight === "morning" ? "text-blue-600" : "text-[#b06b10]"}`}>{label}</span>
-        {inProgress && (
+        {flightStatus === "not_started" && (
+          <span className="flex items-center gap-1 text-xs font-bold font-sans-app text-[#1a2744]/45">
+            <span className="text-[#1a2744]/30">—</span>
+            Not Started
+          </span>
+        )}
+        {flightStatus === "in_progress" && (
           <span className="flex items-center gap-1 text-xs font-bold font-sans-app text-green-700">
             <span className="text-[#1a2744]/30">—</span>
             <span className="live-indicator w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
             In Progress
+          </span>
+        )}
+        {flightStatus === "complete" && (
+          <span className="flex items-center gap-1 text-xs font-bold font-sans-app text-[#1a2744]">
+            <span className="text-[#1a2744]/30">—</span>
+            Complete
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">
@@ -481,12 +493,14 @@ export default function Leaderboard() {
     complete: { label: "Complete", cls: "border-[#1a2744]/30 text-[#1a2744]/70 bg-[#1a2744]/8", pulse: false },
   }[mode] ?? { label: "Live", cls: "border-green-600/40 text-green-700 bg-green-500/10", pulse: true };
 
-  // Which flight is "In Progress" (live mode + that flight activated)
-  const amInProgress = mode === "live" && !!settings?.amActive;
-  const pmInProgress = mode === "live" && !!settings?.pmActive;
+  // Per-flight round status shown on the flight headers (live mode only)
+  const amFlightStatus = mode === "live" ? (settings?.amStatus ?? "not_started") : null;
+  const pmFlightStatus = mode === "live" ? (settings?.pmStatus ?? "not_started") : null;
 
-  // Default tab follows the in-progress flight: PM if it's active, otherwise AM
-  const defaultTab = settings?.pmActive ? "afternoon" : "morning";
+  // Default tab follows the round status: PM when its round is in progress
+  // (or wrapped up after AM), otherwise AM.
+  const defaultTab = (settings?.pmStatus === "in_progress" || (settings?.pmStatus === "complete" && settings?.amStatus === "complete"))
+    ? "afternoon" : "morning";
 
   return (
     <div className="space-y-6">
@@ -547,7 +561,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={amStandings.sorted} label="AM Flight" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} inProgress={amInProgress} placeMap={amStandings.placeMap} tieMap={amStandings.tieMap} />
+              <LeaderboardTable entries={amStandings.sorted} label="AM Flight" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} flightStatus={amFlightStatus} placeMap={amStandings.placeMap} tieMap={amStandings.tieMap} />
             )}
           </TabsContent>
           <TabsContent value="afternoon">
@@ -558,7 +572,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={pmStandings.sorted} label="PM Flight" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} inProgress={pmInProgress} placeMap={pmStandings.placeMap} tieMap={pmStandings.tieMap} />
+              <LeaderboardTable entries={pmStandings.sorted} label="PM Flight" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} flightStatus={pmFlightStatus} placeMap={pmStandings.placeMap} tieMap={pmStandings.tieMap} />
             )}
           </TabsContent>
         </Tabs>

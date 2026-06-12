@@ -131,11 +131,14 @@ function AppHeader() {
 
 function RoleSelector() {
   const [, navigate] = useLocation();
-  const [visible, setVisible] = useState(() => {
-    try { return !sessionStorage.getItem("atd_role"); } catch { return true; }
-  });
+  // Settings arrive via SSE + initial fetch — drives when the role question shows
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
+  const [, setTick] = useState(0); // re-render after sessionStorage writes
   const [step, setStep] = useState<"install" | "role" | "added">("install");
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  const sess = (k: string) => { try { return sessionStorage.getItem(k); } catch { return null; } };
+  const mark = (k: string, v = "1") => { try { sessionStorage.setItem(k, v); } catch {} setTick(t => t + 1); };
 
   // Capture the Android Chrome install prompt event
   useEffect(() => {
@@ -181,15 +184,45 @@ function RoleSelector() {
 
   const showInstallPrompt = browserType === "safari" || browserType === "android-chrome" || browserType === "ios-chrome";
 
+  // Install instructions: always shown immediately on the first open in a
+  // browser this session, regardless of tournament mode or flight status.
+  const needInstall = showInstallPrompt && !sess("atd_install_seen");
+
+  // Role question ("How are you using the app today?") — gated:
+  //  · test mode → classic welcome, once per session
+  //  · live mode → suppressed while both flights are Not Started (everyone is a
+  //    viewer by default); appears for everyone the moment a flight flips to
+  //    In Progress (and for fresh visitors after that), once per flight start.
+  //    Skipped for already-logged-in scorekeepers so it never interrupts scoring.
+  //  · complete mode → never
+  const mode = settings ? (settings.tournamentMode ?? "test") : null; // null until settings load
+  const amS = settings?.amStatus ?? "not_started";
+  const pmS = settings?.pmStatus ?? "not_started";
+  const isActiveScorekeeper = !!sess("sk_authed_team");
+  let roleAsk: { key: string; title: string } | null = null;
+  if (mode === "test") {
+    if (!sess("atd_role")) roleAsk = { key: "atd_role", title: "Welcome" };
+  } else if (mode === "live" && !isActiveScorekeeper) {
+    if (pmS === "in_progress" && !sess("atd_role_pm")) roleAsk = { key: "atd_role_pm", title: "PM Flight Has Officially Started!" };
+    else if (amS === "in_progress" && !sess("atd_role_am")) roleAsk = { key: "atd_role_am", title: "AM Flight Has Officially Started!" };
+  }
+
+  const visible = needInstall || !!roleAsk;
+
   useEffect(() => {
-    if (visible) {
-      setStep(showInstallPrompt ? "install" : "role");
-    }
-  }, []);
+    if (visible && step !== "added") setStep(needInstall ? "install" : "role");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, needInstall, roleAsk?.key]);
+
+  // Leaving the install step (skipped or done) — remember so it never re-shows
+  function finishInstall() {
+    mark("atd_install_seen");
+    if (roleAsk) setStep("role");
+  }
 
   function choose(role: "scorekeeper" | "viewer") {
-    sessionStorage.setItem("atd_role", role);
-    setVisible(false);
+    if (roleAsk) mark(roleAsk.key, role);
+    mark("atd_role", role);
     if (role === "scorekeeper") navigate("/scorekeeper");
   }
 
@@ -210,7 +243,7 @@ function RoleSelector() {
               </p>
             </div>
             <button
-              onClick={() => setStep("role")}
+              onClick={finishInstall}
               className="w-full py-2 rounded-xl font-bold font-sans-app text-sm transition-all text-[#1a2744]/50 hover:text-[#1a2744]/70"
             >
               Continue in Browser Anyway
@@ -321,7 +354,7 @@ function RoleSelector() {
                 I Added It
               </button>
               <button
-                onClick={() => setStep("role")}
+                onClick={finishInstall}
                 className="w-full py-2 rounded-xl font-bold font-sans-app text-sm transition-all text-[#1a2744]/50 hover:text-[#1a2744]/70"
               >
                 Continue in Browser Instead
@@ -331,7 +364,7 @@ function RoleSelector() {
         ) : (
           <>
             <div className="text-center">
-              <h2 className="font-bold text-[#1a2744] text-xl mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>Welcome</h2>
+              <h2 className="font-bold text-[#1a2744] text-xl mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>{roleAsk?.title ?? "Welcome"}</h2>
               <p className="text-[#1a2744]/55 text-sm font-sans-app">How are you using the app today?</p>
             </div>
             <div className="flex flex-col gap-3 w-full">

@@ -337,8 +337,9 @@ export default function Scorekeeper() {
 
   function handleSaveScore() {
     if (!authedTeam) return;
-    if (settings?.tournamentMode === "complete") {
-      toast({ title: "Tournament complete", description: "Scores can no longer be edited.", variant: "destructive" });
+    const fs = authedTeam.flight === "morning" ? settings?.amStatus : settings?.pmStatus;
+    if (settings?.tournamentMode === "complete" || (settings?.tournamentMode === "live" && fs === "complete")) {
+      toast({ title: "Round complete", description: "Scores can no longer be edited.", variant: "destructive" });
       return;
     }
     // Block if previous hole in sequence has no saved score
@@ -390,7 +391,8 @@ export default function Scorekeeper() {
 
   // Quick score just selects — does NOT save or advance
   function handleQuickScore(n: number) {
-    if (settings?.tournamentMode === "complete") return;
+    const fs = authedTeam?.flight === "morning" ? settings?.amStatus : settings?.pmStatus;
+    if (settings?.tournamentMode === "complete" || (settings?.tournamentMode === "live" && fs === "complete")) return;
     // Block if previous hole in sequence has no saved score
     const prevH = getPrevHoleInSequence(currentHole, startingHole);
     if (prevH !== null && !scoreMap.has(prevH)) {
@@ -480,13 +482,14 @@ export default function Scorekeeper() {
   }
 
   // ─── FLIGHT / MODE LOCK ──────────────────────────────────────────────────────
-  // Live mode + flight not yet activated → block score entry with a lock screen
-  // that auto-unlocks via SSE. Complete mode → scorecard stays viewable but
+  // Live mode + flight Not Started → block score entry with a lock screen that
+  // auto-unlocks via SSE when the admin flips it to In Progress.
+  // Tournament Complete mode or flight Complete → scorecard stays viewable but
   // read-only (banner below, all saves disabled).
   const tMode = settings?.tournamentMode ?? "test";
-  const flightActive = authedTeam.flight === "morning" ? !!settings?.amActive : !!settings?.pmActive;
-  const readOnly = tMode === "complete";
-  const flightLocked = tMode === "live" && !flightActive;
+  const flightStatus = authedTeam.flight === "morning" ? (settings?.amStatus ?? "not_started") : (settings?.pmStatus ?? "not_started");
+  const readOnly = tMode === "complete" || (tMode === "live" && flightStatus === "complete");
+  const flightLocked = tMode === "live" && flightStatus === "not_started";
 
   function signOut() {
     try { sessionStorage.removeItem("sk_authed_team"); sessionStorage.removeItem("sk_current_hole"); } catch {}
@@ -495,14 +498,14 @@ export default function Scorekeeper() {
   }
 
   if (flightLocked) {
-    const flLabel = authedTeam.flight === "morning" ? "AM (morning)" : "PM (afternoon)";
+    const flLabel = authedTeam.flight === "morning" ? "AM" : "PM";
     return (
       <div className="max-w-sm mx-auto space-y-5 pt-10">
         <div className="atd-card rounded-xl p-6 text-center space-y-3">
           <div className="text-4xl">⛳</div>
           <h1 className="text-lg font-bold text-[#b06b10]">{flLabel} Flight Hasn't Started</h1>
           <p className="text-[#1a2744]/65 text-sm font-sans-app leading-relaxed">
-            You'll be able to enter scores as soon as the tournament admin activates your flight. This screen will update automatically — no need to refresh.
+            This flight has not officially started yet. Please wait until you arrive at the tee box of your first hole — this screen will unlock automatically when your flight begins.
           </p>
           <div className="flex flex-col gap-2 pt-1">
             <Button onClick={() => navigate("/")} className="w-full bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold font-sans-app">
@@ -591,10 +594,10 @@ export default function Scorekeeper() {
 
       {/* Score Entry + inline Scorecard */}
       <div className="space-y-4">
-          {/* Tournament complete banner — scorecard is view-only */}
+          {/* Tournament / round complete banner — scorecard is view-only */}
           {readOnly && (
             <div className="bg-[#1a2744]/8 border border-[#1a2744]/20 rounded-xl px-4 py-3 flex items-center gap-2 font-sans-app text-sm">
-              <span className="text-[#1a2744] font-bold whitespace-nowrap">🏁 Tournament Complete</span>
+              <span className="text-[#1a2744] font-bold whitespace-nowrap">🏁 {tMode === "complete" ? "Tournament Complete" : "Round Complete"}</span>
               <span className="text-[#1a2744]/60 text-xs">Scores can no longer be edited.</span>
             </div>
           )}

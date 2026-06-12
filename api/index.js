@@ -49881,7 +49881,7 @@ function mapCtpHistory(r) {
   return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, createdAt: r.created_at };
 }
 function mapSettings(r) {
-  return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning", tournamentMode: r.tournament_mode ?? "test", amActive: r.am_active ?? false, pmActive: r.pm_active ?? false, tiebreakerHoles: r.tiebreaker_holes ?? null };
+  return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning", tournamentMode: r.tournament_mode ?? "test", amStatus: r.am_status ?? "not_started", pmStatus: r.pm_status ?? "not_started", tiebreakerHoles: r.tiebreaker_holes ?? null };
 }
 function createStorage() {
   return {
@@ -49902,8 +49902,8 @@ function createStorage() {
       if (data.broadcastMessage !== void 0) snake.broadcast_message = data.broadcastMessage;
       if (data.defaultFlight !== void 0) snake.default_flight = data.defaultFlight;
       if (data.tournamentMode !== void 0) snake.tournament_mode = data.tournamentMode;
-      if (data.amActive !== void 0) snake.am_active = data.amActive;
-      if (data.pmActive !== void 0) snake.pm_active = data.pmActive;
+      if (data.amStatus !== void 0) snake.am_status = data.amStatus;
+      if (data.pmStatus !== void 0) snake.pm_status = data.pmStatus;
       if (data.tiebreakerHoles !== void 0) snake.tiebreaker_holes = data.tiebreakerHoles;
       const { data: row } = await supabase.from("tournament_settings").upsert({ id: 1, ...snake }, { onConflict: "id" }).select().single();
       return mapSettings(row);
@@ -50134,7 +50134,8 @@ function flightEnterable(settings, flight) {
   const mode = settings?.tournamentMode ?? "test";
   if (mode === "test") return true;
   if (mode === "complete") return false;
-  return flight === "morning" ? !!settings?.amActive : !!settings?.pmActive;
+  const status = flight === "morning" ? settings?.amStatus ?? "not_started" : settings?.pmStatus ?? "not_started";
+  return status === "in_progress";
 }
 function registerRoutes(app2) {
   const httpServer = (0, import_http.createServer)(app2);
@@ -50184,9 +50185,9 @@ function registerRoutes(app2) {
     }
     const settings = await storage.getSettings();
     const mode = settings?.tournamentMode ?? "test";
-    if (mode === "live" && !flightEnterable(settings, team.flight)) {
-      const fl = team.flight === "morning" ? "AM (morning)" : "PM (afternoon)";
-      return res.status(403).json({ success: false, reason: "flight_inactive", message: `The ${fl} flight hasn't started yet. You'll be able to enter scores once the tournament admin activates your flight.` });
+    const status = team.flight === "morning" ? settings?.amStatus ?? "not_started" : settings?.pmStatus ?? "not_started";
+    if (mode === "live" && status === "not_started") {
+      return res.status(403).json({ success: false, reason: "flight_inactive", message: "This flight has not officially started yet. Please wait until you arrive at the tee box of your first hole to re-enter your team code." });
     }
     res.json({ success: true, team });
   });

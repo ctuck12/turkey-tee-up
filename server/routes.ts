@@ -95,12 +95,13 @@ function scheduleImmediatePush() {
 // Can a scorekeeper for the given flight enter scores/CTP right now?
 //   test     → always (full testing)
 //   complete → never (locked, admin-only)
-//   live     → only if that flight has been activated by the admin
+//   live     → only while that flight's round is 'in_progress'
 function flightEnterable(settings: any, flight: string): boolean {
   const mode = settings?.tournamentMode ?? "test";
   if (mode === "test") return true;
   if (mode === "complete") return false;
-  return flight === "morning" ? !!settings?.amActive : !!settings?.pmActive;
+  const status = flight === "morning" ? (settings?.amStatus ?? "not_started") : (settings?.pmStatus ?? "not_started");
+  return status === "in_progress";
 }
 
 export function registerRoutes(app: Express) {
@@ -153,11 +154,12 @@ export function registerRoutes(app: Express) {
     }
     const settings = await storage.getSettings();
     const mode = settings?.tournamentMode ?? "test";
-    // Complete mode: login is allowed so teams can view their scorecard —
-    // the client renders read-only and score/CTP writes are blocked above.
-    if (mode === "live" && !flightEnterable(settings, team.flight)) {
-      const fl = team.flight === "morning" ? "AM (morning)" : "PM (afternoon)";
-      return res.status(403).json({ success: false, reason: "flight_inactive", message: `The ${fl} flight hasn't started yet. You'll be able to enter scores once the tournament admin activates your flight.` });
+    // Tournament-complete mode and flight-complete status: login is allowed so
+    // teams can view their scorecard — the client renders read-only and
+    // score/CTP writes are blocked above. Only 'not_started' blocks login.
+    const status = team.flight === "morning" ? (settings?.amStatus ?? "not_started") : (settings?.pmStatus ?? "not_started");
+    if (mode === "live" && status === "not_started") {
+      return res.status(403).json({ success: false, reason: "flight_inactive", message: "This flight has not officially started yet. Please wait until you arrive at the tee box of your first hole to re-enter your team code." });
     }
     res.json({ success: true, team });
   });
