@@ -159,7 +159,7 @@ export function registerRoutes(app: Express) {
     // score/CTP writes are blocked above. Only 'not_started' blocks login.
     const status = team.flight === "morning" ? (settings?.amStatus ?? "not_started") : (settings?.pmStatus ?? "not_started");
     if (mode === "live" && status === "not_started") {
-      return res.status(403).json({ success: false, reason: "flight_inactive", message: "This flight has not officially started yet. Please wait until you arrive at the tee box of your first hole to re-enter your team code." });
+      return res.status(403).json({ success: false, reason: "flight_inactive", message: "This flight has not officially started yet. We'll notify you when this flight is officially in progress." });
     }
     res.json({ success: true, team });
   });

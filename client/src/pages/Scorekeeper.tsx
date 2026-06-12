@@ -498,7 +498,7 @@ export default function Scorekeeper() {
                 <p className="text-[#1a2744]/65 text-sm font-sans-app leading-relaxed">{notStartedMsg}</p>
               </div>
               <button
-                onClick={() => setNotStartedMsg(null)}
+                onClick={() => { setNotStartedMsg(null); navigate("/"); }}
                 className="w-full py-3 rounded-xl font-bold text-white font-sans-app text-sm transition-all"
                 style={{ background: "linear-gradient(135deg, #1a2744, #243461)", border: "1.5px solid rgba(176,107,16,0.4)" }}
               >
