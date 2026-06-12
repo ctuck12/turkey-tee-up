@@ -1096,12 +1096,85 @@ function CompareScorecard({ team, holes, scores, bestHoles }: { team: Team; hole
   );
 }
 
+// Searchable team dropdown — one per comparison slot
+function TeamCombobox({ teams, value, onChange, excludeIds, label }: {
+  teams: Team[];
+  value: number | null;
+  onChange: (id: number | null) => void;
+  excludeIds: number[];
+  label: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const sel = teams.find(t => t.id === value);
+  const qn = q.trim().toLowerCase();
+  const list = teams
+    .filter(t => t.id === value || !excludeIds.includes(t.id))
+    .filter(t => !qn || t.teamName.toLowerCase().includes(qn) ||
+      [t.player1, t.player2, t.player3, t.player4].filter(Boolean).some(p => p.toLowerCase().includes(qn)));
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => { setOpen(v => !v); setQ(""); }}
+        className="w-full flex items-center justify-between rounded-md border border-[#1a2744]/15 bg-white px-3 py-2 text-sm text-left font-sans-app"
+      >
+        <span className={sel ? "text-[#1a2744] font-bold truncate" : "text-[#1a2744]/40"}>
+          {sel ? sel.teamName : label}
+        </span>
+        <span className="flex items-center gap-1 shrink-0 ml-2">
+          {sel && (
+            <span
+              role="button"
+              onClick={e => { e.stopPropagation(); onChange(null); setOpen(false); }}
+              className="text-[#1a2744]/35 hover:text-[#1a2744]/70 p-0.5"
+            >
+              <X size={13} />
+            </span>
+          )}
+          <ChevronDown size={14} className={`text-[#1a2744]/45 transition-transform ${open ? "rotate-180" : ""}`} />
+        </span>
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-[#1a2744]/20 rounded-md shadow-lg overflow-hidden">
+          <div className="p-1.5 border-b border-[#1a2744]/10">
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#1a2744]/40 pointer-events-none" />
+              <Input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder="Search team or player..."
+                className="bg-[#1a2744]/5 border-[#1a2744]/12 text-[#1a2744] h-8 pl-8 text-sm" />
+            </div>
+          </div>
+          <div className="max-h-44 overflow-y-auto">
+            {list.map(t => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => { onChange(t.id); setOpen(false); }}
+                className={`w-full text-left px-3 py-2 text-sm font-sans-app transition-colors ${
+                  t.id === value ? "bg-[#1a2744] text-white font-bold" : "text-[#1a2744] hover:bg-[#1a2744]/8"
+                }`}
+              >
+                <span className="font-bold">{t.teamName}</span>
+                <span className={`ml-2 text-xs ${t.id === value ? "text-white/60" : "text-[#1a2744]/45"}`}>
+                  {[t.player1, t.player2, t.player3, t.player4].filter(Boolean).map(p => p.trim().split(/\s+/).pop()).join(" · ")}
+                </span>
+              </button>
+            ))}
+            {list.length === 0 && <div className="px-3 py-2.5 text-sm text-[#1a2744]/40 font-sans-app italic">No matching teams</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ScorecardComparison() {
   const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
   const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
-  const [selected, setSelected] = useState<number[]>([]);
+  const [count, setCount] = useState(2);
+  const [slots, setSlots] = useState<(number | null)[]>([null, null]);
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
   const [flightFilter, setFlightFilter] = useState<"morning" | "afternoon">("morning");
   const { data: settings } = useQuery<TournamentSettings>({ queryKey: ["/api/settings"] });
   // One shared scores query so we can compare hole-by-hole across teams
@@ -1118,18 +1191,17 @@ function ScorecardComparison() {
   }, [settings]);
 
   // Switching flights clears the current picks — you only compare within one flight
-  const switchFlight = (f: "morning" | "afternoon") => { userSetFlightRef.current = true; setFlightFilter(f); setSelected([]); };
+  const switchFlight = (f: "morning" | "afternoon") => { userSetFlightRef.current = true; setFlightFilter(f); setSlots(Array(count).fill(null)); };
 
-  const toggle = (id: number) =>
-    setSelected(s => s.includes(id) ? s.filter(x => x !== id) : (s.length >= 5 ? s : [...s, id]));
+  // Changing the team count resizes the slot list, keeping existing picks
+  const changeCount = (n: number) => {
+    setCount(n);
+    setSlots(s => Array.from({ length: n }, (_, i) => s[i] ?? null));
+  };
 
-  const q = search.trim().toLowerCase();
-  const list = teams.filter(t =>
-    t.flight === flightFilter &&
-    (!q || t.teamName.toLowerCase().includes(q) ||
-    [t.player1, t.player2, t.player3, t.player4].filter(Boolean).some(p => p.toLowerCase().includes(q)))
-  );
-  const chosen = teams.filter(t => selected.includes(t.id));
+  const flightTeams = teams.filter(t => t.flight === flightFilter);
+  const picked = slots.filter((id): id is number => id !== null);
+  const chosen = picked.map(id => teams.find(t => t.id === id)).filter((t): t is Team => !!t);
 
   // Per-hole comparison: which chosen team has the OUTRIGHT lowest score on each
   // hole (ties highlight nothing — only a clear winner gets the green cell).
@@ -1169,43 +1241,49 @@ function ScorecardComparison() {
         >PM Flight</button>
       </div>
 
-      <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1a2744]/40 pointer-events-none" />
-        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search team or player..." className="bg-white border-[#1a2744]/12 text-[#1a2744] pl-9 text-sm" />
+      {/* How many teams to compare */}
+      <div>
+        <Label className="text-[#1a2744]/60 text-xs mb-1.5 block">How many teams?</Label>
+        <div className="grid grid-cols-4 gap-2">
+          {[2, 3, 4, 5].map(n => (
+            <button
+              key={n}
+              onClick={() => changeCount(n)}
+              className={`py-1.5 rounded-lg border text-sm font-bold transition-colors font-sans-app ${
+                count === n ? "bg-amber-500/25 border-amber-500/60 text-[#b06b10]" : "bg-[#1a2744]/5 border-[#1a2744]/15 text-[#1a2744]/50 hover:border-[#1a2744]/30"
+              }`}
+            >{n}</button>
+          ))}
+        </div>
       </div>
 
-      <div className="max-h-56 overflow-y-auto rounded-lg border border-[#1a2744]/10 divide-y divide-[#1a2744]/8">
-        {list.map(t => {
-          const isSel = selected.includes(t.id);
-          const disabled = !isSel && selected.length >= 5;
-          return (
-            <button
-              key={t.id}
-              onClick={() => toggle(t.id)}
-              disabled={disabled}
-              className={`w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
-                isSel ? "bg-amber-500/10" : disabled ? "opacity-40 cursor-not-allowed" : "hover:bg-[#1a2744]/5"
-              }`}
-            >
-              <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${isSel ? "bg-[#b06b10] border-[#b06b10] text-white" : "border-[#1a2744]/30"}`}>
-                {isSel && <Check size={11} />}
-              </span>
-              <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${t.flight === "morning" ? "bg-blue-500/15 text-blue-600" : "bg-amber-500/20 text-[#b06b10]"}`}>{t.flight === "morning" ? "AM" : "PM"}</span>
-              <span className="font-bold text-[#1a2744] truncate">{t.teamName}</span>
-            </button>
-          );
-        })}
+      {/* One searchable dropdown per slot */}
+      <div className="space-y-2">
+        {slots.map((val, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="text-xs font-bold text-[#1a2744]/45 font-sans-app w-12 shrink-0">Team {i + 1}</span>
+            <div className="flex-1">
+              <TeamCombobox
+                teams={flightTeams}
+                value={val}
+                onChange={id => setSlots(s => s.map((v, j) => j === i ? id : v))}
+                excludeIds={picked}
+                label="Select team..."
+              />
+            </div>
+          </div>
+        ))}
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-xs text-[#1a2744]/50 font-sans-app">{selected.length} selected · 2–5</span>
+        <span className="text-xs text-[#1a2744]/50 font-sans-app">{picked.length} of {count} selected</span>
         <div className="flex gap-2">
-          {selected.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => setSelected([])} className="text-[#1a2744]/55 font-sans-app">Clear</Button>
+          {picked.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => setSlots(Array(count).fill(null))} className="text-[#1a2744]/55 font-sans-app">Clear</Button>
           )}
-          <Button size="sm" disabled={selected.length < 2} onClick={() => setOpen(true)}
+          <Button size="sm" disabled={picked.length < 2} onClick={() => setOpen(true)}
             className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 disabled:opacity-40 font-bold font-sans-app">
-            <Scale size={14} className="mr-1.5" /> Compare ({selected.length})
+            <Scale size={14} className="mr-1.5" /> Compare ({picked.length})
           </Button>
         </div>
       </div>
