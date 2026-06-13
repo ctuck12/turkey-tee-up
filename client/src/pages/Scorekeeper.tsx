@@ -213,6 +213,7 @@ export default function Scorekeeper() {
   }, [isSubmitted, authedTeam]);
 
   const { data: ctpEntries = [], refetch: refetchCtp } = useQuery<ClosestToPin[]>({ queryKey: ["/api/ctp"] });
+  const { data: ctpHistory = [] } = useQuery<any[]>({ queryKey: ["/api/ctp/history"] });
   const { data: sponsors = [] } = useQuery<Sponsor[]>({ queryKey: ["/api/sponsors"] });
 
   const teamScores = useQuery<Score[]>({
@@ -1052,19 +1053,16 @@ export default function Scorekeeper() {
         const frontVal = groupToPar(front);
         const backVal  = groupToPar(back);
         const totalVal = frontVal!==null||backVal!==null ? (frontVal??0)+(backVal??0) : null;
-        // All holes this team submitted CTP/LD for — cross-reference live ctpEntries for current status
-        const submittedEntries = submittedCtpHoles
-          .map(holeNum => {
-            // Find what the team submitted: the live entry for this hole
-            const liveEntry = ctpEntries.find(c => c.holeNumber === holeNum);
-            const stillLeading = liveEntry?.teamId === authedTeam.id;
-            // Get player name from live entry if still leading, otherwise use last known from ctpEntries history
-            // Since we may not have historical data, use the live entry if available
-            return { holeNum, liveEntry, stillLeading };
-          })
-          .sort((a, b) => a.holeNum - b.holeNum);
-        // Fall back: also show current myCtp entries not already tracked
-        const myCtp = ctpEntries.filter(c => c.teamId === authedTeam.id && !submittedCtpHoles.includes(c.holeNumber));
+        // Every hole THIS team marked CTP/LD for (from the history log, so it
+        // persists and keeps our player even after we've been overtaken). Latest
+        // mark per hole wins.
+        const myMarkByHole = new Map<number, any>();
+        for (const h of ctpHistory) {
+          if (h.teamId !== authedTeam.id) continue;
+          const existing = myMarkByHole.get(h.holeNumber);
+          if (!existing || h.id > existing.id) myMarkByHole.set(h.holeNumber, h);
+        }
+        const myMarks = Array.from(myMarkByHole.values()).sort((a, b) => a.holeNumber - b.holeNumber);
 
         return createPortal(
           <>
@@ -1097,28 +1095,30 @@ export default function Scorekeeper() {
                 </div>
 
                 {/* CTP / LD entries with leading status */}
-                {(submittedEntries.length > 0 || myCtp.length > 0) && (
+                {myMarks.length > 0 && (
                   <div className="bg-white rounded-xl border border-amber-500/20 p-3 space-y-2">
                     <p className="text-[#b06b10] text-xs uppercase tracking-widest font-bold font-sans-app">CTP &amp; Long Drive</p>
 
-                    {submittedEntries.map(({ holeNum, liveEntry, stillLeading }) => {
-                      const isLd = !!(holeMap.get(holeNum)?.isCtpHole && holeMap.get(holeNum)?.par !== 3);
-                      const playerName = liveEntry?.playerName ?? "";
+                    {myMarks.map(mark => {
+                      const isLd = !!(holeMap.get(mark.holeNumber)?.isCtpHole && holeMap.get(mark.holeNumber)?.par !== 3);
+                      const liveEntry = ctpEntries.find(c => c.holeNumber === mark.holeNumber);
+                      const stillLeading = liveEntry?.teamId === authedTeam.id;
+                      const playerName = mark.playerName ?? "";
                       const distFmt = (() => {
-                        if (!liveEntry?.distance) return "";
-                        if (isLd) return `${liveEntry.distance} yds`;
-                        const inches = parseInt(liveEntry.distance);
+                        if (!mark.distance) return "";
+                        if (isLd) return `${mark.distance} yds`;
+                        const inches = parseInt(mark.distance);
                         return !isNaN(inches)
-                          ? inches < 12 ? `${inches}"` : `${Math.floor(inches/12)}' ${inches%12}"`
-                          : liveEntry.distance;
+                          ? inches < 12 ? `${inches}"` : `${Math.floor(inches / 12)}' ${inches % 12}"`
+                          : mark.distance;
                       })();
                       return (
-                        <div key={holeNum} className="space-y-0.5">
+                        <div key={mark.holeNumber} className="space-y-0.5">
                           <div className="flex items-center justify-between text-sm font-sans-app">
                             <span className="text-[#1a2744]/70">
                               {isLd
                                 ? <span className="text-emerald-700 font-bold">Long Drive</span>
-                                : <>Hole {holeNum} CTP</>
+                                : <>Hole {mark.holeNumber} CTP</>
                               }
                               {playerName ? <>{" — "}<span className="font-bold text-[#1a2744]">{playerName}</span></> : null}
                             </span>
@@ -1131,36 +1131,7 @@ export default function Scorekeeper() {
                           }`}>
                             {stillLeading
                               ? (flightFinal ? "(WINNER!)" : "(STILL LEADING!)")
-                              : isLd ? "(No longer longest drive)" : "(No longer closest to pin)"}
-                          </p>
-                        </div>
-                      );
-                    })}
-
-                    {myCtp.map(c => {
-                      const isLd = !!(holeMap.get(c.holeNumber)?.isCtpHole && holeMap.get(c.holeNumber)?.par !== 3);
-                      const distFmt = (() => {
-                        if (!c.distance) return "";
-                        if (isLd) return `${c.distance} yds`;
-                        const inches = parseInt(c.distance);
-                        return !isNaN(inches)
-                          ? inches < 12 ? `${inches}"` : `${Math.floor(inches/12)}' ${inches%12}"`
-                          : c.distance;
-                      })();
-                      return (
-                        <div key={c.id} className="space-y-0.5">
-                          <div className="flex items-center justify-between text-sm font-sans-app">
-                            <span className="text-[#1a2744]/70">
-                              {isLd
-                                ? <span className="text-emerald-700 font-bold">Long Drive</span>
-                                : <>Hole {c.holeNumber} CTP</>
-                              }
-                              {" — "}<span className="font-bold text-[#1a2744]">{c.playerName}</span>
-                            </span>
-                            {distFmt && <span className={isLd ? "text-emerald-700 font-bold text-xs" : "text-green-700 font-bold text-xs"}>{distFmt}</span>}
-                          </div>
-                          <p className={`text-[10px] font-bold font-sans-app ml-0.5 ${flightFinal ? "text-green-700" : "text-[#b06b10]"}`}>
-                            {flightFinal ? "(WINNER!)" : "(STILL LEADING!)"}
+                              : "(No Longer Leading)"}
                           </p>
                         </div>
                       );
