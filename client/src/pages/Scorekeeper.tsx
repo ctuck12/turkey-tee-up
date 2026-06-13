@@ -967,7 +967,7 @@ export default function Scorekeeper() {
               </DialogTitle>
             </DialogHeader>
             <p className="text-[#1a2744]/75 font-sans-app text-sm">
-              Was one of your players closest to the pin on Hole {ctpWarningHole}?
+              Was one of your players closest to the pin?
             </p>
             <div className="flex gap-3 pt-2">
               <button
@@ -1025,7 +1025,7 @@ export default function Scorekeeper() {
               </DialogTitle>
             </DialogHeader>
             <p className="text-[#1a2744]/75 font-sans-app text-sm">
-              Did one of your players have the longest drive on Hole {ldWarningHole}?
+              Did one of your players have the longest drive?
             </p>
             <div className="flex gap-3 pt-2">
               <button
