@@ -726,6 +726,7 @@ function BroadcastTab() {
   const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"], refetchInterval: 4000 });
   const [message, setMessage] = useState(settings?.broadcastMessage ?? "");
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmSend, setConfirmSend] = useState(false);
 
   useEffect(() => {
     setMessage(settings?.broadcastMessage ?? "");
@@ -764,7 +765,7 @@ function BroadcastTab() {
         />
         <div className="flex gap-2">
           <Button
-            onClick={() => broadcastMutation.mutate(message)}
+            onClick={() => setConfirmSend(true)}
             disabled={!message.trim() || broadcastMutation.isPending}
             className="flex-1 bg-[#1a2744] hover:bg-[#243461] text-white font-sans-app flex items-center gap-2"
           >
@@ -779,6 +780,14 @@ function BroadcastTab() {
             <XCircle size={14} /> Clear
           </Button>
         </div>
+        <ConfirmDialog
+          open={confirmSend}
+          onOpenChange={setConfirmSend}
+          title="Send to everyone?"
+          description={`This will instantly pop up the following announcement for everyone currently using the app:\n\n"${message.trim()}"`}
+          confirmLabel="Send to All"
+          onConfirm={() => broadcastMutation.mutate(message)}
+        />
         <ConfirmDialog
           open={confirmClear}
           onOpenChange={setConfirmClear}
