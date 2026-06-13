@@ -49,7 +49,7 @@ async function buildPayload(): Promise<SsePayload> {
       const ts = scores.filter(s => s.teamId === t.id && s.strokes != null);
       if (ts.length < 18) return false;
       const lastUpdate = Math.max(...ts.map(s => (s.updatedAt ? new Date(s.updatedAt).getTime() : 0)));
-      return now - lastUpdate > 120_000; // 2 minutes
+      return now - lastUpdate > 240_000; // 4 minutes
     });
     if (stale.length > 0) {
       await Promise.all(stale.map(t => storage.submitTeam(t.id)));
@@ -204,8 +204,31 @@ export function registerRoutes(app: Express) {
 
   app.put("/api/settings", async (req: Request, res: Response) => {
     const updated = await storage.upsertSettings(req.body);
+    // When a flight or the tournament is marked Complete, finalize everyone in
+    // scope: auto-submit any team that has scores but hasn't officially submitted,
+    // so nothing stays hung up and the final results can compute.
+    const body = req.body || {};
+    const completingTournament = body.tournamentMode === "complete";
+    const completingAm = body.amStatus === "complete";
+    const completingPm = body.pmStatus === "complete";
+    if (completingTournament || completingAm || completingPm) {
+      const scopeFlight = completingTournament ? null : (completingAm ? "morning" : "afternoon");
+      const [teams, scores] = await Promise.all([storage.getTeams(), storage.getAllScores()]);
+      const toSubmit = teams
+        .filter(t => !t.isSubmitted)
+        .filter(t => scopeFlight === null || t.flight === scopeFlight)
+        .filter(t => scores.some(s => s.teamId === t.id && s.strokes != null));
+      await Promise.all(toSubmit.map(t => storage.submitTeam(t.id)));
+    }
     scheduleImmediatePush(); // broadcast_message and other settings update live
     res.json(updated);
+  });
+
+  // Un-submit a team WITHOUT clearing their scores (admin can re-open a scorecard)
+  app.post("/api/teams/:id/unsubmit", async (req: Request, res: Response) => {
+    await storage.unsubmitTeam(parseInt(req.params.id));
+    scheduleImmediatePush();
+    res.json({ success: true, submitted: false });
   });
 
   // ─── HOLES ────────────────────────────────────────────────────────────────

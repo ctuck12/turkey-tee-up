@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   Shield, Users, Flag, Settings, Plus, Trash2, Edit2, Check, X,
-  Copy, RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList, Target, Zap, Search, Scale, Star
+  Copy, RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown, Eye, EyeOff, Clock, Bell, Send, XCircle, ClipboardList, Target, Zap, Search, Scale, Star, Undo2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -244,12 +244,13 @@ function TeamScoreEditor({ teamId }: { teamId: number }) {
   );
 }
 
-function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutation, setConfirmDelete, codeConflict }: {
+function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutation, unsubmitMutation, setConfirmDelete, codeConflict }: {
   team: Team;
   editTeam: Team | null;
   setEditTeam: (t: Team | null) => void;
   updateMutation: any;
   clearScoresMutation: any;
+  unsubmitMutation: any;
   setConfirmDelete: (id: number | null) => void;
   codeConflict: (code: string, excludeId?: number) => string | null;
 }) {
@@ -311,6 +312,11 @@ function TeamRow({ team, editTeam, setEditTeam, updateMutation, clearScoresMutat
                 confirmLabel="Clear Scores"
                 onConfirm={() => clearScoresMutation.mutate(team.id)}
               />
+              {team.isSubmitted && (
+                <Button variant="ghost" size="sm" onClick={() => unsubmitMutation.mutate(team.id)} className="text-[#b06b10]/70 hover:text-[#b06b10] border border-amber-500/20 font-sans-app">
+                  <Undo2 size={13} className="mr-1" /> Un-submit
+                </Button>
+              )}
               <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(team.id)} className="text-red-400/60 hover:text-red-400 border border-red-500/20 font-sans-app">
                 <Trash2 size={13} className="mr-1" /> Remove
               </Button>
@@ -384,6 +390,16 @@ function TeamsTab() {
       qc.invalidateQueries({ queryKey: ["/api/ctp"] });
       qc.invalidateQueries({ queryKey: ["/api/submissions"] });
       toast({ title: "Scores cleared — team reset to start of round" });
+    },
+  });
+
+  const unsubmitMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("POST", `/api/teams/${id}/unsubmit`, {}),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/teams"] });
+      qc.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+      qc.invalidateQueries({ queryKey: ["/api/submissions"] });
+      toast({ title: "Scorecard re-opened (un-submitted)" });
     },
   });
 
@@ -515,7 +531,7 @@ function TeamsTab() {
               <p className="text-blue-600 text-xs uppercase tracking-wider font-sans-app">AM Flight ({morning.length})</p>
               {renderStartSortHeader()}
             </div>
-            {morning.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} codeConflict={codeConflict} />)}
+            {morning.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} unsubmitMutation={unsubmitMutation} setConfirmDelete={setConfirmDelete} codeConflict={codeConflict} />)}
           </>
         )}
         {(flightFilter === "all" || flightFilter === "afternoon") && afternoon.length > 0 && (
@@ -524,7 +540,7 @@ function TeamsTab() {
               <p className="text-[#b06b10] text-xs uppercase tracking-wider font-sans-app">PM Flight ({afternoon.length})</p>
               {renderStartSortHeader()}
             </div>
-            {afternoon.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} setConfirmDelete={setConfirmDelete} codeConflict={codeConflict} />)}
+            {afternoon.map(t => <TeamRow key={t.id} team={t} editTeam={editTeam} setEditTeam={setEditTeam} updateMutation={updateMutation} clearScoresMutation={clearScoresMutation} unsubmitMutation={unsubmitMutation} setConfirmDelete={setConfirmDelete} codeConflict={codeConflict} />)}
           </>
         )}
         {teams.length === 0 && (

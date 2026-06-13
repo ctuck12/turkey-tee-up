@@ -50105,7 +50105,7 @@ async function buildPayload() {
       const ts = scores.filter((s) => s.teamId === t.id && s.strokes != null);
       if (ts.length < 18) return false;
       const lastUpdate = Math.max(...ts.map((s) => s.updatedAt ? new Date(s.updatedAt).getTime() : 0));
-      return now - lastUpdate > 12e4;
+      return now - lastUpdate > 24e4;
     });
     if (stale.length > 0) {
       await Promise.all(stale.map((t) => storage.submitTeam(t.id)));
@@ -50243,8 +50243,23 @@ function registerRoutes(app2) {
   });
   app2.put("/api/settings", async (req, res) => {
     const updated = await storage.upsertSettings(req.body);
+    const body = req.body || {};
+    const completingTournament = body.tournamentMode === "complete";
+    const completingAm = body.amStatus === "complete";
+    const completingPm = body.pmStatus === "complete";
+    if (completingTournament || completingAm || completingPm) {
+      const scopeFlight = completingTournament ? null : completingAm ? "morning" : "afternoon";
+      const [teams, scores] = await Promise.all([storage.getTeams(), storage.getAllScores()]);
+      const toSubmit = teams.filter((t) => !t.isSubmitted).filter((t) => scopeFlight === null || t.flight === scopeFlight).filter((t) => scores.some((s) => s.teamId === t.id && s.strokes != null));
+      await Promise.all(toSubmit.map((t) => storage.submitTeam(t.id)));
+    }
     scheduleImmediatePush();
     res.json(updated);
+  });
+  app2.post("/api/teams/:id/unsubmit", async (req, res) => {
+    await storage.unsubmitTeam(parseInt(req.params.id));
+    scheduleImmediatePush();
+    res.json({ success: true, submitted: false });
   });
   app2.get("/api/holes", async (_req, res) => {
     res.json(await storage.getHoles());
