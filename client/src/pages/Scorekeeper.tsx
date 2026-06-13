@@ -827,7 +827,7 @@ export default function Scorekeeper() {
                   className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-500/40 border border-amber-500/60 text-amber-900 hover:bg-amber-500/55 transition-all font-sans-app text-sm font-bold min-w-0"
                   data-testid="button-enter-ctp"
                 >
-                  <Target size={14} className="shrink-0" />
+                  {leader ? <Check size={14} className="shrink-0 text-green-700" /> : <Target size={14} className="shrink-0" />}
                   <span className="truncate">{leader ? `CTP: ${leader} · tap to update` : `Enter Closest to Pin for Hole ${currentHole}`}</span>
                 </button>
               );
@@ -841,7 +841,7 @@ export default function Scorekeeper() {
                   className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-600/40 border border-emerald-600/60 text-emerald-900 hover:bg-emerald-600/55 transition-all font-sans-app text-sm font-bold min-w-0"
                   data-testid="button-enter-ld"
                 >
-                  <Zap size={14} className="shrink-0" />
+                  {leader ? <Check size={14} className="shrink-0 text-green-700" /> : <Zap size={14} className="shrink-0" />}
                   <span className="truncate">{leader ? `LD: ${leader} · tap to update` : `Enter Long Drive for Hole ${currentHole}`}</span>
                 </button>
               );
