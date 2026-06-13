@@ -626,10 +626,10 @@ export default function Scorekeeper() {
   const startingHole = authedTeam.startingHole ?? 1;
   const lastHole = startingHole === 1 ? 18 : startingHole - 1;
 
-  // Flight is "final" once every team in this flight is thru all 18 holes (Thru = F).
-  // Until then, CTP/LD entries this team holds show "Still Leading!" not "Winner!".
+  // Flight is "final" once every team in this flight is thru 18 (Thru = F) AND has
+  // officially submitted. Until then, CTP/LD entries show "Still Leading!" not "Winner!".
   const flightEntries = leaderboard.filter((e: any) => e.team?.flight === authedTeam.flight);
-  const flightFinal = flightEntries.length > 0 && flightEntries.every((e: any) => e.holesCompleted === 18);
+  const flightFinal = flightEntries.length > 0 && flightEntries.every((e: any) => e.holesCompleted === 18 && e.team?.isSubmitted);
 
   // Advance to next hole respecting the round boundary; show round complete on last hole
   function advanceHole(from: number) {
