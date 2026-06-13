@@ -343,7 +343,7 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
           </span>
         )}
         {flightStatus === "complete" && (
-          <span className="flex items-center font-bold font-sans-app text-[#1a2744] bg-[#1a2744]/10 border border-[#1a2744]/20 rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap">
+          <span className="flex items-center font-bold font-sans-app text-red-600 bg-red-500/10 border border-red-500/40 rounded-full px-2 py-0.5 shrink-0 whitespace-nowrap">
             Complete
           </span>
         )}
