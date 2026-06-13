@@ -517,10 +517,12 @@ function FlightCompleteModal() {
 
   const mode = settings?.tournamentMode ?? "test";
 
-  // Pick the flight to announce: only in live/complete, status Complete, not yet dismissed
+  // Pick the flight to announce: only in live/complete, status Complete, not yet dismissed.
+  // The AM-complete announcement stops the moment PM starts (it auto-hides for anyone
+  // viewing it and won't appear for new viewers once PM is In Progress or beyond).
   let flight: "morning" | "afternoon" | null = null;
   if (settings && (mode === "live" || mode === "complete")) {
-    if (settings.amStatus === "complete" && !dismissed.morning) flight = "morning";
+    if (settings.amStatus === "complete" && settings.pmStatus === "not_started" && !dismissed.morning) flight = "morning";
     else if (settings.pmStatus === "complete" && !dismissed.afternoon) flight = "afternoon";
   }
   if (!flight || !settings) return null;

@@ -549,7 +549,7 @@ export default function Leaderboard() {
           <p className="text-[#1a2744]/50 font-sans-app">Loading leaderboard...</p>
         </div>
       ) : (
-        <Tabs defaultValue={defaultTab}>
+        <Tabs key={defaultTab} defaultValue={defaultTab}>
           <TabsList className="bg-white border border-[#1a2744]/20 mb-4 shadow-sm">
             <TabsTrigger value="morning" className="font-sans-app text-[#1a2744]/60 data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-600">
               AM ({morningTeams.length})
