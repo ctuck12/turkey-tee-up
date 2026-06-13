@@ -405,18 +405,19 @@ export default function Scorekeeper() {
     }
     setLocalScore("");
 
-    // If this is a CTP hole and no entry exists yet, hold the score until the popup resolves
+    // CTP hole: prompt unless THIS team already submitted one of their players,
+    // even if another team currently holds the closest-to-pin for this hole.
     const isCtp = currentHoleData?.isCtpHole && currentHoleData?.par === 3;
-    const ctpAlreadySaved = ctpEntries.some(c => c.holeNumber === currentHole);
-    if (isCtp && !ctpAlreadySaved) {
+    const teamSubmittedCtp = submittedCtpHoles.includes(currentHole);
+    if (isCtp && !teamSubmittedCtp) {
       setPendingStrokes({ holeNumber: currentHole, strokes });
       setCtpWarningHole(currentHole);
       return;
     }
-    // If this is an LD hole (par 4/5 with toggle on) and no LD entry yet, hold the score until the popup resolves
+    // LD hole (par 4/5 with toggle on): same rule — prompt unless this team already entered one
     const isLdHole = !!(currentHoleData?.isCtpHole && currentHoleData?.par !== 3);
-    const ldAlreadySaved = ctpEntries.some(c => c.holeNumber === currentHole && c.holeNumber !== undefined);
-    if (isLdHole && !ldAlreadySaved) {
+    const teamSubmittedLd = submittedCtpHoles.includes(currentHole);
+    if (isLdHole && !teamSubmittedLd) {
       setPendingStrokes({ holeNumber: currentHole, strokes });
       setLdWarningHole(currentHole);
       return;
