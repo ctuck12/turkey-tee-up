@@ -398,8 +398,9 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
                     {tieMap.has(entry.team.id) && (
                       <button
                         onClick={e => { e.stopPropagation(); setTiePopup(tieMap.get(entry.team.id)!); }}
-                        className="shrink-0 text-[#b06b10] font-bold text-lg leading-none px-0.5 hover:text-[#8a5008]"
+                        className="shrink-0 text-[#b06b10] font-bold text-2xl leading-none px-2 py-1 -my-1 flex items-center hover:text-[#8a5008]"
                         title="Won on a tiebreaker — tap for details"
+                        aria-label="Tiebreaker details"
                       >*</button>
                     )}
                   </div>
