@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { Trophy, Target, Search, Users, ChevronDown, ChevronUp, Wifi, Zap, Flag, X } from "lucide-react";
 import bigCountryLogo from "@/assets/big-country-title.png";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScorePill } from "@/components/ScorecardTable";
 import type { LeaderboardEntry, Hole, ClosestToPin, CtpHistory, Team, Sponsor, TournamentSettings } from "@shared/schema";
 
 // ─── TIEBREAKER / STANDINGS ───────────────────────────────────────────────────
@@ -265,7 +266,7 @@ function CtpPanel({ ctpEntries, holes, teams }: { ctpEntries: ClosestToPin[]; ho
   );
 }
 
-function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole, teams, flightStatus, placeMap, tieMap }: {
+function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole, teams, flightStatus, placeMap, tieMap, holes }: {
   entries: LeaderboardEntry[];
   label: string;
   flight: "morning" | "afternoon";
@@ -276,8 +277,10 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
   flightStatus?: string | null;
   placeMap: Map<number, number>;
   tieMap: Map<number, TieInfo>;
+  holes: Hole[];
 }) {
   const [, navigate] = useLocation();
+  const parByHole = new Map(holes.map(h => [h.holeNumber, h.par]));
   const [showCtp, setShowCtp] = useState(false);
   const [showInProgress, setShowInProgress] = useState(false);
   const [search, setSearch] = useState("");
@@ -442,10 +445,10 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
                 <span>Hole</span><span className="text-center">This team</span><span className="text-center">{tiePopup.vsTeamName.length > 12 ? "Other" : tiePopup.vsTeamName}</span>
               </div>
               {tiePopup.rows.map(r => (
-                <div key={r.hole} className={`grid grid-cols-3 px-3 py-1.5 text-sm border-t border-[#1a2744]/8 ${r.decided ? "bg-green-500/10" : ""}`}>
+                <div key={r.hole} className={`grid grid-cols-3 items-center px-3 py-1.5 text-sm border-t border-[#1a2744]/8 ${r.decided ? "bg-green-500/10" : ""}`}>
                   <span className="text-[#1a2744]/70">Hole {r.hole}</span>
-                  <span className={`text-center font-bold ${r.decided ? "text-green-700" : "text-[#1a2744]"}`}>{r.mine ?? "—"}</span>
-                  <span className="text-center text-[#1a2744]/60">{r.theirs ?? "—"}</span>
+                  <span className="flex items-center justify-center"><ScorePill strokes={r.mine} par={parByHole.get(r.hole) ?? 4} gap={r.decided ? "#effaf1" : "#ffffff"} /></span>
+                  <span className="flex items-center justify-center"><ScorePill strokes={r.theirs} par={parByHole.get(r.hole) ?? 4} gap={r.decided ? "#effaf1" : "#ffffff"} /></span>
                 </div>
               ))}
             </div>
@@ -554,7 +557,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={amStandings.sorted} label="AM Flight" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} flightStatus={amFlightStatus} placeMap={amStandings.placeMap} tieMap={amStandings.tieMap} />
+              <LeaderboardTable entries={amStandings.sorted} label="AM Flight" flight="morning" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} flightStatus={amFlightStatus} placeMap={amStandings.placeMap} tieMap={amStandings.tieMap} holes={holes} />
             )}
           </TabsContent>
           <TabsContent value="afternoon">
@@ -565,7 +568,7 @@ export default function Leaderboard() {
                 <p className="text-[#1a2744]/30 text-sm font-sans-app">Teams will appear here once added by the admin</p>
               </div>
             ) : (
-              <LeaderboardTable entries={pmStandings.sorted} label="PM Flight" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} flightStatus={pmFlightStatus} placeMap={pmStandings.placeMap} tieMap={pmStandings.tieMap} />
+              <LeaderboardTable entries={pmStandings.sorted} label="PM Flight" flight="afternoon" ctpEntries={ctpEntries} ctpHoles={holes.filter(h => h.isCtpHole && h.par === 3)} ldHole={holes.find(h => h.isCtpHole && h.par !== 3)} teams={teams} flightStatus={pmFlightStatus} placeMap={pmStandings.placeMap} tieMap={pmStandings.tieMap} holes={holes} />
             )}
           </TabsContent>
         </Tabs>

@@ -60,6 +60,25 @@ export function ScoreCell({ strokes, par, highlight }: { strokes: number | null 
   );
 }
 
+// ─── ScorePill ────────────────────────────────────────────────────────────────
+// Inline (non-table) version of the scorecard score styling: double-circle eagle,
+// circled birdie, plain par, squared bogey+. Used in the tiebreaker popups.
+export function ScorePill({ strokes, par, gap = "#ffffff" }: { strokes: number | null | undefined; par: number; gap?: string }) {
+  if (strokes == null) return <span className="text-[#1a2744]/35">—</span>;
+  const diff = strokes - par;
+  const box: React.CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", fontWeight: 700 };
+  if (diff <= -2) {
+    return <span style={{ ...box, width: 22, height: 22, borderRadius: "50%", border: "1.5px solid #c0323e", boxShadow: `0 0 0 2px ${gap}, 0 0 0 4px #c0323e`, color: "#c0323e", fontSize: "0.75rem" }}>{strokes}</span>;
+  }
+  if (diff === -1) {
+    return <span style={{ ...box, width: 24, height: 24, borderRadius: "50%", border: "2px solid #c0323e", color: "#c0323e", fontSize: "0.8rem" }}>{strokes}</span>;
+  }
+  if (diff === 0) {
+    return <span style={{ color: "#1a2744", fontWeight: 700, fontSize: "0.85rem" }}>{strokes}</span>;
+  }
+  return <span style={{ ...box, width: 24, height: 24, borderRadius: 2, border: "2px solid #1a2744", color: "#1a2744", fontSize: "0.8rem" }}>{strokes}</span>;
+}
+
 // ─── ScorecardTable ───────────────────────────────────────────────────────────
 // Full 18-hole scrollable scorecard.
 // scrollToHole: when provided, auto-scrolls the table so that hole's column is

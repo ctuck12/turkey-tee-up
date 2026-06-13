@@ -8,6 +8,7 @@ import { useState, useEffect, useRef } from "react";
 import { Bell, X as XIcon, Trophy, ClipboardList, Shield, Heart, Menu, X, Users, ClipboardEdit } from "lucide-react";
 import { useSSE } from "@/hooks/use-sse";
 import Leaderboard, { computeStandings } from "@/pages/Leaderboard";
+import { ScorePill } from "@/components/ScorecardTable";
 import Scorekeeper from "@/pages/Scorekeeper";
 import AdminPortal from "@/pages/AdminPortal";
 import Donate from "@/pages/Donate";
@@ -544,6 +545,7 @@ function FlightCompleteModal() {
   const hasContests = ctpWinners.some(c => c.w) || ldWin;
 
   const medals = ["🥇", "🥈", "🥉"];
+  const parByHole = new Map(holes.map((h: any) => [h.holeNumber, h.par]));
   const fmtToPar = (e: any) => e.holesCompleted === 0 || e.totalToPar === 0 ? "E" : e.totalToPar > 0 ? `+${e.totalToPar}` : `${e.totalToPar}`;
   const shownFlight = flight;
   const dismiss = () => setDismissed(d => ({ ...d, [shownFlight]: true }));
@@ -631,10 +633,10 @@ function FlightCompleteModal() {
                 <span>Hole</span><span className="text-center">This team</span><span className="text-center">{tiePopup.vsTeamName.length > 12 ? "Other" : tiePopup.vsTeamName}</span>
               </div>
               {tiePopup.rows.map((r: any) => (
-                <div key={r.hole} className={`grid grid-cols-3 px-3 py-1.5 text-sm border-t border-[#1a2744]/8 ${r.decided ? "bg-green-500/10" : ""}`}>
+                <div key={r.hole} className={`grid grid-cols-3 items-center px-3 py-1.5 text-sm border-t border-[#1a2744]/8 ${r.decided ? "bg-green-500/10" : ""}`}>
                   <span className="text-[#1a2744]/70">Hole {r.hole}</span>
-                  <span className={`text-center font-bold ${r.decided ? "text-green-700" : "text-[#1a2744]"}`}>{r.mine ?? "—"}</span>
-                  <span className="text-center text-[#1a2744]/60">{r.theirs ?? "—"}</span>
+                  <span className="flex items-center justify-center"><ScorePill strokes={r.mine} par={parByHole.get(r.hole) ?? 4} gap={r.decided ? "#effaf1" : "#ffffff"} /></span>
+                  <span className="flex items-center justify-center"><ScorePill strokes={r.theirs} par={parByHole.get(r.hole) ?? 4} gap={r.decided ? "#effaf1" : "#ffffff"} /></span>
                 </div>
               ))}
             </div>
