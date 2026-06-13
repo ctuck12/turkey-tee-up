@@ -393,6 +393,7 @@ function BroadcastModal() {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.55)" }}>
       <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 relative" style={{ border: "2px solid #b06b10" }}>
+        <img src={atdLogoWelcome} alt="ATD" className="w-20 h-20 object-contain mx-auto mb-3" />
         <div className="flex items-center gap-2 mb-3">
           <div className="w-8 h-8 rounded-full bg-[#b06b10]/15 flex items-center justify-center flex-shrink-0">
             <Bell size={16} className="text-[#b06b10]" />
@@ -404,7 +405,7 @@ function BroadcastModal() {
           onClick={() => setDismissed(shownMessage)}
           className="w-full py-2.5 rounded-xl bg-[#1a2744] text-white font-bold font-sans-app text-sm hover:bg-[#243461] transition-colors"
         >
-          Dismiss
+          Got It
         </button>
         <button
           onClick={() => setDismissed(shownMessage)}
