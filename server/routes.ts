@@ -68,7 +68,8 @@ async function buildPayload(): Promise<SsePayload> {
     return { team, scores: teamScores, totalStrokes, totalToPar, holesCompleted: scoredHoles.length, thruHole: maxHole };
   });
   leaderboard.sort((a, b) => {
-    if (b.holesCompleted !== a.holesCompleted) return b.holesCompleted - a.holesCompleted;
+    const aStarted = a.holesCompleted > 0, bStarted = b.holesCompleted > 0;
+    if (aStarted !== bStarted) return aStarted ? -1 : 1;
     if (a.totalToPar !== b.totalToPar) return a.totalToPar - b.totalToPar;
     return a.team.teamName.localeCompare(b.team.teamName);
   });
@@ -393,7 +394,8 @@ export function registerRoutes(app: Express) {
     });
 
     leaderboard.sort((a, b) => {
-      if (b.holesCompleted !== a.holesCompleted) return b.holesCompleted - a.holesCompleted;
+      const aStarted = a.holesCompleted > 0, bStarted = b.holesCompleted > 0;
+      if (aStarted !== bStarted) return aStarted ? -1 : 1;
       if (a.totalToPar !== b.totalToPar) return a.totalToPar - b.totalToPar;
       return a.team.teamName.localeCompare(b.team.teamName);
     });

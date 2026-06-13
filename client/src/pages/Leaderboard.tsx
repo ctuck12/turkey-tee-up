@@ -31,7 +31,10 @@ function tiebreak(a: LeaderboardEntry, b: LeaderboardEntry, tbHoles: number[]): 
 // is final: every team thru 18 (Thru "F") and officially submitted.
 export function computeStandings(entries: LeaderboardEntry[], tbHoles: number[]) {
   const sorted = [...entries].sort((a, b) => {
-    if (b.holesCompleted !== a.holesCompleted) return b.holesCompleted - a.holesCompleted;
+    // Lowest score-to-par at the top, regardless of holes completed. Teams that
+    // haven't started yet sink to the bottom.
+    const aStarted = a.holesCompleted > 0, bStarted = b.holesCompleted > 0;
+    if (aStarted !== bStarted) return aStarted ? -1 : 1;
     if (a.totalToPar !== b.totalToPar) return a.totalToPar - b.totalToPar;
     const tb = tiebreak(a, b, tbHoles);
     if (tb.cmp !== 0) return tb.cmp;
