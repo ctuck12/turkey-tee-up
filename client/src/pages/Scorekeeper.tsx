@@ -19,7 +19,7 @@ import { ScorecardTable } from "@/components/ScorecardTable";
 
 // CTP / Long Drive Entry Modal
 function CtpEntryModal({
-  open, onClose, holeNumber, hole, teamPlayers, currentEntry, onSave, mode
+  open, onClose, holeNumber, hole, teamPlayers, currentEntry, currentTeamName, onSave, mode
 }: {
   open: boolean;
   onClose: () => void;
@@ -27,15 +27,17 @@ function CtpEntryModal({
   hole?: Hole;
   teamPlayers: string[];
   currentEntry?: ClosestToPin;
+  currentTeamName?: string;
   onSave: (data: { holeNumber: number; teamId?: number; playerName?: string; distance?: string }) => void;
   mode?: "ctp" | "ld";
 }) {
   const isLd = mode === "ld";
-  const [playerName, setPlayerName] = useState(currentEntry?.playerName ?? "");
+  // Start unselected — the current leader is shown separately, not pre-filled here
+  const [playerName, setPlayerName] = useState("");
   const [showPlayerList, setShowPlayerList] = useState(false);
 
   useEffect(() => {
-    setPlayerName(currentEntry?.playerName ?? "");
+    setPlayerName("");
     setShowPlayerList(false);
   }, [currentEntry, open]);
 
@@ -53,8 +55,19 @@ function CtpEntryModal({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4 font-sans-app">
+          {/* Current leader on this hole — shown separately, not in the dropdown */}
+          {currentEntry?.playerName && (
+            <div className={`rounded-lg border px-3 py-2 ${isLd ? "bg-emerald-600/8 border-emerald-600/25" : "bg-[#b06b10]/8 border-[#b06b10]/25"}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${isLd ? "text-emerald-700" : "text-[#b06b10]"}`}>
+                Current {isLd ? "Long Drive" : "Closest to Pin"}
+              </p>
+              <p className="text-[#1a2744] font-bold text-sm">{currentEntry.playerName}</p>
+              {currentTeamName && <p className="text-[#1a2744]/55 text-xs">{currentTeamName}</p>}
+            </div>
+          )}
+
           <div className="relative">
-            <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">Player Name</Label>
+            <Label className="text-[#1a2744]/70 text-xs mb-1 block font-bold">{currentEntry?.playerName ? "New Player (from your team)" : "Player Name"}</Label>
             <button
               type="button"
               onClick={() => setShowPlayerList(v => !v)}
@@ -867,6 +880,7 @@ export default function Scorekeeper() {
           hole={holeMap.get(ctpModalHole)}
           teamPlayers={[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean) as string[]}
           currentEntry={ctpEntries.find(c => c.holeNumber === ctpModalHole)}
+          currentTeamName={(() => { const e = ctpEntries.find(c => c.holeNumber === ctpModalHole); const t = e?.teamId ? teams.find(tm => tm.id === e.teamId) : null; return t?.teamName; })()}
           onSave={data => ctpMutation.mutate({ ...data, teamId: authedTeam.id })}
           mode="ctp"
         />
@@ -924,6 +938,7 @@ export default function Scorekeeper() {
           hole={holeMap.get(ldModalHole)}
           teamPlayers={[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean) as string[]}
           currentEntry={ctpEntries.find(c => c.holeNumber === ldModalHole)}
+          currentTeamName={(() => { const e = ctpEntries.find(c => c.holeNumber === ldModalHole); const t = e?.teamId ? teams.find(tm => tm.id === e.teamId) : null; return t?.teamName; })()}
           onSave={data => ldMutation.mutate({ ...data, teamId: authedTeam.id })}
           mode="ld"
         />
