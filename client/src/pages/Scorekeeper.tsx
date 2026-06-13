@@ -786,7 +786,25 @@ export default function Scorekeeper() {
 
             {/* Score selection buttons + Save in same row */}
             <div className="mb-2">
-              <p className="text-[#1a2744]/50 text-xs uppercase tracking-wider font-sans-app mb-1.5">Select Score</p>
+              <div className="flex items-center justify-between gap-2 mb-1.5 min-w-0">
+                <p className="text-[#1a2744]/50 text-xs uppercase tracking-wider font-sans-app shrink-0">Select Score</p>
+                {(() => {
+                  if (!currentHoleData?.isCtpHole) return null;
+                  const isLdHole = currentHoleData.par !== 3;
+                  const lead = ctpEntries.find(c => c.holeNumber === currentHole && c.flight === authedTeam.flight);
+                  if (!lead?.playerName) return null;
+                  const mine = lead.teamId === authedTeam.id;
+                  return (
+                    <span className="flex items-center gap-1 min-w-0 text-[11px] font-sans-app">
+                      <span className={`shrink-0 font-bold ${isLdHole ? "text-emerald-700" : "text-[#b06b10]"}`}>{isLdHole ? "LD" : "CTP"}</span>
+                      <span className="font-bold text-[#1a2744] truncate">{lead.playerName}</span>
+                      <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${mine ? "bg-green-600/15 text-green-700" : "bg-[#1a2744]/8 text-[#1a2744]/55"}`}>
+                        {mine ? "Your group" : "Other group"}
+                      </span>
+                    </span>
+                  );
+                })()}
+              </div>
               <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${scoreOptions.length + 1}, 1fr)` }}>
                 {scoreOptions.map(({ score, label }) => {
                   const isActive = localScore === score.toString();
@@ -821,31 +839,29 @@ export default function Scorekeeper() {
               </div>
             </div>
 
-            {/* CTP quick-entry if this is a CTP hole — shows current leader inline (no extra height) */}
+            {/* CTP quick-entry if this is a CTP hole (current leader is shown on the Select Score row) */}
             {currentHoleData?.isCtpHole && currentHoleData?.par === 3 && !isSubmitted && !readOnly && (() => {
-              const leader = ctpEntries.find(c => c.holeNumber === currentHole && c.flight === authedTeam.flight)?.playerName;
+              const hasLeader = !!ctpEntries.find(c => c.holeNumber === currentHole && c.flight === authedTeam.flight)?.playerName;
               return (
                 <button
                   onClick={() => setCtpModalHole(currentHole)}
-                  className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-500/40 border border-amber-500/60 text-amber-900 hover:bg-amber-500/55 transition-all font-sans-app text-sm font-bold min-w-0"
+                  className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-500/40 border border-amber-500/60 text-amber-900 hover:bg-amber-500/55 transition-all font-sans-app text-sm font-bold"
                   data-testid="button-enter-ctp"
                 >
-                  {leader ? <Check size={14} className="shrink-0 text-green-700" /> : <Target size={14} className="shrink-0" />}
-                  <span className="truncate">{leader ? `CTP: ${leader} · tap to update` : `Enter Closest to Pin for Hole ${currentHole}`}</span>
+                  <Target size={14} className="shrink-0" /> {hasLeader ? `Update Closest to Pin` : `Enter Closest to Pin for Hole ${currentHole}`}
                 </button>
               );
             })()}
             {/* Long Drive quick-entry if this is an LD hole (par 4/5 with toggle on) */}
             {(currentHoleData?.isCtpHole && currentHoleData?.par !== 3) && !isSubmitted && !readOnly && (() => {
-              const leader = ctpEntries.find(c => c.holeNumber === currentHole && c.flight === authedTeam.flight)?.playerName;
+              const hasLeader = !!ctpEntries.find(c => c.holeNumber === currentHole && c.flight === authedTeam.flight)?.playerName;
               return (
                 <button
                   onClick={() => setLdModalHole(currentHole)}
-                  className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-600/40 border border-emerald-600/60 text-emerald-900 hover:bg-emerald-600/55 transition-all font-sans-app text-sm font-bold min-w-0"
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-600/40 border border-emerald-600/60 text-emerald-900 hover:bg-emerald-600/55 transition-all font-sans-app text-sm font-bold"
                   data-testid="button-enter-ld"
                 >
-                  {leader ? <Check size={14} className="shrink-0 text-green-700" /> : <Zap size={14} className="shrink-0" />}
-                  <span className="truncate">{leader ? `LD: ${leader} · tap to update` : `Enter Long Drive for Hole ${currentHole}`}</span>
+                  <Zap size={14} className="shrink-0" /> {hasLeader ? `Update Long Drive` : `Enter Long Drive for Hole ${currentHole}`}
                 </button>
               );
             })()}
