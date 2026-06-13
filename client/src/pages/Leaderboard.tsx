@@ -393,12 +393,12 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
                   <div className="flex items-center gap-1 max-w-[200px]">
                     <span className="font-bold text-[#1a2744] truncate" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{entry.team.teamName}</span>
                     {placeMap.get(entry.team.id) != null && (
-                      <span className="text-base shrink-0">{["", "🥇", "🥈", "🥉"][placeMap.get(entry.team.id)!]}</span>
+                      <span className="text-lg leading-none -my-0.5 shrink-0">{["", "🥇", "🥈", "🥉"][placeMap.get(entry.team.id)!]}</span>
                     )}
                     {tieMap.has(entry.team.id) && (
                       <button
                         onClick={e => { e.stopPropagation(); setTiePopup(tieMap.get(entry.team.id)!); }}
-                        className="shrink-0 text-[#b06b10] font-bold text-2xl leading-none px-2 py-1 -my-1 flex items-center hover:text-[#8a5008]"
+                        className="shrink-0 text-[#b06b10] font-bold text-2xl leading-none px-1.5 py-1 -my-1 -ml-1.5 flex items-center hover:text-[#8a5008]"
                         title="Won on a tiebreaker — tap for details"
                         aria-label="Tiebreaker details"
                       >*</button>
