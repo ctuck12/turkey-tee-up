@@ -500,6 +500,7 @@ function FlightCompleteModal() {
   // Re-arm the announcement every time a flight FLIPS into Complete (and on first
   // load if it's already Complete), so toggling the status re-shows it for everyone.
   const [dismissed, setDismissed] = useState<{ morning: boolean; afternoon: boolean }>({ morning: false, afternoon: false });
+  const [tiePopup, setTiePopup] = useState<any | null>(null);
   const prevStatus = useRef<{ am?: string; pm?: string }>({});
   useEffect(() => {
     if (!settings) return;
@@ -526,7 +527,7 @@ function FlightCompleteModal() {
   const flightLabel = flight === "morning" ? "AM" : "PM";
   const tbHoles: number[] = (settings.tiebreakerHoles ?? "").split(",").map((s: string) => parseInt(s.trim())).filter((n: number) => !isNaN(n));
   const entries = leaderboard.filter((e: any) => e.team.flight === flight);
-  const { sorted } = computeStandings(entries as any, tbHoles);
+  const { sorted, tieMap } = computeStandings(entries as any, tbHoles);
   const top3 = sorted.slice(0, 3);
 
   const flightTeamIds = new Set(teams.filter((t: any) => t.flight === flight).map((t: any) => t.id));
@@ -548,6 +549,7 @@ function FlightCompleteModal() {
   const dismiss = () => setDismissed(d => ({ ...d, [shownFlight]: true }));
 
   return (
+    <>
     <div className="fixed inset-0 z-[280] flex items-center justify-center p-4" style={{ background: "rgba(17,27,51,0.72)", backdropFilter: "blur(4px)" }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[88vh]" style={{ border: "2px solid #b06b10" }}>
         <div className="overflow-y-auto p-5 flex flex-col items-center gap-3">
@@ -562,7 +564,17 @@ function FlightCompleteModal() {
             ) : top3.map((e: any, i: number) => (
               <div key={e.team.id} className="flex items-center gap-2 text-sm">
                 <span className="text-lg shrink-0">{medals[i]}</span>
-                <span className="font-bold text-[#1a2744] truncate flex-1" style={{ fontFamily: "'Playfair Display', serif" }}>{e.team.teamName}</span>
+                <div className="flex items-center gap-1 flex-1 min-w-0">
+                  <span className="font-bold text-[#1a2744] truncate" style={{ fontFamily: "'Playfair Display', serif" }}>{e.team.teamName}</span>
+                  {tieMap.has(e.team.id) && (
+                    <button
+                      onClick={() => setTiePopup(tieMap.get(e.team.id)!)}
+                      className="shrink-0 text-[#b06b10] font-bold text-2xl leading-none px-1.5 py-1 -my-1 -ml-1 flex items-center hover:text-[#8a5008]"
+                      title="Won on a tiebreaker — tap for details"
+                      aria-label="Tiebreaker details"
+                    >*</button>
+                  )}
+                </div>
                 <span className="font-bold text-[#1a2744] shrink-0" style={{ fontFamily: "'Rajdhani', sans-serif" }}>{fmtToPar(e)}</span>
               </div>
             ))}
@@ -600,6 +612,38 @@ function FlightCompleteModal() {
         </div>
       </div>
     </div>
+
+    {/* Tiebreaker explanation popup — same as the leaderboard's */}
+    {tiePopup && (
+      <div className="fixed inset-0 z-[310] flex items-center justify-center p-4" style={{ background: "rgba(17,27,51,0.6)" }} onClick={() => setTiePopup(null)}>
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" style={{ border: "2px solid #b06b10" }} onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a2744]/10">
+            <span className="font-bold text-sm text-[#b06b10] font-sans-app">Tiebreaker</span>
+            <button onClick={() => setTiePopup(null)} className="text-[#1a2744]/40 hover:text-[#1a2744]/70 p-1"><X size={16} /></button>
+          </div>
+          <div className="px-4 py-3 space-y-3 font-sans-app">
+            <p className="text-sm text-[#1a2744]/75">
+              Tied on total with <span className="font-bold text-[#1a2744]">{tiePopup.vsTeamName}</span> — won on
+              <span className="font-bold text-[#b06b10]"> Hole {tiePopup.decidingHole}</span>.
+            </p>
+            <div className="rounded-lg border border-[#1a2744]/12 overflow-hidden">
+              <div className="grid grid-cols-3 text-[10px] font-bold uppercase tracking-wide text-[#1a2744]/45 bg-[#1a2744]/5 px-3 py-1.5">
+                <span>Hole</span><span className="text-center">This team</span><span className="text-center">{tiePopup.vsTeamName.length > 12 ? "Other" : tiePopup.vsTeamName}</span>
+              </div>
+              {tiePopup.rows.map((r: any) => (
+                <div key={r.hole} className={`grid grid-cols-3 px-3 py-1.5 text-sm border-t border-[#1a2744]/8 ${r.decided ? "bg-green-500/10" : ""}`}>
+                  <span className="text-[#1a2744]/70">Hole {r.hole}</span>
+                  <span className={`text-center font-bold ${r.decided ? "text-green-700" : "text-[#1a2744]"}`}>{r.mine ?? "—"}</span>
+                  <span className="text-center text-[#1a2744]/60">{r.theirs ?? "—"}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-[#1a2744]/45">Holes are compared in the tiebreaker order set by the admin; the green row is where the tie was broken.</p>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
