@@ -1468,6 +1468,15 @@ function SettingsTab() {
                             confirmLabel: "Complete AM Flight",
                             onConfirm: () => statusMutation.mutate({ amStatus: "complete" }),
                           });
+                        } else if (v === "in_progress") {
+                          // Starting a flight notifies everyone — confirm
+                          const fl = key === "amStatus" ? "AM" : "PM";
+                          setStatusConfirm({
+                            title: `Start ${fl} Flight?`,
+                            description: `This opens scoring for the ${fl} flight and sends the "${fl} Flight Has Officially Started" popup to everyone on the app.`,
+                            confirmLabel: `Start ${fl} Flight`,
+                            onConfirm: () => statusMutation.mutate({ [key]: v }),
+                          });
                         } else {
                           statusMutation.mutate({ [key]: v });
                         }
