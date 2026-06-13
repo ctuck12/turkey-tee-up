@@ -1183,22 +1183,24 @@ export default function Scorekeeper() {
                   </div>
                 ) : (
                   <div className="space-y-2">
+                    <p className="text-center text-[#1a2744]/60 text-xs font-sans-app">One last step — officially submit to lock in your scores.</p>
                     <button
                       onClick={() => setShowSubmitConfirm(true)}
-                      className="w-full py-2.5 rounded-lg bg-[#1a2744] text-white font-bold font-sans-app text-sm hover:bg-[#243461] transition-colors"
+                      className="w-full py-3.5 rounded-xl text-white font-bold font-sans-app text-base flex items-center justify-center gap-2 transition-transform active:scale-[0.99]"
+                      style={{ background: "linear-gradient(135deg, #b06b10, #8a5008)", boxShadow: "0 4px 16px rgba(176,107,16,0.45)" }}
                     >
-                      Submit Scorecard
+                      <Check size={18} /> Submit Scorecard
                     </button>
                     <div className="flex gap-2">
                       <button
                         onClick={() => { setEditMode(true); setShowRoundComplete(false); }}
-                        className="flex-1 py-2 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
+                        className="flex-1 py-2 rounded-lg bg-[#1a2744]/8 border border-[#1a2744]/15 text-[#1a2744]/70 font-bold font-sans-app text-sm hover:bg-[#1a2744]/12 transition-colors"
                       >
                         Edit Scores
                       </button>
                       <button
                         onClick={() => setShowScorecardView(true)}
-                        className="flex-1 py-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[#8a5008] font-bold font-sans-app text-sm hover:bg-amber-500/20 transition-colors"
+                        className="flex-1 py-2 rounded-lg bg-[#1a2744]/8 border border-[#1a2744]/15 text-[#1a2744]/70 font-bold font-sans-app text-sm hover:bg-[#1a2744]/12 transition-colors"
                       >
                         View Scorecard
                       </button>
