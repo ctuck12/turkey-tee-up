@@ -720,18 +720,10 @@ export default function Scorekeeper() {
 
       {/* Score Entry + inline Scorecard */}
       <div className="space-y-4">
-          {/* Tournament / round complete banner — scorecard is view-only */}
-          {readOnly && (
-            <div className="bg-[#1a2744]/8 border border-[#1a2744]/20 rounded-xl px-4 py-3 flex items-center gap-2 font-sans-app text-sm">
-              <span className="text-[#1a2744] font-bold whitespace-nowrap">🏁 {tMode === "complete" ? "Tournament Complete" : "Round Complete"}</span>
-              <span className="text-[#1a2744]/60 text-xs">Scores can no longer be edited.</span>
-            </div>
-          )}
-
-          {/* Round complete — compact one-line, scales to fit, never wraps */}
-          {isSubmitted && (
-            <div className="flex items-center justify-center gap-2 flex-nowrap whitespace-nowrap font-sans-app py-1 text-[clamp(11px,3.4vw,14px)]">
-              <span className="text-[#1a2744] font-bold">🏁 Round Complete</span>
+          {/* Round/Tournament complete — one bordered line with View Summary, auto-fits */}
+          {(isSubmitted || readOnly) && (
+            <div className="bg-[#1a2744]/8 border border-[#1a2744]/20 rounded-xl px-4 py-2.5 flex items-center justify-center gap-2 flex-nowrap whitespace-nowrap font-sans-app text-[clamp(11px,3.4vw,14px)]">
+              <span className="text-[#1a2744] font-bold">🏁 {tMode === "complete" ? "Tournament Complete" : "Round Complete"}</span>
               <span className="text-[#1a2744]/30">·</span>
               <button onClick={() => setShowRoundComplete(true)} className="text-[#b06b10] font-bold underline hover:text-[#8a5008]">View Summary</button>
             </div>
