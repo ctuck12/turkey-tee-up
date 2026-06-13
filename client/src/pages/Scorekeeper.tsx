@@ -721,10 +721,12 @@ export default function Scorekeeper() {
             </FitRow>
           );
         })()}
-        {/* Row 2: player names */}
-        <div className="text-[#1a2744]/55 text-xs font-sans-app truncate">
-          {[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean).join(" · ")}
-        </div>
+        {/* Row 2: player names — auto-fit so all names stay on one line */}
+        <FitRow className="w-full whitespace-nowrap">
+          <span className="text-[#1a2744]/55 font-sans-app" style={{ fontSize: "0.78em" }}>
+            {[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean).join(" · ")}
+          </span>
+        </FitRow>
       </div>
 
       {/* Sponsor bar */}
