@@ -432,19 +432,22 @@ export default function Scorekeeper() {
       return;
     }
 
+    // Has THIS team already marked a CTP/LD player for this hole? Check both the
+    // in-session list AND the persistent history (survives refresh / coming back).
+    const teamAlreadyMarked = submittedCtpHoles.includes(currentHole)
+      || ctpHistory.some((h: any) => h.holeNumber === currentHole && h.teamId === authedTeam.id);
+
     // CTP hole: prompt unless THIS team already submitted one of their players,
     // even if another team currently holds the closest-to-pin for this hole.
     const isCtp = currentHoleData?.isCtpHole && currentHoleData?.par === 3;
-    const teamSubmittedCtp = submittedCtpHoles.includes(currentHole);
-    if (isCtp && !teamSubmittedCtp) {
+    if (isCtp && !teamAlreadyMarked) {
       setPendingStrokes({ holeNumber: currentHole, strokes });
       setCtpWarningHole(currentHole);
       return;
     }
     // LD hole (par 4/5 with toggle on): same rule — prompt unless this team already entered one
     const isLdHole = !!(currentHoleData?.isCtpHole && currentHoleData?.par !== 3);
-    const teamSubmittedLd = submittedCtpHoles.includes(currentHole);
-    if (isLdHole && !teamSubmittedLd) {
+    if (isLdHole && !teamAlreadyMarked) {
       setPendingStrokes({ holeNumber: currentHole, strokes });
       setLdWarningHole(currentHole);
       return;
