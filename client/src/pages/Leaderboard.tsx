@@ -120,6 +120,9 @@ function formatCtpDistance(raw: string | null | undefined): string {
 function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: ClosestToPin[]; ctpHoles: Hole[]; ldHole?: Hole; teams: Team[]; flight: "morning" | "afternoon" }) {
   const flightTeamIds = new Set(teams.filter(t => t.flight === flight).map(t => t.id));
   const { data: history = [] } = useQuery<CtpHistory[]>({ queryKey: ["/api/ctp/history"] });
+  const { data: settings } = useQuery<TournamentSettings>({ queryKey: ["/api/settings"] });
+  const fStatus = flight === "morning" ? settings?.amStatus : settings?.pmStatus;
+  const flightComplete = fStatus === "complete" || settings?.tournamentMode === "complete";
   const [historyHole, setHistoryHole] = useState<{ hole: Hole; isLd: boolean } | null>(null);
 
   // Combine CTP holes + LD hole for rendering
@@ -214,9 +217,15 @@ function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: 
                           </span>
                         )}
                         {idx === 0 && (
-                          <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-amber-500/25 text-[#b06b10] border border-amber-500/40 font-sans-app whitespace-nowrap">
-                            Leader
-                          </span>
+                          flightComplete ? (
+                            <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-green-600/15 text-green-700 border border-green-600/40 font-sans-app whitespace-nowrap">
+                              Winner
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-amber-500/25 text-[#b06b10] border border-amber-500/40 font-sans-app whitespace-nowrap">
+                              Leader
+                            </span>
+                          )
                         )}
                       </div>
                     </div>
