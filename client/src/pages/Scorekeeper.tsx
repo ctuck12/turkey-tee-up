@@ -56,13 +56,19 @@ function CtpEntryModal({
         </DialogHeader>
         <div className="space-y-4 font-sans-app">
           {/* Current leader on this hole — shown separately, not in the dropdown */}
-          {currentEntry?.playerName && (
+          {currentEntry?.playerName ? (
             <div className={`rounded-lg border px-3 py-2 ${isLd ? "bg-emerald-600/8 border-emerald-600/25" : "bg-[#b06b10]/8 border-[#b06b10]/25"}`}>
               <p className={`text-[10px] font-bold uppercase tracking-widest ${isLd ? "text-emerald-700" : "text-[#b06b10]"}`}>
                 Current {isLd ? "Long Drive" : "Closest to Pin"}
               </p>
               <p className="text-[#1a2744] font-bold text-sm">{currentEntry.playerName}</p>
               {currentTeamName && <p className="text-[#1a2744]/55 text-xs">{currentTeamName}</p>}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-[#1a2744]/15 bg-[#1a2744]/5 px-3 py-2 text-center">
+              <p className="text-[#1a2744]/55 text-xs italic">
+                No one has been marked {isLd ? "for the longest drive" : "closest to the pin"} on this hole yet.
+              </p>
             </div>
           )}
 
