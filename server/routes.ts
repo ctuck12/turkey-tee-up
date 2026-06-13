@@ -147,7 +147,7 @@ export function registerRoutes(app: Express) {
   });
 
   app.post("/api/auth/scorekeeper", async (req: Request, res: Response) => {
-    const { teamCode } = req.body;
+    const { teamCode, sessionId, force } = req.body;
     const team = await storage.getTeamByCode(teamCode);
     if (!team) {
       return res.status(401).json({ success: false, message: "Invalid team code" });
@@ -161,7 +161,23 @@ export function registerRoutes(app: Express) {
     if (mode === "live" && status === "not_started") {
       return res.status(403).json({ success: false, reason: "flight_inactive", message: "This flight has not officially started yet. We'll notify you when this flight is officially in progress." });
     }
+    // Presence: warn if another device is currently signed in with this code
+    if (sessionId && !force) {
+      const since = new Date(Date.now() - 60_000).toISOString(); // active within last 60s
+      const conflict = await storage.hasOtherActiveSession(team.id, sessionId, since);
+      if (conflict) {
+        return res.status(409).json({ success: false, reason: "already_active", message: `Someone is already signed in to “${team.teamName}” on another device. If you continue, both devices will be entering scores for this team.` });
+      }
+    }
+    if (sessionId) await storage.touchSession(team.id, sessionId);
     res.json({ success: true, team });
+  });
+
+  // Heartbeat keeps a scorekeeper session marked active for presence detection
+  app.post("/api/scorekeeper/heartbeat", async (req: Request, res: Response) => {
+    const { teamId, sessionId } = req.body;
+    if (teamId && sessionId) await storage.touchSession(parseInt(teamId), sessionId);
+    res.json({ ok: true });
   });
 
   // ─── SETTINGS ─────────────────────────────────────────────────────────────

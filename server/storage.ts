@@ -71,6 +71,10 @@ export interface IStorage {
   clearCtp(holeNumber: number): Promise<void>;
   clearCtpForTeam(teamId: number): Promise<void>;
   getCtpHistory(): Promise<CtpHistory[]>;
+
+  // Scorekeeper presence
+  touchSession(teamId: number, sessionId: string): Promise<void>;
+  hasOtherActiveSession(teamId: number, sessionId: string, sinceIso: string): Promise<boolean>;
 }
 
 function createStorage(): IStorage {
@@ -248,6 +252,29 @@ function createStorage(): IStorage {
         const { data } = await supabase.from("ctp_history").select("*").order("id", { ascending: false });
         return (data || []).map(mapCtpHistory);
       } catch { return []; }
+    },
+
+    // ── Scorekeeper presence ────────────────────────────────────────────────────
+    async touchSession(teamId, sessionId) {
+      const now = new Date().toISOString();
+      try {
+        const { data: existing } = await supabase.from("scorekeeper_sessions").select("id").eq("session_id", sessionId).single();
+        if (existing) {
+          await supabase.from("scorekeeper_sessions").update({ team_id: teamId, last_seen: now }).eq("session_id", sessionId);
+        } else {
+          await supabase.from("scorekeeper_sessions").insert({ team_id: teamId, session_id: sessionId, last_seen: now });
+        }
+      } catch {}
+    },
+    async hasOtherActiveSession(teamId, sessionId, sinceIso) {
+      try {
+        const { data } = await supabase.from("scorekeeper_sessions")
+          .select("session_id, last_seen")
+          .eq("team_id", teamId)
+          .neq("session_id", sessionId)
+          .gte("last_seen", sinceIso);
+        return (data || []).length > 0;
+      } catch { return false; }
     },
   };
 }

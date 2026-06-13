@@ -94,6 +94,16 @@ export const ctpHistory = sqliteTable("ctp_history", {
   createdAt: text("created_at").notNull().default(new Date().toISOString()),
 });
 
+// ─── SCOREKEEPER SESSIONS ─────────────────────────────────────────────────────
+// Presence tracking so we can warn when a team code is already in use on another
+// device. Each device heartbeats; rows older than the freshness window are stale.
+export const scorekeeperSessions = sqliteTable("scorekeeper_sessions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  teamId: integer("team_id").notNull(),
+  sessionId: text("session_id").notNull(),
+  lastSeen: text("last_seen").notNull().default(new Date().toISOString()),
+});
+
 // ─── INSERT SCHEMAS ───────────────────────────────────────────────────────────
 export const insertHoleSchema = createInsertSchema(holes).omit({ id: true });
 export const insertSponsorSchema = createInsertSchema(sponsors).omit({ id: true });

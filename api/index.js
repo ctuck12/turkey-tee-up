@@ -50058,6 +50058,27 @@ function createStorage() {
       } catch {
         return [];
       }
+    },
+    // ── Scorekeeper presence ────────────────────────────────────────────────────
+    async touchSession(teamId, sessionId) {
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      try {
+        const { data: existing } = await supabase.from("scorekeeper_sessions").select("id").eq("session_id", sessionId).single();
+        if (existing) {
+          await supabase.from("scorekeeper_sessions").update({ team_id: teamId, last_seen: now }).eq("session_id", sessionId);
+        } else {
+          await supabase.from("scorekeeper_sessions").insert({ team_id: teamId, session_id: sessionId, last_seen: now });
+        }
+      } catch {
+      }
+    },
+    async hasOtherActiveSession(teamId, sessionId, sinceIso) {
+      try {
+        const { data } = await supabase.from("scorekeeper_sessions").select("session_id, last_seen").eq("team_id", teamId).neq("session_id", sessionId).gte("last_seen", sinceIso);
+        return (data || []).length > 0;
+      } catch {
+        return false;
+      }
     }
   };
 }
@@ -50178,7 +50199,7 @@ function registerRoutes(app2) {
     }
   });
   app2.post("/api/auth/scorekeeper", async (req, res) => {
-    const { teamCode } = req.body;
+    const { teamCode, sessionId, force } = req.body;
     const team = await storage.getTeamByCode(teamCode);
     if (!team) {
       return res.status(401).json({ success: false, message: "Invalid team code" });
@@ -50189,7 +50210,20 @@ function registerRoutes(app2) {
     if (mode === "live" && status === "not_started") {
       return res.status(403).json({ success: false, reason: "flight_inactive", message: "This flight has not officially started yet. We'll notify you when this flight is officially in progress." });
     }
+    if (sessionId && !force) {
+      const since = new Date(Date.now() - 6e4).toISOString();
+      const conflict = await storage.hasOtherActiveSession(team.id, sessionId, since);
+      if (conflict) {
+        return res.status(409).json({ success: false, reason: "already_active", message: `Someone is already signed in to \u201C${team.teamName}\u201D on another device. If you continue, both devices will be entering scores for this team.` });
+      }
+    }
+    if (sessionId) await storage.touchSession(team.id, sessionId);
     res.json({ success: true, team });
+  });
+  app2.post("/api/scorekeeper/heartbeat", async (req, res) => {
+    const { teamId, sessionId } = req.body;
+    if (teamId && sessionId) await storage.touchSession(parseInt(teamId), sessionId);
+    res.json({ ok: true });
   });
   app2.get("/api/settings", async (_req, res) => {
     res.json(await storage.getSettings());

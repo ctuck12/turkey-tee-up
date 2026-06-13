@@ -128,6 +128,15 @@ export default function Scorekeeper() {
   const qc = useQueryClient();
 
   const [teamCode, setTeamCode] = useState("");
+  // Stable per-tab session id for presence/conflict detection
+  const [sessionId] = useState(() => {
+    try {
+      let s = sessionStorage.getItem("sk_session_id");
+      if (!s) { s = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem("sk_session_id", s); }
+      return s;
+    } catch { return Math.random().toString(36).slice(2); }
+  });
+  const [conflictMsg, setConflictMsg] = useState<string | null>(null);
   const [authedTeam, setAuthedTeam] = useState<Team | null>(() => {
     try {
       const saved = sessionStorage.getItem("sk_authed_team");
@@ -169,6 +178,15 @@ export default function Scorekeeper() {
     const live = teams.find((t) => t.id === authedTeam.id);
     if (live) setIsSubmitted(!!live.isSubmitted);
   }, [teams, authedTeam]);
+
+  // Heartbeat so this device stays "active" for presence/conflict detection
+  useEffect(() => {
+    if (!authedTeam) return;
+    const beat = () => { apiRequest("POST", "/api/scorekeeper/heartbeat", { teamId: authedTeam.id, sessionId }).catch(() => {}); };
+    beat();
+    const id = setInterval(beat, 20000);
+    return () => clearInterval(id);
+  }, [authedTeam, sessionId]);
 
   // When an admin clears a submitted team's scores, the live is_submitted flips
   // back to false. Reset the scorekeeper to the start of their round so they can
@@ -320,10 +338,11 @@ export default function Scorekeeper() {
     },
   });
 
-  async function handleLogin() {
+  async function handleLogin(force = false) {
     try {
-      const res = await apiRequest("POST", "/api/auth/scorekeeper", { teamCode: teamCode.toUpperCase().trim() });
+      const res = await apiRequest("POST", "/api/auth/scorekeeper", { teamCode: teamCode.toUpperCase().trim(), sessionId, force });
       const data = await res.json();
+      setConflictMsg(null);
       setAuthedTeam(data.team);
       // Don't set currentHole here — the seek effect will set it once scores load
       sessionStorage.setItem("sk_authed_team", JSON.stringify(data.team));
@@ -338,9 +357,12 @@ export default function Scorekeeper() {
         if (json.message) msg = json.message;
         if (json.reason) reason = json.reason;
       } catch {}
-      // Flight-not-started → friendly logo popup; everything else → inline red text
+      // Route by reason: flight-not-started popup, already-active warning, else inline
       if (reason === "flight_inactive") {
         setNotStartedMsg(msg);
+        setAuthError("");
+      } else if (reason === "already_active") {
+        setConflictMsg(msg);
         setAuthError("");
       } else {
         setAuthError(msg);
@@ -475,7 +497,7 @@ export default function Scorekeeper() {
           </div>
           {authError && <p className="text-red-400 text-sm">{authError}</p>}
           <Button
-            onClick={handleLogin}
+            onClick={() => handleLogin()}
             className="w-full bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-bold"
             data-testid="button-login"
           >
@@ -517,6 +539,34 @@ export default function Scorekeeper() {
               >
                 Got It
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Already-signed-in-elsewhere warning — Continue or Cancel */}
+        {conflictMsg && (
+          <div className="fixed inset-0 z-[300] flex items-center justify-center p-6" style={{ background: "rgba(17,27,51,0.72)", backdropFilter: "blur(4px)" }}>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 flex flex-col items-center gap-3" style={{ border: "2px solid #b06b10" }}>
+              <img src={atdLogoWelcome} alt="ATD" className="w-36 h-36 object-contain" />
+              <div className="text-center">
+                <h2 className="font-bold text-[#1a2744] text-xl mb-1" style={{ fontFamily: "'Playfair Display', serif" }}>Already Signed In Elsewhere</h2>
+                <p className="text-[#1a2744]/65 text-sm font-sans-app leading-relaxed">{conflictMsg}</p>
+              </div>
+              <div className="flex flex-col gap-2 w-full pt-1">
+                <button
+                  onClick={() => { setConflictMsg(null); handleLogin(true); }}
+                  className="w-full py-3 rounded-xl font-bold text-white font-sans-app text-sm transition-all"
+                  style={{ background: "linear-gradient(135deg, #1a2744, #243461)", border: "1.5px solid rgba(176,107,16,0.4)" }}
+                >
+                  Continue Anyway
+                </button>
+                <button
+                  onClick={() => setConflictMsg(null)}
+                  className="w-full py-2 rounded-xl font-bold font-sans-app text-sm transition-all text-[#1a2744]/55 hover:text-[#1a2744]/75"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
