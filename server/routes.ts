@@ -436,6 +436,11 @@ export function registerRoutes(app: Express) {
   app.post("/api/ctp", async (req: Request, res: Response) => {
     const { holeNumber, teamId, playerName, distance, asAdmin } = req.body;
     if (!holeNumber) return res.status(400).json({ message: "holeNumber required" });
+    // Resolve the flight for this entry: prefer an explicit flight from the client,
+    // otherwise derive it from the team. CTP/LD winners are stored per flight.
+    let flight: string | null = req.body.flight ?? null;
+    const team = teamId ? await storage.getTeam(teamId) : undefined;
+    if (!flight && team) flight = team.flight;
     // Admin (asAdmin) can always write; scorekeepers are gated by tournament mode + flight
     if (!asAdmin) {
       const settings = await storage.getSettings();
@@ -443,20 +448,18 @@ export function registerRoutes(app: Express) {
       if (mode === "complete") {
         return res.status(403).json({ message: "The tournament is complete — entries are closed." });
       }
-      if (mode === "live" && teamId) {
-        const team = await storage.getTeam(teamId);
-        if (team && !flightEnterable(settings, team.flight)) {
-          return res.status(403).json({ message: "Scoring isn't open for this flight yet." });
-        }
+      if (mode === "live" && team && !flightEnterable(settings, team.flight)) {
+        return res.status(403).json({ message: "Scoring isn't open for this flight yet." });
       }
     }
-    const entry = await storage.upsertCtp(holeNumber, teamId ?? null, playerName ?? null, distance ?? null);
+    const entry = await storage.upsertCtp(holeNumber, flight, teamId ?? null, playerName ?? null, distance ?? null);
     scheduleImmediatePush(); // push CTP update live
     res.json(entry);
   });
 
   app.delete("/api/ctp/:holeNumber", async (req: Request, res: Response) => {
-    await storage.clearCtp(parseInt(req.params.holeNumber));
+    const flight = (req.query.flight as string) ?? null;
+    await storage.clearCtp(parseInt(req.params.holeNumber), flight);
     res.json({ success: true });
   });
 

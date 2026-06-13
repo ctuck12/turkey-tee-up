@@ -49875,10 +49875,10 @@ function mapSponsor(r) {
   return { id: r.id, name: r.name, logoUrl: r.logo_url, website: r.website, placement: r.placement, displayOrder: r.display_order, isActive: r.is_active };
 }
 function mapCtp(r) {
-  return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, updatedAt: r.updated_at };
+  return { id: r.id, holeNumber: r.hole_number, flight: r.flight ?? null, teamId: r.team_id, playerName: r.player_name, distance: r.distance, updatedAt: r.updated_at };
 }
 function mapCtpHistory(r) {
-  return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, createdAt: r.created_at };
+  return { id: r.id, holeNumber: r.hole_number, flight: r.flight ?? null, teamId: r.team_id, playerName: r.player_name, distance: r.distance, createdAt: r.created_at };
 }
 function mapSettings(r) {
   return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning", tournamentMode: r.tournament_mode ?? "test", amStatus: r.am_status ?? "not_started", pmStatus: r.pm_status ?? "not_started", tiebreakerHoles: r.tiebreaker_holes ?? null };
@@ -50016,31 +50016,39 @@ function createStorage() {
       const { data } = await supabase.from("closest_to_pin").select("*").order("hole_number");
       return (data || []).map(mapCtp);
     },
-    async getCtpForHole(holeNumber) {
-      const { data } = await supabase.from("closest_to_pin").select("*").eq("hole_number", holeNumber).single();
+    async getCtpForHole(holeNumber, flight) {
+      let q = supabase.from("closest_to_pin").select("*").eq("hole_number", holeNumber);
+      q = flight == null ? q.is("flight", null) : q.eq("flight", flight);
+      const { data } = await q.single();
       return data ? mapCtp(data) : void 0;
     },
-    async upsertCtp(holeNumber, teamId, playerName, distance) {
+    async upsertCtp(holeNumber, flight, teamId, playerName, distance) {
       const now = (/* @__PURE__ */ new Date()).toISOString();
-      const { data: existing } = await supabase.from("closest_to_pin").select("id").eq("hole_number", holeNumber).single();
+      let lookup = supabase.from("closest_to_pin").select("id").eq("hole_number", holeNumber);
+      lookup = flight == null ? lookup.is("flight", null) : lookup.eq("flight", flight);
+      const { data: existing } = await lookup.single();
       let result;
       if (existing) {
-        const { data: row } = await supabase.from("closest_to_pin").update({ team_id: teamId, player_name: playerName, distance, updated_at: now }).eq("hole_number", holeNumber).select().single();
+        const { data: row } = await supabase.from("closest_to_pin").update({ team_id: teamId, player_name: playerName, distance, updated_at: now }).eq("id", existing.id).select().single();
         result = mapCtp(row);
       } else {
-        const { data: row } = await supabase.from("closest_to_pin").insert({ hole_number: holeNumber, team_id: teamId, player_name: playerName, distance, updated_at: now }).select().single();
+        const { data: row } = await supabase.from("closest_to_pin").insert({ hole_number: holeNumber, flight, team_id: teamId, player_name: playerName, distance, updated_at: now }).select().single();
         result = mapCtp(row);
       }
       try {
-        await supabase.from("ctp_history").insert({ hole_number: holeNumber, team_id: teamId, player_name: playerName, distance, created_at: now });
+        await supabase.from("ctp_history").insert({ hole_number: holeNumber, flight, team_id: teamId, player_name: playerName, distance, created_at: now });
       } catch {
       }
       return result;
     },
-    async clearCtp(holeNumber) {
-      await supabase.from("closest_to_pin").delete().eq("hole_number", holeNumber);
+    async clearCtp(holeNumber, flight) {
+      let del = supabase.from("closest_to_pin").delete().eq("hole_number", holeNumber);
+      del = flight == null ? del.is("flight", null) : del.eq("flight", flight);
+      await del;
       try {
-        await supabase.from("ctp_history").delete().eq("hole_number", holeNumber);
+        let h = supabase.from("ctp_history").delete().eq("hole_number", holeNumber);
+        h = flight == null ? h.is("flight", null) : h.eq("flight", flight);
+        await h;
       } catch {
       }
     },
@@ -50429,25 +50437,26 @@ function registerRoutes(app2) {
   app2.post("/api/ctp", async (req, res) => {
     const { holeNumber, teamId, playerName, distance, asAdmin } = req.body;
     if (!holeNumber) return res.status(400).json({ message: "holeNumber required" });
+    let flight = req.body.flight ?? null;
+    const team = teamId ? await storage.getTeam(teamId) : void 0;
+    if (!flight && team) flight = team.flight;
     if (!asAdmin) {
       const settings = await storage.getSettings();
       const mode = settings?.tournamentMode ?? "test";
       if (mode === "complete") {
         return res.status(403).json({ message: "The tournament is complete \u2014 entries are closed." });
       }
-      if (mode === "live" && teamId) {
-        const team = await storage.getTeam(teamId);
-        if (team && !flightEnterable(settings, team.flight)) {
-          return res.status(403).json({ message: "Scoring isn't open for this flight yet." });
-        }
+      if (mode === "live" && team && !flightEnterable(settings, team.flight)) {
+        return res.status(403).json({ message: "Scoring isn't open for this flight yet." });
       }
     }
-    const entry = await storage.upsertCtp(holeNumber, teamId ?? null, playerName ?? null, distance ?? null);
+    const entry = await storage.upsertCtp(holeNumber, flight, teamId ?? null, playerName ?? null, distance ?? null);
     scheduleImmediatePush();
     res.json(entry);
   });
   app2.delete("/api/ctp/:holeNumber", async (req, res) => {
-    await storage.clearCtp(parseInt(req.params.holeNumber));
+    const flight = req.query.flight ?? null;
+    await storage.clearCtp(parseInt(req.params.holeNumber), flight);
     res.json({ success: true });
   });
   return httpServer;

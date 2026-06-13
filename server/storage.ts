@@ -27,10 +27,10 @@ function mapSponsor(r: any): Sponsor {
   return { id: r.id, name: r.name, logoUrl: r.logo_url, website: r.website, placement: r.placement, displayOrder: r.display_order, isActive: r.is_active };
 }
 function mapCtp(r: any): ClosestToPin {
-  return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, updatedAt: r.updated_at };
+  return { id: r.id, holeNumber: r.hole_number, flight: r.flight ?? null, teamId: r.team_id, playerName: r.player_name, distance: r.distance, updatedAt: r.updated_at };
 }
 function mapCtpHistory(r: any): CtpHistory {
-  return { id: r.id, holeNumber: r.hole_number, teamId: r.team_id, playerName: r.player_name, distance: r.distance, createdAt: r.created_at };
+  return { id: r.id, holeNumber: r.hole_number, flight: r.flight ?? null, teamId: r.team_id, playerName: r.player_name, distance: r.distance, createdAt: r.created_at };
 }
 function mapSettings(r: any): TournamentSettings {
   return { id: r.id, tournamentName: r.tournament_name, courseName: r.course_name, year: r.year, courseHoles: r.course_holes, adminPassword: r.admin_password, scorekeeperPassword: r.scorekeeper_password, isActive: r.is_active, broadcastMessage: r.broadcast_message ?? null, defaultFlight: r.default_flight ?? "morning", tournamentMode: r.tournament_mode ?? "test", amStatus: r.am_status ?? "not_started", pmStatus: r.pm_status ?? "not_started", tiebreakerHoles: r.tiebreaker_holes ?? null };
@@ -66,9 +66,9 @@ export interface IStorage {
   deleteSponsor(id: number): Promise<void>;
 
   getCtpEntries(): Promise<ClosestToPin[]>;
-  getCtpForHole(holeNumber: number): Promise<ClosestToPin | undefined>;
-  upsertCtp(holeNumber: number, teamId: number | null, playerName: string | null, distance: string | null): Promise<ClosestToPin>;
-  clearCtp(holeNumber: number): Promise<void>;
+  getCtpForHole(holeNumber: number, flight: string | null): Promise<ClosestToPin | undefined>;
+  upsertCtp(holeNumber: number, flight: string | null, teamId: number | null, playerName: string | null, distance: string | null): Promise<ClosestToPin>;
+  clearCtp(holeNumber: number, flight: string | null): Promise<void>;
   clearCtpForTeam(teamId: number): Promise<void>;
   getCtpHistory(): Promise<CtpHistory[]>;
 
@@ -215,32 +215,43 @@ function createStorage(): IStorage {
       const { data } = await supabase.from("closest_to_pin").select("*").order("hole_number");
       return (data || []).map(mapCtp);
     },
-    async getCtpForHole(holeNumber) {
-      const { data } = await supabase.from("closest_to_pin").select("*").eq("hole_number", holeNumber).single();
+    async getCtpForHole(holeNumber, flight) {
+      let q = supabase.from("closest_to_pin").select("*").eq("hole_number", holeNumber);
+      q = flight == null ? q.is("flight", null) : q.eq("flight", flight);
+      const { data } = await q.single();
       return data ? mapCtp(data) : undefined;
     },
-    async upsertCtp(holeNumber, teamId, playerName, distance) {
+    async upsertCtp(holeNumber, flight, teamId, playerName, distance) {
       const now = new Date().toISOString();
-      const { data: existing } = await supabase.from("closest_to_pin").select("id").eq("hole_number", holeNumber).single();
+      // CTP/LD winners are per (hole, flight) so AM and PM keep separate winners.
+      let lookup = supabase.from("closest_to_pin").select("id").eq("hole_number", holeNumber);
+      lookup = flight == null ? lookup.is("flight", null) : lookup.eq("flight", flight);
+      const { data: existing } = await lookup.single();
       let result: ClosestToPin;
       if (existing) {
-        const { data: row } = await supabase.from("closest_to_pin").update({ team_id: teamId, player_name: playerName, distance, updated_at: now }).eq("hole_number", holeNumber).select().single();
+        const { data: row } = await supabase.from("closest_to_pin").update({ team_id: teamId, player_name: playerName, distance, updated_at: now }).eq("id", existing.id).select().single();
         result = mapCtp(row);
       } else {
-        const { data: row } = await supabase.from("closest_to_pin").insert({ hole_number: holeNumber, team_id: teamId, player_name: playerName, distance, updated_at: now }).select().single();
+        const { data: row } = await supabase.from("closest_to_pin").insert({ hole_number: holeNumber, flight, team_id: teamId, player_name: playerName, distance, updated_at: now }).select().single();
         result = mapCtp(row);
       }
       // Append-only history log — powers the "who held it" popup on the leaderboard.
       // Best-effort: don't fail the save if the history table doesn't exist yet.
       try {
-        await supabase.from("ctp_history").insert({ hole_number: holeNumber, team_id: teamId, player_name: playerName, distance, created_at: now });
+        await supabase.from("ctp_history").insert({ hole_number: holeNumber, flight, team_id: teamId, player_name: playerName, distance, created_at: now });
       } catch {}
       return result;
     },
-    async clearCtp(holeNumber) {
-      await supabase.from("closest_to_pin").delete().eq("hole_number", holeNumber);
-      // Clearing a hole resets its contest — wipe its history too
-      try { await supabase.from("ctp_history").delete().eq("hole_number", holeNumber); } catch {}
+    async clearCtp(holeNumber, flight) {
+      let del = supabase.from("closest_to_pin").delete().eq("hole_number", holeNumber);
+      del = flight == null ? del.is("flight", null) : del.eq("flight", flight);
+      await del;
+      // Clearing a hole's flight resets that contest — wipe its history too
+      try {
+        let h = supabase.from("ctp_history").delete().eq("hole_number", holeNumber);
+        h = flight == null ? h.is("flight", null) : h.eq("flight", flight);
+        await h;
+      } catch {}
     },
     async clearCtpForTeam(teamId) {
       await supabase.from("closest_to_pin").delete().eq("team_id", teamId);

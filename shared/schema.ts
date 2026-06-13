@@ -76,6 +76,7 @@ export const scores = sqliteTable("scores", {
 export const closestToPin = sqliteTable("closest_to_pin", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   holeNumber: integer("hole_number").notNull(),
+  flight: text("flight"), // 'morning' | 'afternoon' — CTP/LD winners are per-flight
   teamId: integer("team_id").references(() => teams.id),
   playerName: text("player_name"),
   distance: text("distance"), // e.g. "4'6\"" or "1.2m"
@@ -88,6 +89,7 @@ export const closestToPin = sqliteTable("closest_to_pin", {
 export const ctpHistory = sqliteTable("ctp_history", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   holeNumber: integer("hole_number").notNull(),
+  flight: text("flight"),
   teamId: integer("team_id").references(() => teams.id),
   playerName: text("player_name"),
   distance: text("distance"),

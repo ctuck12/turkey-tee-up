@@ -1342,6 +1342,7 @@ function SettingsTab() {
   const [form, setForm] = useState<any>(null);
   const [holesExpanded, setHolesExpanded] = useState(false);
   const [confirmClearCtp, setConfirmClearCtp] = useState<number | null>(null);
+  // (flight for a pending clear is taken from the active CTP/LD toggle, ctpFlight)
   const [showAdminPw, setShowAdminPw] = useState(false);
   const [showScorePw, setShowScorePw] = useState(false);
   const [statusConfirm, setStatusConfirm] = useState<{ title: string; description: string; confirmLabel: string; onConfirm: () => void } | null>(null);
@@ -1380,9 +1381,12 @@ function SettingsTab() {
   const ldHole = holes.find(h => h.isCtpHole && h.par !== 3);
 
   const [editCtp, setEditCtp] = useState<{ holeNumber: number; playerName: string; teamId: string; distance: string } | null>(null);
+  // Which flight's CTP/LD winners the admin is viewing/editing
+  const [ctpFlight, setCtpFlight] = useState<"morning" | "afternoon">("morning");
+  const ctpFlightTeams = teams.filter(t => t.flight === ctpFlight);
 
   const upsertCtpMutation = useMutation({
-    mutationFn: (data: { holeNumber: number; playerName: string; teamId: number | null; distance: string }) =>
+    mutationFn: (data: { holeNumber: number; playerName: string; teamId: number | null; distance: string; flight: string }) =>
       apiRequest("POST", "/api/ctp", { ...data, asAdmin: true }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/ctp"] });
@@ -1392,10 +1396,10 @@ function SettingsTab() {
   });
 
   const clearCtpMutation = useMutation({
-    mutationFn: (holeNumber: number) => apiRequest("DELETE", `/api/ctp/${holeNumber}`, {}),
+    mutationFn: ({ holeNumber, flight }: { holeNumber: number; flight: string }) => apiRequest("DELETE", `/api/ctp/${holeNumber}?flight=${flight}`, {}),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/ctp"] });
-      toast({ title: "CTP entry cleared" });
+      toast({ title: "Entry cleared" });
     },
   });
 
@@ -1640,12 +1644,23 @@ function SettingsTab() {
       {/* CTP & LD Management */}
       <div className="atd-card rounded-xl p-5 space-y-3">
         <h2 className="font-bold text-[#b06b10]">Manage CTP &amp; LD Entries</h2>
+        {/* AM / PM toggle — winners are tracked separately per flight */}
+        <div className="flex bg-[#1a2744]/5 rounded-lg p-0.5 border border-[#1a2744]/10">
+          <button
+            onClick={() => { setCtpFlight("morning"); setEditCtp(null); }}
+            className={`flex-1 py-1.5 rounded text-xs font-sans-app font-bold transition-colors ${ctpFlight === "morning" ? "bg-blue-500/20 text-blue-600 border border-blue-500/30" : "text-[#1a2744]/50 hover:text-[#1a2744]/70"}`}
+          >AM Flight</button>
+          <button
+            onClick={() => { setCtpFlight("afternoon"); setEditCtp(null); }}
+            className={`flex-1 py-1.5 rounded text-xs font-sans-app font-bold transition-colors ${ctpFlight === "afternoon" ? "bg-amber-500/25 text-[#b06b10] border border-amber-500/40" : "text-[#1a2744]/50 hover:text-[#1a2744]/70"}`}
+          >PM Flight</button>
+        </div>
         {ctpOnlyHoles.length === 0 && !ldHole ? (
           <p className="text-[#1a2744]/50 text-sm italic">No CTP or LD holes configured. Set up CTP holes in Hole Settings above.</p>
         ) : (
           <div className="space-y-2">
             {ctpOnlyHoles.map(hole => {
-              const entry = ctpEntries.find(c => c.holeNumber === hole.holeNumber);
+              const entry = ctpEntries.find(c => c.holeNumber === hole.holeNumber && c.flight === ctpFlight);
               const teamName = entry?.teamId ? teams.find(t => t.id === entry.teamId)?.teamName : null;
               return (
                 <div key={hole.id} className="bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5">
@@ -1668,7 +1683,7 @@ function SettingsTab() {
                             <SelectValue placeholder="Select team..." />
                           </SelectTrigger>
                           <SelectContent className="bg-[#1a2744] border-amber-500/20 text-amber-100 max-h-48">
-                            {teams.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.teamName}</SelectItem>)}
+                            {ctpFlightTeams.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.teamName}</SelectItem>)}
                           </SelectContent>
                         </Select>
                         <Input
@@ -1678,7 +1693,7 @@ function SettingsTab() {
                           className="bg-white border-[#1a2744]/20 text-[#1a2744] h-7 text-xs"
                         />
                         <div className="flex gap-1.5 pt-1">
-                          <Button size="sm" onClick={() => upsertCtpMutation.mutate({ holeNumber: hole.holeNumber, playerName: editCtp.playerName, teamId: editCtp.teamId ? parseInt(editCtp.teamId) : null, distance: editCtp.distance })} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-sans-app h-7 text-xs px-3">
+                          <Button size="sm" onClick={() => upsertCtpMutation.mutate({ holeNumber: hole.holeNumber, playerName: editCtp.playerName, teamId: editCtp.teamId ? parseInt(editCtp.teamId) : null, distance: editCtp.distance, flight: ctpFlight })} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-sans-app h-7 text-xs px-3">
                             <Check size={11} className="mr-1" /> Save
                           </Button>
                           <Button size="sm" variant="ghost" onClick={() => setEditCtp(null)} className="text-[#1a2744]/50 font-sans-app h-7 text-xs">Cancel</Button>
@@ -1711,7 +1726,7 @@ function SettingsTab() {
               );
             })}
             {ldHole && (() => {
-              const entry = ctpEntries.find(c => c.holeNumber === ldHole.holeNumber);
+              const entry = ctpEntries.find(c => c.holeNumber === ldHole.holeNumber && c.flight === ctpFlight);
               const teamName = entry?.teamId ? teams.find(t => t.id === entry.teamId)?.teamName : null;
               return (
                 <div key={ldHole.id} className="bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5">
@@ -1734,11 +1749,11 @@ function SettingsTab() {
                               <SelectValue placeholder="Select team..." />
                             </SelectTrigger>
                             <SelectContent className="bg-[#1a2744] border-amber-500/20 text-amber-100 max-h-48">
-                              {teams.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.teamName}</SelectItem>)}
+                              {ctpFlightTeams.map(t => <SelectItem key={t.id} value={String(t.id)}>{t.teamName}</SelectItem>)}
                             </SelectContent>
                           </Select>
                           <div className="flex gap-1.5 pt-1">
-                            <Button size="sm" onClick={() => upsertCtpMutation.mutate({ holeNumber: ldHole.holeNumber, playerName: editCtp.playerName, teamId: editCtp.teamId ? parseInt(editCtp.teamId) : null, distance: editCtp.distance })} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-sans-app h-7 text-xs px-3">
+                            <Button size="sm" onClick={() => upsertCtpMutation.mutate({ holeNumber: ldHole.holeNumber, playerName: editCtp.playerName, teamId: editCtp.teamId ? parseInt(editCtp.teamId) : null, distance: editCtp.distance, flight: ctpFlight })} className="bg-amber-500/25 border border-amber-500/60 text-[#b06b10] hover:bg-amber-500/30 font-sans-app h-7 text-xs px-3">
                               <Check size={11} className="mr-1" /> Save
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => setEditCtp(null)} className="text-[#1a2744]/50 font-sans-app h-7 text-xs">Cancel</Button>
@@ -1778,7 +1793,7 @@ function SettingsTab() {
           title="Clear Entry?"
           description="This will remove the entry for this hole."
           confirmLabel="Clear"
-          onConfirm={() => confirmClearCtp !== null && clearCtpMutation.mutate(confirmClearCtp)}
+          onConfirm={() => confirmClearCtp !== null && clearCtpMutation.mutate({ holeNumber: confirmClearCtp, flight: ctpFlight })}
         />
       </div>
     </div>

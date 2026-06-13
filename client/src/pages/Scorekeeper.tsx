@@ -955,9 +955,9 @@ export default function Scorekeeper() {
           holeNumber={ctpModalHole}
           hole={holeMap.get(ctpModalHole)}
           teamPlayers={[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean) as string[]}
-          currentEntry={ctpEntries.find(c => c.holeNumber === ctpModalHole)}
-          currentTeamName={(() => { const e = ctpEntries.find(c => c.holeNumber === ctpModalHole); const t = e?.teamId ? teams.find(tm => tm.id === e.teamId) : null; return t?.teamName; })()}
-          onSave={data => ctpMutation.mutate({ ...data, teamId: authedTeam.id })}
+          currentEntry={ctpEntries.find(c => c.holeNumber === ctpModalHole && c.flight === authedTeam.flight)}
+          currentTeamName={(() => { const e = ctpEntries.find(c => c.holeNumber === ctpModalHole && c.flight === authedTeam.flight); const t = e?.teamId ? teams.find(tm => tm.id === e.teamId) : null; return t?.teamName; })()}
+          onSave={data => ctpMutation.mutate({ ...data, teamId: authedTeam.id, flight: authedTeam.flight })}
           mode="ctp"
         />
       )}
@@ -1013,9 +1013,9 @@ export default function Scorekeeper() {
           holeNumber={ldModalHole}
           hole={holeMap.get(ldModalHole)}
           teamPlayers={[authedTeam.player1, authedTeam.player2, authedTeam.player3, authedTeam.player4].filter(Boolean) as string[]}
-          currentEntry={ctpEntries.find(c => c.holeNumber === ldModalHole)}
-          currentTeamName={(() => { const e = ctpEntries.find(c => c.holeNumber === ldModalHole); const t = e?.teamId ? teams.find(tm => tm.id === e.teamId) : null; return t?.teamName; })()}
-          onSave={data => ldMutation.mutate({ ...data, teamId: authedTeam.id })}
+          currentEntry={ctpEntries.find(c => c.holeNumber === ldModalHole && c.flight === authedTeam.flight)}
+          currentTeamName={(() => { const e = ctpEntries.find(c => c.holeNumber === ldModalHole && c.flight === authedTeam.flight); const t = e?.teamId ? teams.find(tm => tm.id === e.teamId) : null; return t?.teamName; })()}
+          onSave={data => ldMutation.mutate({ ...data, teamId: authedTeam.id, flight: authedTeam.flight })}
           mode="ld"
         />
       )}
@@ -1094,7 +1094,7 @@ export default function Scorekeeper() {
 
                     {myMarks.map(mark => {
                       const isLd = !!(holeMap.get(mark.holeNumber)?.isCtpHole && holeMap.get(mark.holeNumber)?.par !== 3);
-                      const liveEntry = ctpEntries.find(c => c.holeNumber === mark.holeNumber);
+                      const liveEntry = ctpEntries.find(c => c.holeNumber === mark.holeNumber && c.flight === authedTeam.flight);
                       const stillLeading = liveEntry?.teamId === authedTeam.id;
                       const playerName = mark.playerName ?? "";
                       const distFmt = (() => {
