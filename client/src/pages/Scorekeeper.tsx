@@ -755,18 +755,8 @@ export default function Scorekeeper() {
               })()}
               <div className="text-center">
                 <div className="text-[#b06b10]/70 text-xs uppercase tracking-widest font-sans-app">Hole</div>
-                <div className="flex items-center justify-center gap-1.5">
-                  {((currentHoleData?.isCtpHole && currentHoleData?.par !== 3) || (currentHoleData?.isCtpHole && currentHoleData?.par === 3)) && (
-                    <div className="invisible">
-                      <Badge className="text-xs">{(currentHoleData?.isCtpHole && currentHoleData?.par !== 3) ? "LD" : "CTP"}</Badge>
-                    </div>
-                  )}
+                <div className="flex items-center justify-center">
                   <div className="text-3xl font-bold text-[#b06b10]">{currentHole}</div>
-                  {(currentHoleData?.isCtpHole && currentHoleData?.par !== 3) ? (
-                    <Badge className="bg-emerald-600/20 text-emerald-800 border-emerald-600/35 text-xs">LD</Badge>
-                  ) : (currentHoleData?.isCtpHole && currentHoleData?.par === 3) ? (
-                    <Badge className="bg-amber-500/25 text-[#b06b10] border-amber-500/30 text-xs">CTP</Badge>
-                  ) : null}
                 </div>
                 <div className="flex items-center justify-center gap-3 font-sans-app text-xs text-[#1a2744]/55">
                   <span>Par {par}</span>
@@ -792,15 +782,20 @@ export default function Scorekeeper() {
                   if (!currentHoleData?.isCtpHole) return null;
                   const isLdHole = currentHoleData.par !== 3;
                   const lead = ctpEntries.find(c => c.holeNumber === currentHole && c.flight === authedTeam.flight);
-                  if (!lead?.playerName) return null;
-                  const mine = lead.teamId === authedTeam.id;
+                  const mine = lead?.teamId === authedTeam.id;
                   return (
                     <span className="flex items-center gap-1 min-w-0 text-[11px] font-sans-app">
                       <span className={`shrink-0 font-bold ${isLdHole ? "text-emerald-700" : "text-[#b06b10]"}`}>{isLdHole ? "LD" : "CTP"}</span>
-                      <span className="font-bold text-[#1a2744] truncate">{lead.playerName}</span>
-                      <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${mine ? "bg-green-600/15 text-green-700" : "bg-[#1a2744]/8 text-[#1a2744]/55"}`}>
-                        {mine ? "Your group" : "Other group"}
-                      </span>
+                      {lead?.playerName ? (
+                        <>
+                          <span className="font-bold text-[#1a2744] truncate">{lead.playerName}</span>
+                          <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${mine ? "bg-green-600/15 text-green-700" : "bg-[#1a2744]/8 text-[#1a2744]/55"}`}>
+                            {mine ? "Your group" : "Other group"}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-[#1a2744]/45 italic truncate">No entry yet</span>
+                      )}
                     </span>
                   );
                 })()}
