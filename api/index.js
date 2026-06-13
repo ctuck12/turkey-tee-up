@@ -50090,7 +50090,7 @@ var sseClientId = 0;
 var lastPayload = null;
 var broadcastTimer = null;
 async function buildPayload() {
-  const [teams, scores, holes, ctp, ctpHistory, settings, sponsors] = await Promise.all([
+  let [teams, scores, holes, ctp, ctpHistory, settings, sponsors] = await Promise.all([
     storage.getTeams(),
     storage.getAllScores(),
     storage.getHoles(),
@@ -50099,6 +50099,19 @@ async function buildPayload() {
     storage.getSettings(),
     storage.getSponsors()
   ]);
+  if ((settings?.tournamentMode ?? "test") !== "test") {
+    const now = Date.now();
+    const stale = teams.filter((t) => !t.isSubmitted).filter((t) => {
+      const ts = scores.filter((s) => s.teamId === t.id && s.strokes != null);
+      if (ts.length < 18) return false;
+      const lastUpdate = Math.max(...ts.map((s) => s.updatedAt ? new Date(s.updatedAt).getTime() : 0));
+      return now - lastUpdate > 12e4;
+    });
+    if (stale.length > 0) {
+      await Promise.all(stale.map((t) => storage.submitTeam(t.id)));
+      teams = await storage.getTeams();
+    }
+  }
   const holeMap = new Map(holes.map((h) => [h.holeNumber, h]));
   const leaderboard = teams.map((team) => {
     const teamScores = scores.filter((s) => s.teamId === team.id);
