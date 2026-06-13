@@ -27,8 +27,8 @@ function tiebreak(a: LeaderboardEntry, b: LeaderboardEntry, tbHoles: number[]): 
   return { cmp: 0, hole: null };
 }
 
-// Per-flight standings. Medals (place 1-3) are only assigned once the WHOLE flight
-// is final: every team thru 18 and officially submitted.
+// Per-flight standings. Medals (place 1-3) are assigned once the WHOLE flight
+// is final: every team is thru 18 (Thru column shows "F").
 export function computeStandings(entries: LeaderboardEntry[], tbHoles: number[]) {
   const sorted = [...entries].sort((a, b) => {
     if (b.holesCompleted !== a.holesCompleted) return b.holesCompleted - a.holesCompleted;
@@ -38,7 +38,9 @@ export function computeStandings(entries: LeaderboardEntry[], tbHoles: number[])
     return a.team.teamName.localeCompare(b.team.teamName);
   });
 
-  const flightFinal = entries.length > 0 && entries.every(e => e.holesCompleted === 18 && e.team.isSubmitted);
+  // Medals/tiebreakers kick in as soon as every team in the flight is thru 18
+  // (their Thru column shows "F"), regardless of the official-submit flag.
+  const flightFinal = entries.length > 0 && entries.every(e => e.holesCompleted === 18);
   const placeMap = new Map<number, number>();
   const tieMap = new Map<number, TieInfo>();
   if (!flightFinal) return { sorted, placeMap, tieMap };

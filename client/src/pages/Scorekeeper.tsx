@@ -176,6 +176,7 @@ export default function Scorekeeper() {
   const { data: holes = [] } = useQuery<Hole[]>({ queryKey: ["/api/holes"] });
   const { data: teams = [] } = useQuery<Team[]>({ queryKey: ["/api/teams"] });
   const { data: settings } = useQuery<TournamentSettings>({ queryKey: ["/api/settings"] });
+  const { data: leaderboard = [] } = useQuery<any[]>({ queryKey: ["/api/leaderboard"] });
 
   // Sync isSubmitted from live teams query so the persisted Supabase value is
   // picked up even when the sessionStorage-cached team predates the is_submitted column.
@@ -624,6 +625,11 @@ export default function Scorekeeper() {
   // Starting hole from admin setup; last hole wraps around (e.g. start=7 → last=6, start=1 → last=18)
   const startingHole = authedTeam.startingHole ?? 1;
   const lastHole = startingHole === 1 ? 18 : startingHole - 1;
+
+  // Flight is "final" once every team in this flight is thru all 18 holes (Thru = F).
+  // Until then, CTP/LD entries this team holds show "Still Leading!" not "Winner!".
+  const flightEntries = leaderboard.filter((e: any) => e.team?.flight === authedTeam.flight);
+  const flightFinal = flightEntries.length > 0 && flightEntries.every((e: any) => e.holesCompleted === 18);
 
   // Advance to next hole respecting the round boundary; show round complete on last hole
   function advanceHole(from: number) {
@@ -1102,10 +1108,10 @@ export default function Scorekeeper() {
                             )}
                           </div>
                           <p className={`text-[10px] font-bold font-sans-app ml-0.5 ${
-                            stillLeading ? (isSubmitted || readOnly ? "text-green-700" : "text-[#b06b10]") : "text-[#1a2744]/40"
+                            stillLeading ? (flightFinal ? "text-green-700" : "text-[#b06b10]") : "text-[#1a2744]/40"
                           }`}>
                             {stillLeading
-                              ? (isSubmitted || readOnly ? "(WINNER!)" : "(STILL LEADING!)")
+                              ? (flightFinal ? "(WINNER!)" : "(STILL LEADING!)")
                               : isLd ? "(No longer longest drive)" : "(No longer closest to pin)"}
                           </p>
                         </div>
@@ -1134,8 +1140,8 @@ export default function Scorekeeper() {
                             </span>
                             {distFmt && <span className={isLd ? "text-emerald-700 font-bold text-xs" : "text-green-700 font-bold text-xs"}>{distFmt}</span>}
                           </div>
-                          <p className={`text-[10px] font-bold font-sans-app ml-0.5 ${isSubmitted || readOnly ? "text-green-700" : "text-[#b06b10]"}`}>
-                            {isSubmitted || readOnly ? "(WINNER!)" : "(STILL LEADING!)"}
+                          <p className={`text-[10px] font-bold font-sans-app ml-0.5 ${flightFinal ? "text-green-700" : "text-[#b06b10]"}`}>
+                            {flightFinal ? "(WINNER!)" : "(STILL LEADING!)"}
                           </p>
                         </div>
                       );
