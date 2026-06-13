@@ -818,26 +818,34 @@ export default function Scorekeeper() {
               </div>
             </div>
 
-            {/* CTP quick-entry if this is a CTP hole */}
-            {currentHoleData?.isCtpHole && currentHoleData?.par === 3 && !isSubmitted && !readOnly && (
-              <button
-                onClick={() => setCtpModalHole(currentHole)}
-                className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-amber-500/40 border border-amber-500/60 text-amber-900 hover:bg-amber-500/55 transition-all font-sans-app text-sm font-bold"
-                data-testid="button-enter-ctp"
-              >
-                <Target size={14} /> Enter Closest to Pin for Hole {currentHole}
-              </button>
-            )}
+            {/* CTP quick-entry if this is a CTP hole — shows current leader inline (no extra height) */}
+            {currentHoleData?.isCtpHole && currentHoleData?.par === 3 && !isSubmitted && !readOnly && (() => {
+              const leader = ctpEntries.find(c => c.holeNumber === currentHole && c.flight === authedTeam.flight)?.playerName;
+              return (
+                <button
+                  onClick={() => setCtpModalHole(currentHole)}
+                  className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-500/40 border border-amber-500/60 text-amber-900 hover:bg-amber-500/55 transition-all font-sans-app text-sm font-bold min-w-0"
+                  data-testid="button-enter-ctp"
+                >
+                  <Target size={14} className="shrink-0" />
+                  <span className="truncate">{leader ? `CTP: ${leader} · tap to update` : `Enter Closest to Pin for Hole ${currentHole}`}</span>
+                </button>
+              );
+            })()}
             {/* Long Drive quick-entry if this is an LD hole (par 4/5 with toggle on) */}
-            {(currentHoleData?.isCtpHole && currentHoleData?.par !== 3) && !isSubmitted && !readOnly && (
-              <button
-                onClick={() => setLdModalHole(currentHole)}
-                className="mt-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-emerald-600/40 border border-emerald-600/60 text-emerald-900 hover:bg-emerald-600/55 transition-all font-sans-app text-sm font-bold"
-                data-testid="button-enter-ld"
-              >
-                <Zap size={14} /> Enter Long Drive for Hole {currentHole}
-              </button>
-            )}
+            {(currentHoleData?.isCtpHole && currentHoleData?.par !== 3) && !isSubmitted && !readOnly && (() => {
+              const leader = ctpEntries.find(c => c.holeNumber === currentHole && c.flight === authedTeam.flight)?.playerName;
+              return (
+                <button
+                  onClick={() => setLdModalHole(currentHole)}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-600/40 border border-emerald-600/60 text-emerald-900 hover:bg-emerald-600/55 transition-all font-sans-app text-sm font-bold min-w-0"
+                  data-testid="button-enter-ld"
+                >
+                  <Zap size={14} className="shrink-0" />
+                  <span className="truncate">{leader ? `LD: ${leader} · tap to update` : `Enter Long Drive for Hole ${currentHole}`}</span>
+                </button>
+              );
+            })()}
           </div>
 
           {/* Inline scorecard — no header, no legend */}
