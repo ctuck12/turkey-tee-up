@@ -403,7 +403,7 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
                       >*</button>
                     )}
                   </div>
-                  <div className="text-[#1a2744]/50 text-xs mt-0.5 truncate max-w-[180px]" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
+                  <div className="text-[#1a2744]/50 text-[10.5px] mt-0.5 leading-snug break-words" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
                     {[entry.team.player1, entry.team.player2, entry.team.player3, entry.team.player4]
                       .filter(Boolean)
                       .map(name => (name ?? "").trim().split(/\s+/).pop() ?? name)
