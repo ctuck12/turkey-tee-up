@@ -370,13 +370,13 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full font-sans-app text-sm">
+        <table className="w-full table-fixed font-sans-app text-sm">
           <thead>
             <tr className="border-b border-amber-500/10">
-              <th className="px-3 py-2.5 text-left text-[#b06b10] text-xs uppercase tracking-wider w-10">#</th>
-              <th className="px-3 py-2.5 text-left text-[#b06b10] text-xs uppercase tracking-wider">Team</th>
-              <th className="px-3 py-2.5 text-center text-[#b06b10] text-xs uppercase tracking-wider w-24">Score</th>
-              <th className="px-3 py-2.5 text-center text-[#b06b10] text-xs uppercase tracking-wider w-16">Thru</th>
+              <th className="px-2 py-2.5 text-left text-[#b06b10] text-xs uppercase tracking-wider w-8">#</th>
+              <th className="px-2 py-2.5 text-left text-[#b06b10] text-xs uppercase tracking-wider">Team</th>
+              <th className="px-2 py-2.5 text-center text-[#b06b10] text-xs uppercase tracking-wider w-20">Score</th>
+              <th className="px-2 py-2.5 text-center text-[#b06b10] text-xs uppercase tracking-wider w-12">Thru</th>
             </tr>
           </thead>
           <tbody>
@@ -386,11 +386,11 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
                 onClick={() => navigate(`/team/${entry.team.id}`)}
                 className="border-b border-[#1a2744]/10 hover:bg-amber-500/5 transition-colors cursor-pointer"
               >
-                <td className="px-3 py-3 text-[#1a2744]/50 text-xs">
+                <td className="px-2 py-3 text-[#1a2744]/50 text-xs">
                   {idx + 1}
                 </td>
-                <td className="px-3 py-3">
-                  <div className="flex items-center gap-1 max-w-[200px]">
+                <td className="px-2 py-3">
+                  <div className="flex items-center gap-1 min-w-0">
                     <span className="font-bold text-[#1a2744] truncate" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>{entry.team.teamName}</span>
                     {placeMap.get(entry.team.id) != null && (
                       <span className="text-lg leading-none -my-0.5 shrink-0">{["", "🥇", "🥈", "🥉"][placeMap.get(entry.team.id)!]}</span>
@@ -404,17 +404,17 @@ function LeaderboardTable({ entries, label, flight, ctpEntries, ctpHoles, ldHole
                       >*</button>
                     )}
                   </div>
-                  <div className="text-[#1a2744]/50 text-[10.5px] mt-0.5 leading-snug break-words" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
+                  <div className="text-[#1a2744]/50 text-[10.5px] mt-0.5 leading-snug truncate" style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}>
                     {[entry.team.player1, entry.team.player2, entry.team.player3, entry.team.player4]
                       .filter(Boolean)
                       .map(name => (name ?? "").trim().split(/\s+/).pop() ?? name)
                       .join(" · ")}
                   </div>
                 </td>
-                <td className="px-3 py-3 text-center text-lg">
+                <td className="px-2 py-3 text-center text-lg">
                   {toParDisplay(entry.totalToPar, entry.holesCompleted)}
                 </td>
-                <td className="px-3 py-3 text-center text-[#1a2744]/60 text-sm">
+                <td className="px-2 py-3 text-center text-[#1a2744]/60 text-sm">
                   {entry.holesCompleted > 0 ? ((entry.holesCompleted === 18 && entry.team.isSubmitted) ? "F" : `${entry.holesCompleted}`) : <span className="text-[#1a2744]/35">—</span>}
                 </td>
               </tr>
