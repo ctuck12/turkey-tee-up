@@ -728,11 +728,12 @@ export default function Scorekeeper() {
             </div>
           )}
 
-          {/* Submitted banner */}
+          {/* Round complete — compact one-line, scales to fit, never wraps */}
           {isSubmitted && (
-            <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-2 font-sans-app text-sm">
-              <span className="text-green-700 font-bold whitespace-nowrap">✅ Scorecard officially submitted</span>
-              <button onClick={() => setShowRoundComplete(true)} className="ml-auto text-green-700 underline text-xs whitespace-nowrap">View Summary</button>
+            <div className="flex items-center justify-center gap-2 flex-nowrap whitespace-nowrap font-sans-app py-1 text-[clamp(11px,3.4vw,14px)]">
+              <span className="text-[#1a2744] font-bold">🏁 Round Complete</span>
+              <span className="text-[#1a2744]/30">·</span>
+              <button onClick={() => setShowRoundComplete(true)} className="text-[#b06b10] font-bold underline hover:text-[#8a5008]">View Summary</button>
             </div>
           )}
 
