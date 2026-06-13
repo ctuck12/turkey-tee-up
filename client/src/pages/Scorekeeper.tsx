@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
@@ -125,6 +125,25 @@ function CtpEntryModal({
       </DialogContent>
     </Dialog>
   );
+}
+
+// Shrinks its font-size until the (single-line) content fits — so a long team
+// name stays fully visible and the badges scale down proportionally with it.
+function FitRow({ children, className }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.fontSize = "1rem";
+      const cw = el.clientWidth, sw = el.scrollWidth;
+      if (sw > cw && cw > 0) el.style.fontSize = `${Math.max(0.55, (cw / sw) * 0.98).toFixed(3)}rem`;
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  });
+  return <div ref={ref} className={className} style={{ overflow: "hidden" }}>{children}</div>;
 }
 
 // ─── MAIN SCOREKEEPER PAGE ─────────────────────────────────────────────────────
@@ -686,19 +705,20 @@ export default function Scorekeeper() {
           const totalDisp = isUnder
             ? <span style={{ color: "#c0323e" }}>(<span>{rawScore}</span>)</span>
             : <span style={{ color: "#1a2744" }}>(<span>{rawScore}</span>)</span>;
-          // Single line, never wraps: name flexes + truncates, score & badges stay fixed
+          // Auto-fit one line: full team name stays visible; if too long the whole
+          // row (name, score, AM/PM + Start Hole badges) scales down proportionally.
           return (
-            <div className="flex items-center gap-1.5 mb-2 flex-nowrap min-w-0 w-full">
-              <h2 className="font-bold text-[#b06b10] text-lg leading-tight truncate min-w-0 shrink">{authedTeam.teamName}</h2>
-              <span className="font-bold text-lg leading-tight shrink-0" style={{ fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.05em" }}>{totalDisp}</span>
-              <div className="flex-1 min-w-0" />
-              <Badge className={`font-sans-app font-bold shrink-0 whitespace-nowrap px-1.5 text-[11px] ${authedTeam.flight === "morning" ? "bg-blue-500/20 text-blue-600 border-blue-500/30" : "bg-amber-500/25 text-[#b06b10] border-amber-500/40"}`}>
+            <FitRow className="flex items-center gap-[0.4em] mb-2 flex-nowrap w-full whitespace-nowrap">
+              <h2 className="font-bold text-[#b06b10] leading-tight shrink-0" style={{ fontSize: "1.125em" }}>{authedTeam.teamName}</h2>
+              <span className="font-bold leading-tight shrink-0" style={{ fontFamily: "'Rajdhani', sans-serif", letterSpacing: "0.05em", fontSize: "1.125em" }}>{totalDisp}</span>
+              <div className="flex-1" />
+              <Badge className={`font-sans-app font-bold shrink-0 whitespace-nowrap px-1.5 ${authedTeam.flight === "morning" ? "bg-blue-500/20 text-blue-600 border-blue-500/30" : "bg-amber-500/25 text-[#b06b10] border-amber-500/40"}`} style={{ fontSize: "0.7em" }}>
                 {authedTeam.flight === "morning" ? "AM" : "PM"}
               </Badge>
-              <Badge className="bg-[#1a2744]/8 text-[#1a2744]/60 border-[#1a2744]/15 font-sans-app shrink-0 whitespace-nowrap px-1.5 text-[11px]">
+              <Badge className="bg-[#1a2744]/8 text-[#1a2744]/60 border-[#1a2744]/15 font-sans-app shrink-0 whitespace-nowrap px-1.5" style={{ fontSize: "0.7em" }}>
                 Start Hole: {authedTeam.startingHole ?? 1}
               </Badge>
-            </div>
+            </FitRow>
           );
         })()}
         {/* Row 2: player names */}
