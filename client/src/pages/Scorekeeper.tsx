@@ -805,15 +805,18 @@ export default function Scorekeeper() {
                   const isLdHole = currentHoleData.par !== 3;
                   const lead = ctpEntries.find(c => c.holeNumber === currentHole && c.flight === authedTeam.flight);
                   const mine = lead?.teamId === authedTeam.id;
+                  const leadTeamName = lead?.teamId ? teams.find(t => t.id === lead.teamId)?.teamName : null;
                   return (
                     <span className="flex items-center gap-1 min-w-0 text-[11px] font-sans-app">
                       <span className={`shrink-0 font-bold ${isLdHole ? "text-emerald-700" : "text-[#b06b10]"}`}>{isLdHole ? "LD" : "CTP"}</span>
                       {lead?.playerName ? (
                         <>
                           <span className="font-bold text-[#1a2744] truncate">{lead.playerName}</span>
-                          <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${mine ? "bg-green-600/15 text-green-700" : "bg-[#1a2744]/8 text-[#1a2744]/55"}`}>
-                            {mine ? "Your group" : "Other group"}
-                          </span>
+                          {mine ? (
+                            <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-green-600/15 text-green-700">Your group</span>
+                          ) : (
+                            <span className="shrink min-w-0 truncate max-w-[40%] text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#1a2744]/8 text-[#1a2744]/55">{leadTeamName ?? "Other group"}</span>
+                          )}
                         </>
                       ) : (
                         <span className="text-[#1a2744]/45 italic truncate">No entry yet</span>
