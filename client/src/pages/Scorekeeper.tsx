@@ -316,7 +316,9 @@ export default function Scorekeeper() {
       const ctpHole = ctpModalHole;
       if (ctpHole !== null) {
         setSubmittedCtpHoles(prev => prev.includes(ctpHole) ? prev : [...prev, ctpHole]);
-        advanceHole(ctpHole);
+        // Only advance if a held score was just saved as part of this flow.
+        // Entering CTP alone (no score yet) stays put until they hit Save.
+        if (pending) advanceHole(ctpHole);
       }
       setCtpModalHole(null);
       const player = variables?.playerName ?? "";
@@ -339,7 +341,9 @@ export default function Scorekeeper() {
       const ldHole = ldModalHole;
       if (ldHole !== null) {
         setSubmittedCtpHoles(prev => prev.includes(ldHole) ? prev : [...prev, ldHole]);
-        advanceHole(ldHole);
+        // Only advance if a held score was just saved as part of this flow.
+        // Entering Long Drive alone (no score yet) stays put until they hit Save.
+        if (pending) advanceHole(ldHole);
       }
       setLdModalHole(null);
       const player = variables?.playerName ?? "";
