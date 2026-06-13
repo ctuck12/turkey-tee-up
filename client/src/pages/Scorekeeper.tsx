@@ -165,6 +165,10 @@ export default function Scorekeeper() {
   const [showRoundComplete, setShowRoundComplete] = useState(false);
   const [showScorecardView, setShowScorecardView] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  // Editing an already-finished card from the round-complete popup: after each
+  // saved edit, prompt to keep editing or officially submit.
+  const [editMode, setEditMode] = useState(false);
+  const [showContinuePrompt, setShowContinuePrompt] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(() => !!(authedTeam?.isSubmitted));
   const [showSkipWarning, setShowSkipWarning] = useState(false);
   // Track which holes this team submitted CTP/LD entries for this session
@@ -289,6 +293,8 @@ export default function Scorekeeper() {
       setIsSubmitted(true);
       setShowSubmitConfirm(false);
       setShowRoundComplete(false);
+      setShowContinuePrompt(false);
+      setEditMode(false);
       // Clear session so next team starts fresh
       try { sessionStorage.removeItem("sk_authed_team"); sessionStorage.removeItem("sk_current_hole"); } catch {}
       toast({ title: "Scorecard officially submitted!" });
@@ -411,6 +417,15 @@ export default function Scorekeeper() {
       return;
     }
     setLocalScore("");
+
+    // Editing a finished card: just save this hole, then ask continue-or-submit.
+    if (editMode) {
+      scoreMutation.mutate({ teamId: authedTeam.id, holeNumber: currentHole, strokes });
+      const { dismiss } = toast({ title: `Hole ${currentHole}: Score updated (${strokes})` });
+      setTimeout(dismiss, 2500);
+      setShowContinuePrompt(true);
+      return;
+    }
 
     // CTP hole: prompt unless THIS team already submitted one of their players,
     // even if another team currently holds the closest-to-pin for this hole.
@@ -1172,7 +1187,7 @@ export default function Scorekeeper() {
                     </button>
                     <div className="flex gap-2">
                       <button
-                        onClick={() => setShowRoundComplete(false)}
+                        onClick={() => { setEditMode(true); setShowRoundComplete(false); }}
                         className="flex-1 py-2 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
                       >
                         Edit Scores
@@ -1216,6 +1231,33 @@ export default function Scorekeeper() {
           document.body
         );
       })()}
+
+      {/* ── CONTINUE EDITING vs SUBMIT — after each edited hole ── */}
+      {showContinuePrompt && createPortal(
+        <div className="fixed inset-0 z-[9200] flex items-center justify-center p-4" style={{ background: "rgba(17,27,51,0.7)" }}>
+          <div className="bg-[#f0ebe1] rounded-2xl border border-[#1a2744]/20 shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4">
+            <p className="text-[#1a2744] font-bold text-base">✅ Score Updated</p>
+            <p className="text-[#1a2744]/75 font-sans-app text-sm leading-relaxed">
+              Do you need to keep editing other holes, or are you ready to officially submit your scorecard?
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => setShowContinuePrompt(false)}
+                className="w-full py-2.5 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
+              >
+                Continue Editing
+              </button>
+              <button
+                onClick={() => { setShowContinuePrompt(false); setShowSubmitConfirm(true); }}
+                className="w-full py-2.5 rounded-lg bg-[#1a2744] text-white font-bold font-sans-app text-sm hover:bg-[#243461] transition-colors"
+              >
+                Submit Scorecard
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* ── SUBMIT CONFIRMATION — portal, no Radix ── */}
       {showSubmitConfirm && createPortal(
