@@ -596,7 +596,7 @@ function FlightCompleteModal() {
               ))}
               {ldWin && (
                 <div className="flex items-center justify-between gap-2 text-sm font-sans-app">
-                  <span className="text-emerald-700 font-bold shrink-0">Long Drive</span>
+                  <span className="text-blue-700 font-bold shrink-0">Long Drive</span>
                   <span className="font-bold text-[#1a2744] truncate text-right">{ldWin.name}</span>
                 </div>
               )}
