@@ -35,10 +35,12 @@ function CtpEntryModal({
   // Start unselected — the current leader is shown separately, not pre-filled here
   const [playerName, setPlayerName] = useState("");
   const [showPlayerList, setShowPlayerList] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     setPlayerName("");
     setShowPlayerList(false);
+    setConfirming(false);
   }, [currentEntry, open]);
 
   return (
@@ -105,22 +107,43 @@ function CtpEntryModal({
             )}
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <Button
-              onClick={() => onSave({ holeNumber, playerName })}
-              className={`flex-1 text-white ${
-                isLd
-                  ? "bg-emerald-600 border border-emerald-600 hover:bg-emerald-700"
-                  : "bg-blue-600 border border-blue-600 hover:bg-blue-700"
-              }`}
-              data-testid="button-ctp-save"
-            >
-              <Check size={14} className="mr-1.5" /> {isLd ? "Save Long Drive" : "Save CTP"}
-            </Button>
-            <Button variant="ghost" onClick={onClose} className="text-[#1a2744]/55 hover:text-[#1a2744]">
-              Cancel
-            </Button>
-          </div>
+          {confirming ? (
+            <div className="pt-2 space-y-3">
+              <div className={`rounded-lg border px-3 py-3 text-center ${isLd ? "bg-emerald-600/8 border-emerald-600/25" : "bg-blue-500/10 border-blue-500/25"}`}>
+                <p className="text-[#1a2744]/55 text-[10px] font-bold uppercase tracking-widest">Confirm {isLd ? "Long Drive" : "Closest to Pin"}</p>
+                <p className="text-[#1a2744] font-bold text-lg mt-0.5">{playerName}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => onSave({ holeNumber, playerName })}
+                  className={`flex-1 text-white ${isLd ? "bg-emerald-600 border border-emerald-600 hover:bg-emerald-700" : "bg-blue-600 border border-blue-600 hover:bg-blue-700"}`}
+                >
+                  <Check size={14} className="mr-1.5" /> Confirm
+                </Button>
+                <Button variant="ghost" onClick={() => setConfirming(false)} className="text-[#1a2744]/55 hover:text-[#1a2744]">
+                  Back
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={() => { if (playerName) setConfirming(true); }}
+                disabled={!playerName}
+                className={`flex-1 text-white disabled:opacity-40 ${
+                  isLd
+                    ? "bg-emerald-600 border border-emerald-600 hover:bg-emerald-700"
+                    : "bg-blue-600 border border-blue-600 hover:bg-blue-700"
+                }`}
+                data-testid="button-ctp-save"
+              >
+                <Check size={14} className="mr-1.5" /> {isLd ? "Save Long Drive" : "Save CTP"}
+              </Button>
+              <Button variant="ghost" onClick={onClose} className="text-[#1a2744]/55 hover:text-[#1a2744]">
+                Cancel
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -188,6 +211,7 @@ export default function Scorekeeper() {
   // saved edit, prompt to keep editing or officially submit.
   const [editMode, setEditMode] = useState(false);
   const [showContinuePrompt, setShowContinuePrompt] = useState(false);
+  const [confirmEdit, setConfirmEdit] = useState<{ holeNumber: number; oldScore: number; newScore: number } | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(() => !!(authedTeam?.isSubmitted));
   const [showSkipWarning, setShowSkipWarning] = useState(false);
   // Track which holes this team submitted CTP/LD entries for this session
@@ -451,6 +475,20 @@ export default function Scorekeeper() {
       return;
     }
 
+    // Mid-round: if this hole already has a saved score and they're changing it,
+    // confirm before saving (only before all 18 are in — editMode handles after).
+    const existing = scoreMap.get(currentHole)?.strokes;
+    if (existing != null && existing !== strokes) {
+      setConfirmEdit({ holeNumber: currentHole, oldScore: existing, newScore: strokes });
+      return;
+    }
+
+    proceedSave(strokes);
+  }
+
+  // Runs the CTP/LD prompts (if needed) then saves the score and advances.
+  function proceedSave(strokes: number) {
+    if (!authedTeam) return;
     // Has THIS team already marked a CTP/LD player for this hole? Check both the
     // in-session list AND the persistent history (survives refresh / coming back).
     const teamAlreadyMarked = submittedCtpHoles.includes(currentHole)
@@ -1269,6 +1307,33 @@ export default function Scorekeeper() {
                 className="w-full py-2.5 rounded-lg bg-[#1a2744] text-white font-bold font-sans-app text-sm hover:bg-[#243461] transition-colors"
               >
                 Submit Scorecard
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* ── EDIT SCORE CONFIRMATION (mid-round change to an already-saved hole) ── */}
+      {confirmEdit && createPortal(
+        <div className="fixed inset-0 z-[9200] flex items-center justify-center p-4" style={{ background: "rgba(17,27,51,0.7)" }}>
+          <div className="bg-[#f0ebe1] rounded-2xl border border-[#1a2744]/20 shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4">
+            <p className="text-[#1a2744] font-bold text-base">✏️ Change this score?</p>
+            <p className="text-[#1a2744]/75 font-sans-app text-sm leading-relaxed">
+              You're changing <span className="font-bold text-[#1a2744]">Hole {confirmEdit.holeNumber}</span> from <span className="font-bold text-[#1a2744]">{confirmEdit.oldScore}</span> to <span className="font-bold text-[#1a2744]">{confirmEdit.newScore}</span>. Save this change?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => { const ns = confirmEdit.newScore; setConfirmEdit(null); proceedSave(ns); }}
+                className="flex-1 py-2.5 rounded-lg bg-[#1a2744] text-white font-bold font-sans-app text-sm hover:bg-[#243461] transition-colors"
+              >
+                Yes, Save Change
+              </button>
+              <button
+                onClick={() => { setLocalScore(String(confirmEdit.newScore)); setConfirmEdit(null); }}
+                className="flex-1 py-2.5 rounded-lg bg-[#1a2744]/10 border border-[#1a2744]/20 text-[#1a2744] font-bold font-sans-app text-sm hover:bg-[#1a2744]/15 transition-colors"
+              >
+                Cancel
               </button>
             </div>
           </div>
