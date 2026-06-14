@@ -808,7 +808,7 @@ export default function Scorekeeper() {
                   const leadTeamName = lead?.teamId ? teams.find(t => t.id === lead.teamId)?.teamName : null;
                   return (
                     <span className="flex items-center gap-1 min-w-0 text-[11px] font-sans-app">
-                      <span className={`shrink-0 font-bold ${isLdHole ? "text-emerald-700" : "text-[#b06b10]"}`}>{isLdHole ? "LD" : "CTP"}</span>
+                      <span className={`shrink-0 font-bold text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-md border ${isLdHole ? "bg-emerald-600/15 text-emerald-700 border-emerald-600/30" : "bg-amber-500/20 text-[#b06b10] border-amber-500/40"}`}>{isLdHole ? "LD" : "CTP"}</span>
                       {lead?.playerName ? (
                         <>
                           <span className="font-bold text-[#1a2744] truncate">{lead.playerName}</span>
