@@ -176,11 +176,18 @@ export default function Scorekeeper() {
   const qc = useQueryClient();
 
   const [teamCode, setTeamCode] = useState("");
-  // Stable per-tab session id for presence/conflict detection
+  // Stable per-device session id for presence/conflict detection. Stored in
+  // localStorage (not sessionStorage) so it survives a full PWA close/relaunch
+  // on the same device — otherwise the same device would get a brand-new id on
+  // reopen and falsely trip the "already signed in elsewhere" warning while its
+  // own prior session is still within the freshness window.
   const [sessionId] = useState(() => {
     try {
-      let s = sessionStorage.getItem("sk_session_id");
-      if (!s) { s = Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem("sk_session_id", s); }
+      let s = localStorage.getItem("sk_session_id");
+      // Migrate any older per-tab id so existing sessions stay stable.
+      if (!s) s = sessionStorage.getItem("sk_session_id");
+      if (!s) { s = Math.random().toString(36).slice(2) + Date.now().toString(36); }
+      localStorage.setItem("sk_session_id", s);
       return s;
     } catch { return Math.random().toString(36).slice(2); }
   });
