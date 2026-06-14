@@ -110,7 +110,7 @@ function CtpEntryModal({
           {confirming ? (
             <div className="pt-2 space-y-3">
               <div className={`rounded-lg border px-3 py-3 text-center ${isLd ? "bg-emerald-600/8 border-emerald-600/25" : "bg-[#b06b10]/8 border-[#b06b10]/25"}`}>
-                <p className="text-[#1a2744]/55 text-[10px] font-bold uppercase tracking-widest">Confirm {isLd ? "Long Drive" : "Closest to Pin"}</p>
+                <p className="text-[#1a2744]/55 text-[10px] font-bold uppercase tracking-widest">Confirm new {isLd ? "Long Drive" : "Closest to Pin"}</p>
                 <p className="text-[#1a2744] font-bold text-lg mt-0.5">{playerName}</p>
               </div>
               <div className="flex gap-2">
