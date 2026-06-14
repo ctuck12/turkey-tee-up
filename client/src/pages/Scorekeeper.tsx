@@ -50,7 +50,7 @@ function CtpEntryModal({
           <DialogTitle className="text-[#1a2744] font-bold flex items-center gap-2">
             {isLd
               ? <Zap size={18} className="text-emerald-600" />
-              : <Target size={18} className="text-blue-600" />
+              : <Target size={18} className="text-[#b06b10]" />
             }
             {isLd ? `Long Drive – Hole ${holeNumber}` : `CTP – Hole ${holeNumber}`}
             {hole && <span className="text-[#1a2744]/55 text-sm">Par {hole.par}</span>}
@@ -59,8 +59,8 @@ function CtpEntryModal({
         <div className="space-y-4 font-sans-app">
           {/* Current leader on this hole — shown separately, not in the dropdown */}
           {currentEntry?.playerName ? (
-            <div className={`rounded-lg border px-3 py-2 ${isLd ? "bg-emerald-600/8 border-emerald-600/25" : "bg-blue-500/10 border-blue-500/25"}`}>
-              <p className={`text-[10px] font-bold uppercase tracking-widest ${isLd ? "text-emerald-700" : "text-blue-600"}`}>
+            <div className={`rounded-lg border px-3 py-2 ${isLd ? "bg-emerald-600/8 border-emerald-600/25" : "bg-[#b06b10]/8 border-[#b06b10]/25"}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-widest ${isLd ? "text-emerald-700" : "text-[#b06b10]"}`}>
                 Current {isLd ? "Long Drive" : "Closest to Pin"}
               </p>
               <p className="text-[#1a2744] font-bold text-sm">{currentEntry.playerName}</p>
@@ -109,14 +109,14 @@ function CtpEntryModal({
 
           {confirming ? (
             <div className="pt-2 space-y-3">
-              <div className={`rounded-lg border px-3 py-3 text-center ${isLd ? "bg-emerald-600/8 border-emerald-600/25" : "bg-blue-500/10 border-blue-500/25"}`}>
+              <div className={`rounded-lg border px-3 py-3 text-center ${isLd ? "bg-emerald-600/8 border-emerald-600/25" : "bg-[#b06b10]/8 border-[#b06b10]/25"}`}>
                 <p className="text-[#1a2744]/55 text-[10px] font-bold uppercase tracking-widest">Confirm {isLd ? "Long Drive" : "Closest to Pin"}</p>
                 <p className="text-[#1a2744] font-bold text-lg mt-0.5">{playerName}</p>
               </div>
               <div className="flex gap-2">
                 <Button
                   onClick={() => onSave({ holeNumber, playerName })}
-                  className={`flex-1 text-white ${isLd ? "bg-emerald-600 border border-emerald-600 hover:bg-emerald-700" : "bg-blue-600 border border-blue-600 hover:bg-blue-700"}`}
+                  className={`flex-1 text-white ${isLd ? "bg-emerald-600 border border-emerald-600 hover:bg-emerald-700" : "bg-[#b06b10] border border-[#b06b10] hover:bg-[#8a5008]"}`}
                 >
                   <Check size={14} className="mr-1.5" /> Confirm
                 </Button>
@@ -133,7 +133,7 @@ function CtpEntryModal({
                 className={`flex-1 text-white disabled:opacity-40 ${
                   isLd
                     ? "bg-emerald-600 border border-emerald-600 hover:bg-emerald-700"
-                    : "bg-blue-600 border border-blue-600 hover:bg-blue-700"
+                    : "bg-[#b06b10] border border-[#b06b10] hover:bg-[#8a5008]"
                 }`}
                 data-testid="button-ctp-save"
               >
@@ -846,7 +846,7 @@ export default function Scorekeeper() {
                   const leadTeamName = lead?.teamId ? teams.find(t => t.id === lead.teamId)?.teamName : null;
                   return (
                     <span className="flex items-center gap-1 min-w-0 text-[11px] font-sans-app">
-                      <span className={`shrink-0 font-bold text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-md border ${isLdHole ? "bg-emerald-600/15 text-emerald-700 border-emerald-600/30" : "bg-blue-500/20 text-blue-600 border-blue-500/40"}`}>{isLdHole ? "LD" : "CTP"}</span>
+                      <span className={`shrink-0 font-bold text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-md border ${isLdHole ? "bg-emerald-600/15 text-emerald-700 border-emerald-600/30" : "bg-amber-500/20 text-[#b06b10] border-amber-500/40"}`}>{isLdHole ? "LD" : "CTP"}</span>
                       {lead?.playerName ? (
                         <>
                           <span className="font-bold text-[#1a2744] truncate">{lead.playerName}</span>
@@ -903,7 +903,7 @@ export default function Scorekeeper() {
               return (
                 <button
                   onClick={() => setCtpModalHole(currentHole)}
-                  className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-500/30 border border-blue-500/60 text-blue-800 hover:bg-blue-500/45 transition-all font-sans-app text-sm font-bold"
+                  className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-amber-500/40 border border-amber-500/60 text-amber-900 hover:bg-amber-500/55 transition-all font-sans-app text-sm font-bold"
                   data-testid="button-enter-ctp"
                 >
                   <Target size={14} className="shrink-0" /> {hasLeader ? `Update Closest to Pin` : `Enter Closest to Pin for Hole ${currentHole}`}
@@ -1001,7 +1001,7 @@ export default function Scorekeeper() {
           <DialogContent className="bg-[#f0ebe1] border-[#1a2744]/20 max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-[#1a2744] font-bold flex items-center gap-2">
-                <Target size={18} className="text-blue-600" /> Closest to the Pin
+                <Target size={18} className="text-[#b06b10]" /> Closest to the Pin
               </DialogTitle>
             </DialogHeader>
             <p className="text-[#1a2744]/75 font-sans-app text-sm">
@@ -1196,7 +1196,7 @@ export default function Scorekeeper() {
                             <span className="text-[#1a2744]/70">
                               {isLd
                                 ? <span className="text-emerald-700 font-bold">Long Drive</span>
-                                : <span className="text-blue-600 font-bold">Hole {mark.holeNumber} CTP</span>
+                                : <>Hole {mark.holeNumber} CTP</>
                               }
                               {playerName ? <>{" — "}<span className="font-bold text-[#1a2744]">{playerName}</span></> : null}
                             </span>
