@@ -714,7 +714,7 @@ function HolesTab() {
                     {hole.isCtpHole
                       ? hole.par === 3
                         ? <Badge className="bg-amber-500/25 text-[#b06b10] border-amber-500/30 text-[10px] px-1 py-0">CTP</Badge>
-                        : <Badge className="bg-blue-500/20 text-blue-700 border-blue-500/30 text-[10px] px-1 py-0">LD</Badge>
+                        : <Badge className="bg-emerald-500/20 text-emerald-700 border-emerald-500/30 text-[10px] px-1 py-0">LD</Badge>
                       : <span className="text-[#1a2744]/35">—</span>
                     }
                   </td>
@@ -1732,7 +1732,7 @@ function SettingsTab() {
                 <div key={ldHole.id} className="bg-[#1a2744]/5 border border-[#1a2744]/12 rounded-lg px-3 py-2.5">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <p className="text-blue-600 text-[10px] font-bold uppercase tracking-wider font-sans-app flex items-center gap-1"><Zap size={10} />Long Drive</p>
+                      <p className="text-green-600 text-[10px] font-bold uppercase tracking-wider font-sans-app flex items-center gap-1"><Zap size={10} />Long Drive</p>
                       <div className="font-bold text-[#1a2744] text-sm">
                         Hole {ldHole.holeNumber} <span className="text-[#1a2744]/40 font-normal">— {ldHole.ctpLabel ?? "LD"}</span>
                       </div>
