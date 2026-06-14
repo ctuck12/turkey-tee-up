@@ -154,7 +154,7 @@ function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: 
           >
             {/* Type label */}
             <div className={`text-[10px] font-bold uppercase tracking-widest font-sans-app mb-0.5 flex items-center gap-1 ${
-              isLd ? "text-emerald-600" : "text-[#b06b10]"
+              isLd ? "text-emerald-600" : "text-blue-600"
             }`}>
               {isLd ? <Zap size={10} /> : <Target size={10} />}
               {isLd ? "Long Drive" : "Closest to Pin"}
@@ -183,7 +183,7 @@ function CtpGrid({ ctpEntries, ctpHoles, ldHole, teams, flight }: { ctpEntries: 
             <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[#1a2744]/10 min-w-0">
               {/* One line, sizes down on small screens: type label colored, hole black, prize gray + truncating */}
               <div className="flex items-center gap-1.5 font-bold font-sans-app flex-nowrap min-w-0 text-[clamp(0.7rem,3.4vw,0.875rem)]">
-                <span className={`flex items-center gap-1.5 shrink-0 whitespace-nowrap ${historyHole.isLd ? "text-emerald-600" : "text-[#b06b10]"}`}>
+                <span className={`flex items-center gap-1.5 shrink-0 whitespace-nowrap ${historyHole.isLd ? "text-emerald-600" : "text-blue-600"}`}>
                   {historyHole.isLd ? <Zap size={14} /> : <Target size={14} />}
                   {historyHole.isLd ? "Long Drive" : "Closest to Pin"}
                 </span>
