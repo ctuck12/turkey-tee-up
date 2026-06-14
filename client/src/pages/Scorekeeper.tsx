@@ -861,7 +861,7 @@ export default function Scorekeeper() {
                     <span className="flex items-center gap-1 min-w-0 text-[11px] font-sans-app">
                       {lead?.playerName ? (
                         <>
-                          <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-[#1a2744]/55">Leader</span>
+                          <span className="shrink-0 text-[9px] font-bold uppercase tracking-wide text-[#1a2744]/55">Leader:</span>
                           <span className="font-bold text-[#1a2744] truncate">{lead.playerName}</span>
                         </>
                       ) : (
